@@ -23,12 +23,24 @@
   const GRID = 9;             // mesh grid step in mm
   const patterns = {};
 
-  function loadPattern(size) {
-    if (!patterns[size]) patterns[size] = fetch(`patterns/play-sport-mc/${size}.json`).then((r) => {
-      if (!r.ok) throw new Error(`pattern ${size}: ${r.status}`);
+  // style = folder in patterns/ (play-sport-mc, playera-dama); size = S | M | L | XL
+  function loadPattern(style, size) {
+    const key = `${style}/${size}`;
+    if (!patterns[key]) patterns[key] = fetch(`patterns/${key}.json`).then((r) => {
+      if (!r.ok) throw new Error(`pattern ${key}: ${r.status}`);
       return r.json();
     }).then(addLandmarks);
-    return patterns[size];
+    return patterns[key];
+  }
+
+  // Where a horizontal line at height y crosses the piece: [left, right] in mm.
+  function rowExtent(p, y) {
+    const o = p.outline; let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < o.length; i++) {
+      const [x1, y1] = o[i], [x2, y2] = o[(i + 1) % o.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) { const x = x1 + ((y - y1) / (y2 - y1)) * (x2 - x1); lo = Math.min(lo, x); hi = Math.max(hi, x); }
+    }
+    return lo < hi ? [lo, hi] : [0, p.width];
   }
 
   // Landmarks used for print placement and for bending the pieces.
@@ -37,10 +49,18 @@
       const o = p.outline, cx = p.width / 2;
       // Neck point: the highest outline point near the center line is the bottom of the neckline.
       const near = o.filter(([x]) => Math.abs(x - cx) < p.width * 0.06);
-      p.neckY = near.length ? Math.max(...near.filter(([, y]) => y < p.height * 0.3).map(([, y]) => y), 0) : 0;
-      // Underarm: where the outline reaches its full width on each side, top-most.
-      const side = o.filter(([x]) => x < 2 || x > p.width - 2).map(([, y]) => y);
-      p.underarmY = side.length ? Math.min(...side) : p.height * 0.3;
+      p.neckY = p.neck ? p.neck.depth_mm : near.length ? Math.max(...near.filter(([, y]) => y < p.height * 0.3).map(([, y]) => y), 0) : 0;
+      // The neck curve as points (front and back), where the binding is sewn.
+      if (p.neck) {
+        p.neckPath = [];
+        for (let i = p.neck.from; ; i = (i + p.neck.step + o.length) % o.length) { p.neckPath.push(o[i]); if (i === p.neck.to) break; }
+      }
+      // Underarm: going down from the shoulder, the first height where the armhole curve has
+      // reached the full width of the upper body. (Not the widest point: on fitted pieces
+      // that is the flared hem.)
+      let maxW = 0; const ws = [];
+      for (let y = 2; y < p.height * 0.55; y += 2) { const [l, r] = rowExtent(p, y); ws.push([y, r - l]); maxW = Math.max(maxW, r - l); }
+      p.underarmY = (ws.find(([, w]) => w >= maxW * 0.985) || [p.height * 0.3])[0];
       p.path = new Path2D(`M${o.map(([x, y]) => `${x},${y}`).join("L")}Z`);
     }
     return pat;
@@ -148,20 +168,32 @@
     // Half the torso circumference is one piece width: an oval with depth 0.5 × width.
     const a = W / (Math.PI * Math.sqrt((1 + 0.5 * 0.5) / 2)), b = a * 0.5;
     const H = Math.max(F.height, B.height);
-    const body = (p, sign) => (x, y) => {
-      const t = (x / p.width) * Math.PI - Math.PI / 2;
-      let X = a * Math.sin(t) * sign, Z = b * Math.cos(t) * sign;
+    // Each row of a piece wraps half the torso between that row's side seams, so fitted
+    // pieces (the women's waist) keep their shape and the side seams meet at every height.
+    const extent = rowExtent;
+    const body = (p, sign) => {
+      const rows = {}, ref = extent(p, p.underarmY + 1), refW = ref[1] - ref[0];
+      return (x, y) => {
+        const ky = Math.round(y / 4) * 4;
+        const [xl, xr] = (rows[ky] ??= extent(p, Math.max(p.underarmY + 1, Math.min(p.height - 1, ky))));
+        const k = (xr - xl) / refW;
+        const t = ((x - xl) / (xr - xl)) * Math.PI - Math.PI / 2;
+        let X = a * k * Math.sin(t) * sign, Z = b * k * Math.cos(t) * sign;
       // Above the underarm the piece curls over the shoulder, so front and back meet on top.
       const top = Math.max(0, Math.min(1, (p.underarmY - y) / p.underarmY));
       Z *= 1 - 0.82 * top * top;
       // a gentle waist and a little flare at the hem keep it from looking like a tube
       const yy = y / p.height, waist = 1 - 0.035 * Math.sin(Math.PI * Math.min(1, yy * 1.2));
-      return [X * waist, H - y - (p.height - H) * 0, Z * waist];
+      return [X * waist, H - y, Z * waist];
+      };
     };
     const sleeve = (p, side) => {
       const S = pat.pieces.find((q) => q.kind === "sleeve");
       const capBase = S.height * 0.36;                    // where the cap meets the underarm seam
-      const shoulderY = H - F.underarmY * 0.3, shoulderX = a * 0.9;
+      // Hang the sleeve from the shoulder: use the body's width at the underarm, not at the
+      // hem (fitted pieces are narrower up top), so the cap meets the armhole.
+      const [ul, ur] = extent(F, F.underarmY + 1), aUnder = a * ((ur - ul) / W);
+      const shoulderY = H - F.underarmY * 0.3, shoulderX = aUnder * 0.9;
       const ang = (34 * Math.PI) / 180;                    // arms relaxed, 34° below horizontal
       const dir = [Math.cos(ang) * side, -Math.sin(ang), 0], up = [Math.sin(ang) * side, Math.cos(ang), 0];
       // the sleeve's width at each height becomes the tube's circumference
@@ -180,14 +212,35 @@
     return { front: body(F, 1), back: body(B, -1), sleeveR: (p) => sleeve(p, -1), sleeveL: (p) => sleeve(p, 1), H };
   }
 
-  // The geometry is built once per size; a change of color or design only repaints textures.
-  async function show3D(canvas, size, design) {
-    const pat = await loadPattern(size);
+  // Neck binding: a strip of the same fabric in one solid tone, sewn over the neck edge.
+  // Drawn as a band along the real neck curve of the front and back pieces.
+  const BINDING_MM = 11;
+  function bindingGeometry(p, bend) {
+    const path = p.neckPath; if (!path || path.length < 2) return null;
+    const ctx = document.createElement("canvas").getContext("2d"), pos = [], idx = [];
+    path.forEach(([x, y], i) => {
+      const [xa, ya] = path[Math.max(0, i - 1)], [xb, yb] = path[Math.min(path.length - 1, i + 1)];
+      let nx = -(yb - ya), ny = xb - xa; const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
+      if (!ctx.isPointInPath(p.path, x + nx * 4, y + ny * 4)) { nx = -nx; ny = -ny; }   // point into the piece
+      for (const d of [-1.5, BINDING_MM]) {
+        const v = bend(x + nx * d, y + ny * d), r = 1.012;            // a hair outside the body, no flicker
+        pos.push(v[0] * r, v[1], v[2] * r);
+      }
+      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    return g;
+  }
+
+  // The geometry is built once per pattern; a change of color or design only repaints textures.
+  async function show3D(canvas, style, size, design) {
+    const pat = await loadPattern(style, size), key = `${style}/${size}`;
     if (!three || three.canvas !== canvas) initThree(canvas);
     const { group } = three;
-    if (three.size !== size) {
-      for (const m of three.meshes) { group.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); }
-      three.meshes = [];
+    if (three.key !== key) {
+      for (const m of [...three.meshes, ...(three.bindings || [])]) { group.remove(m); m.geometry.dispose(); if (m.material.map) m.material.map.dispose(); m.material.dispose(); }
+      three.meshes = []; three.bindings = [];
       const bend = benders(pat);
       let sleeves = 0;
       for (const p of pat.pieces) {
@@ -196,9 +249,14 @@
         const mesh = new THREE.Mesh(gridGeometry(p, f), mat);
         mesh.userData.piece = p;
         group.add(mesh); three.meshes.push(mesh);
+        const bg = p.kind !== "sleeve" && bindingGeometry(p, f);
+        if (bg) {
+          const band = new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.85, metalness: 0 }));
+          group.add(band); three.bindings.push(band);
+        }
       }
       group.position.y = -bend.H / 2;
-      three.size = size;
+      three.key = key;
     }
     for (const m of three.meshes) {
       const tex = new THREE.CanvasTexture(pieceTexture(m.userData.piece, design));
@@ -206,6 +264,9 @@
       if (m.material.map) m.material.map.dispose();
       m.material.map = tex; m.material.needsUpdate = true;
     }
+    // One tone: the binding is the garment (or background) color, never printed.
+    const tone = new THREE.Color(design.color).convertSRGBToLinear();
+    for (const b of three.bindings) b.material.color.copy(tone);
     resize(); render();
   }
 
@@ -249,8 +310,8 @@
   }
 
   /* -------------------- flat pattern view -------------------- */
-  async function drawFlat(canvas, size, design, labels) {
-    const pat = await loadPattern(size), x = canvas.getContext("2d"), S = canvas.width;
+  async function drawFlat(canvas, style, size, design, labels) {
+    const pat = await loadPattern(style, size), x = canvas.getContext("2d"), S = canvas.width;
     const [F, B, S1, S2] = pat.pieces, gap = 40;
     const totalW = F.width + B.width + gap, totalH = Math.max(F.height, B.height) + gap + S1.height;
     const k = Math.min((S - 80) / totalW, (S - 120) / totalH);
@@ -269,19 +330,24 @@
     const sy = oy + (Math.max(F.height, B.height) + gap) * k;
     const sw = (S1.width + S2.width + gap) * k, sx = (S - sw) / 2;
     put(S1, sx, sy, labels.sleeve); put(S2, sx + (S1.width + gap) * k, sy, labels.sleeve);
+    if (pat.neckline_mm) {
+      x.fillStyle = "#151316"; x.font = '500 22px "IBM Plex Mono", monospace'; x.textAlign = "center";
+      x.fillText(labels.binding(Math.round(pat.neckline_mm)), S / 2, S - 26);
+    }
   }
 
   /* -------------------- production file (route 2) -------------------- */
   // The marker at real scale: every piece printed where the CAD system laid it out.
-  async function productionFile(size, design, dpi = 100) {
-    const pat = await loadPattern(size), pxmm = dpi / 25.4, head = 22;   // mm of header above the marker
+  async function productionFile(style, size, design, dpi = 100) {
+    const pat = await loadPattern(style, size), pxmm = dpi / 25.4, head = 30;   // mm of header above the marker
     const c = document.createElement("canvas");
     c.width = Math.round(pat.marker.width * pxmm); c.height = Math.round((pat.marker.height + head) * pxmm);
     const x = c.getContext("2d");
     x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, c.width, c.height);
     x.scale(pxmm, pxmm);
     x.fillStyle = "#151316"; x.font = '500 7px "IBM Plex Mono", monospace';
-    x.fillText(`CHILIAN · ${pat.style} · TALLA ${size} · ${Math.round(pat.marker.width)} × ${Math.round(pat.marker.height)} mm · ${dpi} dpi · ${new Date().toISOString().slice(0, 10)}`, 6, 14);
+    x.fillText(`CHILIAN · ${pat.style} · TALLA ${size} · ${Math.round(pat.marker.width)} × ${Math.round(pat.marker.height)} mm · ${dpi} dpi · ${new Date().toISOString().slice(0, 10)}`, 6, 12);
+    if (pat.neckline_mm) x.fillText(`CUELLO: CINTA DE LA MISMA TELA, 1 TONO ${(design.colorName || "").toUpperCase()} ${design.color.toUpperCase()} · ESCOTE ${Math.round(pat.neckline_mm)} mm EN LÍNEA DE CORTE (NO INCLUIDA EN ESTE TRAZO)`, 6, 22);
     x.translate(0, head);
     x.strokeStyle = "#999"; x.lineWidth = 0.4; x.strokeRect(0, 0, pat.marker.width, pat.marker.height);
     for (const p of pat.pieces) {
@@ -294,5 +360,8 @@
     return c;
   }
 
-  window.Chilian3D = { loadPattern, show3D, render, resize, drawFlat, productionFile, placedRect, snapshot: () => three && three.canvas };
+  // Turn the model to face the side being printed.
+  function face(side) { if (!three) return; three.rotY = side === "back" ? Math.PI - 0.35 : -0.35; render(); }
+
+  window.Chilian3D = { face, loadPattern, show3D, render, resize, drawFlat, productionFile, placedRect, snapshot: () => three && three.canvas };
 })();

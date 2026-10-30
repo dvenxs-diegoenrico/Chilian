@@ -12,6 +12,7 @@
 | `favicon.png`, `apple-touch-icon.png` | Ícono de la pestaña y del teléfono |
 | `studio3d.js` | 3D, vista de molde y archivo de producción (rutas 2 y 3) |
 | `patterns/play-sport-mc/` | Molde Chilian Sport (PLAY SPORT MCORTA) tallas S–XL en milímetros, trazado de los PDF de CAD |
+| `patterns/playera-dama/` | Molde playera dama (PLAYERA PW DAMA BIE) tallas S–XL |
 | `tools/extract_pattern.py` | Convierte un trazo PDF de CAD en el JSON del molde |
 | `vendor/three-r128.min.js` | three.js r128 (licencia MIT), servido desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
@@ -157,3 +158,21 @@ Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
 - Moldes de sudadera y polo (PDF de CAD igual que estos) para llevarles el 3D.
 - Cerrar la unión manga–sisa en 3D (hoy se ve una abertura al girar).
 - Resolución final y perfil de color de la impresora de sublimación para el archivo de producción (hoy 100 dpi).
+
+### Playera dama y cuello de cinta
+
+- La playera dama (PLAYERA PW DAMA BIE) se agregó al estudio con su molde S–XL. No tiene foto de prenda lisa, así que se muestra en 3D; las posiciones de frente y espalda están en una sola lista y el modelo gira al elegir una de espalda.
+- **Cuello:** cinta de la misma tela, a 1 tono. En 3D es una banda sólida sobre la curva real del escote, del color de la prenda (o del fondo, en estampado completo); nunca lleva el estampado. El archivo de producción lo anota en el encabezado con el largo del escote, porque la cinta no está en el trazo.
+
+| Estilo | Talla | Alto del trazo (mm) | Aprovechamiento CAD (%) | Medido (%) | Escote en línea de corte (mm) |
+| --- | --- | --- | --- | --- | --- |
+| Chilian Sport | S | 748 | 72.56 | 71.95 | 511 |
+| Chilian Sport | M | 1003 | 61.42 | 61.01 | 522 |
+| Chilian Sport | L | 1037 | 66.84 | 66.43 | 544 |
+| Chilian Sport | XL | 1089 | 71.08 | 70.33 | 559 |
+| Playera dama | S | 662 | 65.16 | 64.57 | 563 |
+| Playera dama | M | 687 | 68.69 | 68.08 | 550 |
+| Playera dama | L | 713 | 72.22 | 71.6 | 537 |
+| Playera dama | XL | 738 | 76.29 | 75.67 | 531 |
+
+El escote se mide sobre la línea de corte (incluye margen de costura), ignorando los piquetes. **Por revisar con Chilian:** en la playera dama el escote se acorta al subir de talla (S 563 → XL 531 mm) mientras se hace más profundo; en Chilian Sport crece (S 511 → XL 559 mm).

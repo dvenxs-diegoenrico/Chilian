@@ -1204,7 +1204,7 @@
       <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div></fieldset>
       <fieldset class="st-step" id="st-step-fill" hidden><legend data-en="How the design fills the garment">Cómo llena la prenda tu diseño</legend><div class="chips" id="st-fills"></div>
         <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
-      <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size (Chilian Sport)">Talla del molde (Chilian Sport)</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
+      <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size">Talla del molde</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
       <div class="st-actions">
         <button class="btn btn-accent" type="button" id="st-quote"><span data-en="Quote with this design">Cotizar con este diseño</span> <span class="arrow" aria-hidden="true">→</span></button>
         <button class="btn btn-ghost" type="button" id="st-download" data-en="Download mockup">Descargar mockup</button>
@@ -1660,13 +1660,21 @@
      ================================================================ */
   const STUDIO = {
     garments: [
-      { id: "tee", quote: 0, name: { es: "Playera", en: "T-shirt" }, views: {
+      { id: "tee", quote: 0, pattern: "play-sport-mc", name: { es: "Playera", en: "T-shirt" }, views: {
         front: { src: "blanks/tee-front.webp", cx: 630, pxcm: 11, places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 255, sizes: [20, 25, 30], maxH: 36 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 735, top: 262, sizes: [7, 9, 11], maxH: 11 } ] },
         back: { src: "blanks/tee-back.webp", cx: 630, pxcm: 10.4, places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 205, sizes: [25, 30, 35], maxH: 40 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 128, sizes: [6, 8, 10], maxH: 5 } ] } } },
+      // Women's t-shirt: no photo blank, only its CAD pattern, so it is shown in 3D.
+      { id: "dama", quote: 0, pattern: "playera-dama", photo: false, name: { es: "Playera dama", en: "Women's tee" }, views: {
+        front: { cx: 0, pxcm: 11, places: [
+          { id: "full", name: { es: "Frente completo", en: "Full front" }, sizes: [18, 22, 26], maxH: 32 },
+          { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, sizes: [7, 8, 10], maxH: 10 } ] },
+        back: { cx: 0, pxcm: 11, places: [
+          { id: "back", name: { es: "Espalda completa", en: "Full back" }, sizes: [22, 26, 30], maxH: 36 },
+          { id: "nape", name: { es: "Nuca", en: "Back neck" }, sizes: [6, 8, 10], maxH: 5 } ] } } },
       { id: "hoodie", quote: 2, name: { es: "Sudadera", en: "Hoodie" }, views: {
         front: { src: "blanks/hoodie-front.webp", cx: 632, pxcm: 10.7, places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 320, sizes: [20, 25, 28], maxH: 38 },
@@ -1701,7 +1709,8 @@
   const SIZE = 1264;
   const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
   const curView = () => STUDIO.garments[st.g].views[st.side];
-  const hasPattern = () => STUDIO.garments[st.g].id === "tee";   // only the t-shirt has its CAD pattern so far
+  const hasPattern = () => !!STUDIO.garments[st.g].pattern;      // garments with a CAD pattern get 3D and full print
+  const hasPhoto = () => STUDIO.garments[st.g].photo !== false;
   const curPlace = () => curView().places[Math.min(st.place, curView().places.length - 1)];
 
   // Load a blank once: keep its alpha and its shade map.
@@ -1847,14 +1856,15 @@
     if (!g.views[st.side]) st.side = "front";
     if (!hasPattern()) { st.mode = "place"; if (st.display !== "photo") st.display = "photo"; }
     if (st.mode === "full" && st.display === "photo") st.display = "flat";
-    if (st.mode === "place" && st.display === "flat") st.display = "photo";
+    if (st.mode === "place" && st.display === "flat") st.display = hasPhoto() ? "photo" : "3d";
+    if (!hasPhoto() && st.display === "photo") st.display = "3d";
     st.place = Math.min(st.place, curView().places.length - 1);
     stChips($("#st-garments"), "st-g", STUDIO.garments.map((x) => t(x.name)), (i) => i === st.g, (i) => { st.g = i; st.place = 0; st.dx = st.dy = 0; });
 
     // Views: front / back photo mockups and 3D; in full print, the flat pattern and 3D.
     const views = st.mode === "full"
       ? [["flat", L("Molde", "Pattern")], ["3d", "3D beta"]]
-      : [["front", L("Frente", "Front")], ["back", L("Espalda", "Back")], ["3d", "3D beta"]];
+      : hasPhoto() ? [["front", L("Frente", "Front")], ["back", L("Espalda", "Back")], ["3d", "3D beta"]] : [["3d", "3D beta"]];
     const vbox = $("#st-views"); vbox.textContent = "";
     views.forEach(([id, label]) => {
       const on = id === "3d" || id === "flat" ? st.display === id : st.display === "photo" && st.side === id;
@@ -1873,7 +1883,7 @@
     stChips($("#st-modes"), "st-m", [L("Serigrafía por posición", "Placement print"), L("Estampado completo", "Full print")],
       (i) => (i ? "full" : "place") === st.mode, (i) => { st.mode = i ? "full" : "place"; st.display = i ? "flat" : "photo"; });
     $("#st-mode-note").textContent = st.mode === "full"
-      ? L("Sublimación de costura a costura sobre el molde real de Chilian Sport.", "Seam-to-seam sublimation on the real Chilian Sport pattern.")
+      ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a binding of the same fabric, in one tone.`)
       : L("Tu diseño en una posición: frente, pecho, espalda o nuca.", "Your design in one spot: front, chest, back or neck.");
     $("#st-step-place").hidden = $("#st-step-size").hidden = st.mode === "full";
     $("#st-step-fill").hidden = st.mode !== "full";
@@ -1888,7 +1898,14 @@
     $("#st-hint").textContent = st.display === "3d" ? L("Arrastra para girar · rueda o pellizco para acercar", "Drag to turn · wheel or pinch to zoom")
       : st.display === "flat" ? L("Así se corta e imprime cada pieza del molde", "How each pattern piece is cut and printed")
       : L("Arrastra el diseño o usa las flechas", "Drag the design or use the arrow keys");
-    stChips($("#st-places"), "st-p", curView().places.map((p) => t(p.name)), (i) => i === st.place, (i) => { st.place = i; st.dx = st.dy = 0; });
+    if (hasPhoto()) {
+      stChips($("#st-places"), "st-p", curView().places.map((p) => t(p.name)), (i) => i === st.place, (i) => { st.place = i; st.dx = st.dy = 0; });
+    } else {
+      // Without photos, front and back placements share one list; picking one turns the 3D model.
+      const all = ["front", "back"].flatMap((side) => g.views[side].places.map((pl, i) => ({ side, i, pl })));
+      stChips($("#st-places"), "st-p", all.map((o) => t(o.pl.name)), (k) => all[k].side === st.side && all[k].i === st.place,
+        (k) => { st.side = all[k].side; st.place = all[k].i; st.dx = st.dy = 0; if (window.Chilian3D) Chilian3D.face(st.side); });
+    }
     stChips($("#st-sizes"), "st-s", curPlace().sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === st.size, (i) => { st.size = i; });
     const sw = $("#st-colors"); sw.textContent = "";
     STUDIO.colors.forEach((c, i) => {
@@ -1903,7 +1920,7 @@
 
   function studioSummary() {
     const g = STUDIO.garments[st.g], r = printRect();
-    if (st.mode === "full") return `Chilian Sport · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")} · ${L("talla", "size")} ${st.pat}`;
+    if (st.mode === "full") return `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")} · ${L("talla", "size")} ${st.pat}`;
     return `${t(g.name)} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${t(curPlace().name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
   }
 
@@ -1918,7 +1935,7 @@
   }
   // What studio3d.js needs to paint the pattern pieces.
   function patternDesign() {
-    return { mode: st.mode, color: STUDIO.colors[st.color].hex, art: st.art, fill: st.fill, tileMM: st.tile,
+    return { mode: st.mode, color: STUDIO.colors[st.color].hex, colorName: STUDIO.colors[st.color].name.es, art: st.art, fill: st.fill, tileMM: st.tile,
              place: { ...curPlace() }, sizeIdx: st.size, dxmm: (st.dx / curView().pxcm) * 10, dymm: (st.dy / curView().pxcm) * 10 };
   }
   let patTicket = 0;
@@ -1931,10 +1948,12 @@
     if (ticket !== patTicket) return;
     loading.hidden = true;
     c3.hidden = !want3D; stCanvas.style.visibility = want3D ? "hidden" : "visible";
-    if (want3D) await Chilian3D.show3D(c3, st.pat, patternDesign());
-    else await Chilian3D.drawFlat(stCanvas, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeve: L("MANGA", "SLEEVE") });
+    const style = STUDIO.garments[st.g].pattern;
+    if (want3D) await Chilian3D.show3D(c3, style, st.pat, patternDesign());
+    else await Chilian3D.drawFlat(stCanvas, style, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeve: L("MANGA", "SLEEVE"),
+      binding: (mm) => L(`CUELLO: CINTA DE LA MISMA TELA, 1 TONO · ESCOTE ${mm} MM`, `NECK: SAME-FABRIC BINDING, ONE TONE · NECKLINE ${mm} MM`) });
     const r = printRect();
-    $("#st-size-label").textContent = st.mode === "full" ? L(`Molde Chilian Sport · talla ${st.pat}`, `Chilian Sport pattern · size ${st.pat}`) : `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm · ${L("talla", "size")} ${st.pat}`;
+    $("#st-size-label").textContent = st.mode === "full" ? L(`Molde ${t(STUDIO.garments[st.g].name).toLowerCase()} · talla ${st.pat}`, `${t(STUDIO.garments[st.g].name)} pattern · size ${st.pat}`) : `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm · ${L("talla", "size")} ${st.pat}`;
   }
 
   async function openStudio() {
@@ -1993,9 +2012,9 @@
       btn.disabled = true; btn.textContent = L("Preparando archivo…", "Preparing file…");
       try {
         await ensure3D();
-        const c = await Chilian3D.productionFile(st.pat, patternDesign(), 100);
+        const c = await Chilian3D.productionFile(STUDIO.garments[st.g].pattern, st.pat, patternDesign(), 100);
         c.toBlob((blob) => {
-          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `chilian-sport-trazo-${st.pat}.png`;
+          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `chilian-${STUDIO.garments[st.g].pattern}-trazo-${st.pat}.png`;
           document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
           btn.disabled = false; btn.textContent = label;
         }, "image/png");

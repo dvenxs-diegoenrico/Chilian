@@ -1,5 +1,5 @@
 {
- "style": "PLAY SPORT MCORTA",
+ "style": "PLAY SPORT MCORTA DI",
  "size": "M",
  "units": "mm",
  "orientation": "upright, y down",
@@ -10,6 +10,7 @@
   "efficiency_pct": 61.42,
   "measured_use_pct": 61.01
  },
+ "neckline_mm": 521.8,
  "pieces": [
   {
    "kind": "front",
@@ -359,7 +360,14 @@
     "y": 3.1,
     "rotation": 180
    },
-   "area_cm2": 3607.5
+   "area_cm2": 3607.5,
+   "neck": {
+    "from": 59,
+    "to": 21,
+    "step": -1,
+    "length_mm": 315.3,
+    "depth_mm": 107.8
+   }
   },
   {
    "kind": "back",
@@ -665,7 +673,14 @@
     "y": 3.1,
     "rotation": 180
    },
-   "area_cm2": 3785.7
+   "area_cm2": 3785.7,
+   "neck": {
+    "from": 46,
+    "to": 25,
+    "step": -1,
+    "length_mm": 206.6,
+    "depth_mm": 20.8
+   }
   },
   {
    "kind": "sleeve",
