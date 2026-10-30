@@ -176,3 +176,23 @@ Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
 | Playera dama | XL | 738 | 76.29 | 75.67 | 531 |
 
 El escote se mide sobre la línea de corte (incluye margen de costura), ignorando los piquetes. **Por revisar con Chilian:** en la playera dama el escote se acorta al subir de talla (S 563 → XL 531 mm) mientras se hace más profundo; en Chilian Sport crece (S 511 → XL 559 mm).
+
+## Varios gráficos por prenda (uno por sección) y render realista
+
+**Secciones de impresión.** Cada sección admite un solo gráfico, con su propia posición, tamaño, ajuste fino y opción de quitar fondo blanco. Subir otro archivo a la misma sección lo reemplaza; "Quitar gráfico" la vacía. Un punto relleno en cada botón indica qué secciones ya tienen gráfico.
+
+| Prenda | Secciones |
+| --- | --- |
+| Playera y playera dama | Frente (frente completo o pecho izquierdo), Espalda, Nuca, Manga derecha, Manga izquierda |
+| Sudadera | Frente, Espalda |
+| Polo | Frente, Espalda, Nuca |
+
+- Las mangas existen donde hay molde CAD y se ven en 3D y en la vista de molde.
+- En estampado completo se agrega la sección **Fondo** (cubrir cada pieza o patrón repetido) y encima van los gráficos de cada sección.
+- El resumen, la marca de agua de la descarga, el cotizador y el archivo de producción incluyen todas las secciones.
+
+**Render realista.**
+- *Fotos (Canva AI):* el gráfico se dobla con los pliegues de la tela (cada píxel de tinta se desplaza según la pendiente del pliegue), toma la luz y sombra de la prenda y deja ver un grano sutil de algodón. La playera dama ya tiene fotos de frente y espalda generadas con Canva AI (`blanks/dama-*.webp`), con cuello de cinta.
+- *3D:* tono fílmico (ACES), iluminación de estudio de 3 luces, textura de tejido de punto, pliegues suaves que se desvanecen en las costuras, interior de la prenda en tela lisa y sombra de contacto.
+
+**Siguiente paso posible: render con IA sobre modelo.** Un botón "Render fotorrealista con IA" que envíe el mockup a un servicio de generación de imágenes y devuelva la prenda puesta en una persona. Requiere elegir proveedor, una llave de API guardada en Vercel y un presupuesto por render.

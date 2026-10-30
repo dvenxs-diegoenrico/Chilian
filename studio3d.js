@@ -21,6 +21,7 @@
 (function () {
   const TPX = 1.6;            // texture pixels per millimeter (front M ≈ 846 × 1212 px)
   const GRID = 9;             // mesh grid step in mm
+  const CAP = 0.36;           // the sleeve cap is the top 36 % of the sleeve piece
   const patterns = {};
 
   // style = folder in patterns/ (play-sport-mc, playera-dama); size = S | M | L | XL
@@ -45,7 +46,9 @@
 
   // Landmarks used for print placement and for bending the pieces.
   function addLandmarks(pat) {
+    let sleeves = 0;
     for (const p of pat.pieces) {
+      if (p.kind === "sleeve") p.side = sleeves++ ? "L" : "R";   // first sleeve on the marker = wearer's right
       const o = p.outline, cx = p.width / 2;
       // Neck point: the highest outline point near the center line is the bottom of the neckline.
       const near = o.filter(([x]) => Math.abs(x - cx) < p.width * 0.06);
@@ -75,17 +78,15 @@
     x.scale(TPX, TPX);
     x.save(); x.clip(p.path);
     x.fillStyle = d.color; x.fillRect(0, 0, p.width, p.height);
-    if (d.art) {
-      if (d.mode === "full") drawFull(x, p, d);
-      else drawPlaced(x, p, d);
-    }
+    if (d.mode === "full" && d.bg) drawFull(x, p, d);
+    for (const pr of d.prints || []) drawPlaced(x, p, pr);
     x.restore();
     return c;
   }
 
   // Full print: the design covers the whole piece, or repeats as a pattern.
   function drawFull(x, p, d) {
-    const a = d.art, ar = a.width / a.height;
+    const a = d.bg, ar = a.width / a.height;
     if (d.fill === "repeat") {
       const tw = d.tileMM, th = tw / ar;
       for (let yy = -th; yy < p.height + th; yy += th) for (let xx = -tw; xx < p.width + tw; xx += tw) x.drawImage(a, xx, yy, tw, th);
@@ -96,26 +97,56 @@
     }
   }
 
-  // Placement print on the front or back piece, in the same centimeters as the 2D studio.
+  // Where each section's graphic sits on its piece, in mm (same centimeters as the 2D studio).
+  // Body prints hang from the neck point; sleeve prints sit on the sleeve's center line
+  // (the outside of the arm), 25 mm below the base of the sleeve cap.
   const PLACES = {
     full:  { piece: "front", cx: 0,  below: 70 },
     chest: { piece: "front", cx: 95, below: 75 },
     back:  { piece: "back",  cx: 0,  below: 80 },
-    nape:  { piece: "back",  cx: 0,  below: 25 }
+    nape:  { piece: "back",  cx: 0,  below: 25 },
+    sleeve: { piece: "sleeve", cx: 0, belowCap: 25 }
   };
-  function placedRect(p, d) {
-    const spec = PLACES[d.place.id];
+  function placedRect(p, pr) {
+    const spec = PLACES[pr.placeId];
     if (!spec || spec.piece !== p.kind) return null;
-    const ar = d.art.height / d.art.width;
-    let w = d.place.sizes[d.sizeIdx] * 10, h = w * ar;
-    if (h > d.place.maxH * 10) { h = d.place.maxH * 10; w = h / ar; }
+    if (p.kind === "sleeve" && pr.section !== (p.side === "R" ? "sleeveR" : "sleeveL")) return null;
     // On the back piece the wearer's left is on the left as laid flat (outside up), so +x mirrors.
-    const cx = p.width / 2 + (p.kind === "back" ? -spec.cx : spec.cx) + d.dxmm;
-    return { x: cx - w / 2, y: p.neckY + spec.below + d.dymm, w, h };
+    const cx = p.width / 2 + (p.kind === "back" ? -spec.cx : spec.cx) + pr.dxmm;
+    const top = p.kind === "sleeve" ? p.height * CAP + spec.belowCap : p.neckY + spec.below;
+    return { x: cx - pr.wmm / 2, y: top + pr.dymm, w: pr.wmm, h: pr.hmm };
   }
-  function drawPlaced(x, p, d) {
-    const r = placedRect(p, d);
-    if (r) x.drawImage(d.art, r.x, r.y, r.w, r.h);
+  function drawPlaced(x, p, pr) {
+    const r = placedRect(p, pr);
+    if (r) x.drawImage(pr.art, r.x, r.y, r.w, r.h);
+  }
+
+  // A fine knit, as a normal map: vertical ribs a few millimeters apart plus a little
+  // irregular yarn noise, so light breaks on the fabric like it does on cotton jersey.
+  let knitMap = null;
+  function knit() {
+    if (knitMap) return knitMap;
+    const N = 128, c = document.createElement("canvas"); c.width = c.height = N;
+    const x = c.getContext("2d"), img = x.createImageData(N, N), h = new Float32Array(N * N);
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) h[j * N + i] = 0.6 * Math.sin((i / N) * Math.PI * 2 * 16) ** 2 + 0.25 * Math.sin((j / N) * Math.PI * 2 * 32 + i) + 0.3 * rnd();
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const dx = h[j * N + ((i + 1) % N)] - h[j * N + ((i - 1 + N) % N)], dy = h[((j + 1) % N) * N + i] - h[((j - 1 + N) % N) * N + i];
+      const k = (j * N + i) * 4, len = Math.hypot(dx, dy, 1);
+      img.data[k] = (-dx / len * 0.5 + 0.5) * 255; img.data[k + 1] = (-dy / len * 0.5 + 0.5) * 255; img.data[k + 2] = (1 / len * 0.5 + 0.5) * 255; img.data[k + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    knitMap = new THREE.CanvasTexture(c); knitMap.wrapS = knitMap.wrapT = THREE.RepeatWrapping;
+    return knitMap;
+  }
+  // Soft shadow under the garment, like a product photo on a sweep.
+  function shadowPlane(width, y) {
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const x = c.getContext("2d"), g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+    g.addColorStop(0, "rgba(0,0,0,.30)"); g.addColorStop(0.6, "rgba(0,0,0,.10)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(width * 1.4, width * 0.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.y = y; return m;
   }
 
   /* -------------------- 3D -------------------- */
@@ -125,11 +156,15 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.outputEncoding = THREE.sRGBEncoding;
+    // Filmic tone mapping keeps whites soft and darks deep, like a studio photo.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, 1, 10, 10000);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8790, 0.75));
-    const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(-500, 900, 1400); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(700, 400, -1200); scene.add(rim);
+    // A three-light product setup: soft sky fill, a key from the upper left, a rim from behind.
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6c74, 0.65));
+    const key = new THREE.DirectionalLight(0xfff6ec, 1.05); key.position.set(-700, 1100, 1300); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xe9f0ff, 0.35); fill.position.set(900, 200, 900); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(500, 700, -1400); scene.add(rim);
     const group = new THREE.Group(); scene.add(group);
     three = { renderer, scene, camera, group, canvas, rotY: -0.35, rotX: 0.06, dist: 2150, meshes: [] };
     wireOrbit(canvas);
@@ -158,6 +193,13 @@
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx); g.computeVertexNormals();
+    // Outside must face out (outside = textured, inside = plain): compare normals with the
+    // direction from the piece's own center; flip the triangles if most point inward.
+    const P = g.attributes.position.array, Nn = g.attributes.normal.array;
+    let cx = 0, cy = 0, cz = 0, n = P.length / 3; for (let i = 0; i < P.length; i += 3) { cx += P[i]; cy += P[i + 1]; cz += P[i + 2]; }
+    cx /= n; cy /= n; cz /= n;
+    let dot = 0; for (let i = 0; i < P.length; i += 3) dot += (P[i] - cx) * Nn[i] + (P[i + 2] - cz) * Nn[i + 2];
+    if (dot < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
     return g;
   }
 
@@ -184,12 +226,20 @@
       Z *= 1 - 0.82 * top * top;
       // a gentle waist and a little flare at the hem keep it from looking like a tube
       const yy = y / p.height, waist = 1 - 0.035 * Math.sin(Math.PI * Math.min(1, yy * 1.2));
-      return [X * waist, H - y, Z * waist];
+      // Soft folds: long vertical drapes from the chest down, a few horizontal ripples at the
+      // waist and hem, and drag lines from the underarm. Amplitudes are a few millimeters.
+      const below = Math.max(0, (y - p.underarmY) / (p.height - p.underarmY));
+      const fold = 3.2 * below * Math.sin(x * 0.035 + Math.sin(y * 0.011) * 1.7)
+        + 1.6 * Math.sin(y * 0.09 + x * 0.006) * Math.min(1, below * 2) * (1 - Math.abs(t) / 1.8)
+        + 2.0 * Math.exp(-((y - p.underarmY - 60) ** 2) / 4000) * Math.sin((x - p.width / 2) * 0.05);
+      // Folds fade out at the side seams (cos t = 0 there), so front and back still meet.
+      const rad = Math.hypot(X, Z) || 1, f = 1 + (fold * Math.max(0, Math.cos(t)) ** 0.8) / rad;
+      return [X * waist * f, H - y, Z * waist * f];
       };
     };
     const sleeve = (p, side) => {
       const S = pat.pieces.find((q) => q.kind === "sleeve");
-      const capBase = S.height * 0.36;                    // where the cap meets the underarm seam
+      const capBase = S.height * CAP;                     // where the cap meets the underarm seam
       // Hang the sleeve from the shoulder: use the body's width at the underarm, not at the
       // hem (fitted pieces are narrower up top), so the cap meets the armhole.
       const [ul, ur] = extent(F, F.underarmY + 1), aUnder = a * ((ur - ul) / W);
@@ -209,7 +259,7 @@
         return [shoulderX * side + dir[0] * s + up[0] * cu, shoulderY + dir[1] * s + up[1] * cu, dir[2] * s + cz];
       };
     };
-    return { front: body(F, 1), back: body(B, -1), sleeveR: (p) => sleeve(p, -1), sleeveL: (p) => sleeve(p, 1), H };
+    return { front: body(F, 1), back: body(B, -1), sleeveR: (p) => sleeve(p, -1), sleeveL: (p) => sleeve(p, 1), H, W: a * 2 };
   }
 
   // Neck binding: a strip of the same fabric in one solid tone, sewn over the neck edge.
@@ -239,22 +289,30 @@
     if (!three || three.canvas !== canvas) initThree(canvas);
     const { group } = three;
     if (three.key !== key) {
-      for (const m of [...three.meshes, ...(three.bindings || [])]) { group.remove(m); m.geometry.dispose(); if (m.material.map) m.material.map.dispose(); m.material.dispose(); }
+      // A new pattern: clear everything (outside, inside, binding, shadow) before rebuilding.
+      for (const m of [...group.children]) { group.remove(m); m.geometry.dispose(); if (m.material.map) m.material.map.dispose(); if (m.material.normalMap) m.material.normalMap.dispose(); m.material.dispose(); }
       three.meshes = []; three.bindings = [];
       const bend = benders(pat);
       let sleeves = 0;
       for (const p of pat.pieces) {
         const f = p.kind === "front" ? bend.front : p.kind === "back" ? bend.back : (sleeves++ ? bend.sleeveL(p) : bend.sleeveR(p));
-        const mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.92, metalness: 0, alphaTest: 0.5 });
-        const mesh = new THREE.Mesh(gridGeometry(p, f), mat);
+        // Outside: the printed fabric with a knit texture. Inside: the same cloth, plain and a bit
+        // darker (it gets less light), so the neck and sleeve openings read as real fabric.
+        const geo = gridGeometry(p, f), n = knit().clone(); n.needsUpdate = true;
+        n.repeat.set(p.width / 9, p.height / 9);
+        const mat = new THREE.MeshStandardMaterial({ side: THREE.FrontSide, roughness: 0.94, metalness: 0, alphaTest: 0.5, normalMap: n, normalScale: new THREE.Vector2(0.13, 0.13) });
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.userData.piece = p;
-        group.add(mesh); three.meshes.push(mesh);
+        const inner = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ side: THREE.BackSide, roughness: 1, metalness: 0, alphaTest: 0.5 }));
+        mesh.userData.inner = inner;
+        group.add(mesh, inner); three.meshes.push(mesh);
         const bg = p.kind !== "sleeve" && bindingGeometry(p, f);
         if (bg) {
           const band = new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.85, metalness: 0 }));
           group.add(band); three.bindings.push(band);
         }
       }
+      group.add(shadowPlane(bend.W || 600, -45));
       group.position.y = -bend.H / 2;
       three.key = key;
     }
@@ -263,6 +321,12 @@
       tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
       if (m.material.map) m.material.map.dispose();
       m.material.map = tex; m.material.needsUpdate = true;
+      // The inside keeps the cut shape but shows plain cloth in the garment color (no print:
+      // ink is only on the outside).
+      const inner = m.userData.inner.material, plain = new THREE.CanvasTexture(pieceTexture(m.userData.piece, { color: design.color, prints: [] }));
+      plain.encoding = THREE.sRGBEncoding;
+      if (inner.map) inner.map.dispose();
+      inner.map = plain; inner.color.set(0x9a989e); inner.needsUpdate = true;
     }
     // One tone: the binding is the garment (or background) color, never printed.
     const tone = new THREE.Color(design.color).convertSRGBToLinear();
@@ -329,7 +393,7 @@
     put(B, ox + (F.width + gap) * k, oy, labels.back);
     const sy = oy + (Math.max(F.height, B.height) + gap) * k;
     const sw = (S1.width + S2.width + gap) * k, sx = (S - sw) / 2;
-    put(S1, sx, sy, labels.sleeve); put(S2, sx + (S1.width + gap) * k, sy, labels.sleeve);
+    put(S1, sx, sy, S1.side === "L" ? labels.sleeveL : labels.sleeveR); put(S2, sx + (S1.width + gap) * k, sy, S2.side === "L" ? labels.sleeveL : labels.sleeveR);
     if (pat.neckline_mm) {
       x.fillStyle = "#151316"; x.font = '500 22px "IBM Plex Mono", monospace'; x.textAlign = "center";
       x.fillText(labels.binding(Math.round(pat.neckline_mm)), S / 2, S - 26);
@@ -361,7 +425,10 @@
   }
 
   // Turn the model to face the side being printed.
-  function face(side) { if (!three) return; three.rotY = side === "back" ? Math.PI - 0.35 : -0.35; render(); }
+  function face(side) {
+    if (!three) return;
+    three.rotY = { back: Math.PI - 0.35, right: 1.25, left: -1.25 }[side] ?? -0.35; render();
+  }
 
   window.Chilian3D = { face, loadPattern, show3D, render, resize, drawFlat, productionFile, placedRect, snapshot: () => three && three.canvas };
 })();

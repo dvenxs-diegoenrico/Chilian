@@ -602,6 +602,13 @@
   .st-drop span { font-size: .82rem; color: var(--steel); }
   .st-drop.over, .st-drop:focus-within { border-color: var(--ink); background: var(--paper); }
   .st-file { font: 400 .78rem var(--f-mono); color: var(--steel); overflow-wrap: anywhere; }
+  .st-sections .chip span { display: inline-flex; align-items: center; gap: .45rem; }
+  .st-sections .dot { width: .5rem; height: .5rem; border-radius: 50%; border: 1.5px solid currentColor; }
+  .st-sections .dot.on { background: currentColor; }
+  .st-file-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem 1rem; }
+  .st-remove { background: none; border: 0; padding: .2rem 0; cursor: pointer; color: var(--steel); font: 500 .78rem var(--f-mono); text-decoration: underline; text-underline-offset: 3px; }
+  .st-remove:disabled { opacity: .4; cursor: default; }
+  @media (hover: hover) { .st-remove:not(:disabled):hover { color: var(--ink); } }
   .st-check { display: flex; gap: .6rem; align-items: center; font-size: .9rem; cursor: pointer; }
   .st-check input { accent-color: var(--ink); width: 1rem; height: 1rem; margin: 0; }
   .swatches { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -1187,20 +1194,24 @@
         <p class="lead" data-en="Upload your design and see it on the garment. Your file stays on your device.">Sube tu diseño y míralo en la prenda. Tu archivo no sale de tu dispositivo.</p>
       </div>
       <div class="st-step">
-        <span data-en="Your design">Tu diseño</span>
+        <span data-en="Print sections · one graphic each">Secciones de impresión · un gráfico por sección</span>
+        <div class="chips st-sections" id="st-sections"></div>
         <label class="st-drop" id="st-drop">
           <input type="file" id="st-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-          <strong data-en="Upload or drop your file">Sube o arrastra tu archivo</strong>
+          <strong id="st-drop-title">Sube o arrastra tu archivo</strong>
           <span data-en="PNG with transparency works best · JPG, SVG, WebP">PNG con fondo transparente funciona mejor · JPG, SVG, WebP</span>
         </label>
         <p class="st-file" id="st-file-name" aria-live="polite"></p>
-        <label class="st-check"><input type="checkbox" id="st-knockout"><span data-en="Remove white background">Quitar fondo blanco</span></label>
+        <div class="st-file-row">
+          <label class="st-check"><input type="checkbox" id="st-knockout"><span data-en="Remove white background">Quitar fondo blanco</span></label>
+          <button class="st-remove" type="button" id="st-remove" data-en="Remove graphic">Quitar gráfico</button>
+        </div>
       </div>
       <fieldset class="st-step"><legend data-en="Garment">Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
       <fieldset class="st-step" id="st-step-mode"><legend data-en="Print type">Tipo de impresión</legend><div class="chips" id="st-modes"></div>
         <span class="st-color-name" id="st-mode-note"></span></fieldset>
       <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
-      <fieldset class="st-step" id="st-step-place"><legend data-en="Placement">Posición</legend><div class="chips" id="st-places"></div></fieldset>
+      <fieldset class="st-step" id="st-step-place"><legend data-en="Placement in this section">Posición en la sección</legend><div class="chips" id="st-places"></div></fieldset>
       <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div></fieldset>
       <fieldset class="st-step" id="st-step-fill" hidden><legend data-en="How the design fills the garment">Cómo llena la prenda tu diseño</legend><div class="chips" id="st-fills"></div>
         <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
@@ -1638,7 +1649,7 @@
     $("#lang-es").setAttribute("aria-pressed", String(next === "es"));
     $("#lang-en").setAttribute("aria-pressed", String(next === "en"));
     renderCerts(); renderTechs(); renderWork(); renderTeam(); renderQuoteChoices(); updateTicket(); updateCalc();
-    if (st.artName === "sample") sampleArt().then((img) => setSource(img, "sample"));
+    if (st.prints.front && st.prints.front.name === "sample") sampleArt().then((img) => { setSource("front", img, "sample"); drawStudio(); });
     if ($("#studio").open) { renderStudio(); drawStudio(); }
     store.set("chilian-lang", next);
   }
@@ -1660,34 +1671,47 @@
      ================================================================ */
   const STUDIO = {
     garments: [
-      { id: "tee", quote: 0, pattern: "play-sport-mc", name: { es: "Playera", en: "T-shirt" }, views: {
+      { id: "tee", quote: 0, pattern: "play-sport-mc", name: { es: "Playera", en: "T-shirt" },
+        sections: ["front", "back", "nape", "sleeveR", "sleeveL"], views: {
         front: { src: "blanks/tee-front.webp", cx: 630, pxcm: 11, places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 255, sizes: [20, 25, 30], maxH: 36 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 735, top: 262, sizes: [7, 9, 11], maxH: 11 } ] },
         back: { src: "blanks/tee-back.webp", cx: 630, pxcm: 10.4, places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 205, sizes: [25, 30, 35], maxH: 40 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 128, sizes: [6, 8, 10], maxH: 5 } ] } } },
-      // Women's t-shirt: no photo blank, only its CAD pattern, so it is shown in 3D.
-      { id: "dama", quote: 0, pattern: "playera-dama", photo: false, name: { es: "Playera dama", en: "Women's tee" }, views: {
-        front: { cx: 0, pxcm: 11, places: [
-          { id: "full", name: { es: "Frente completo", en: "Full front" }, sizes: [18, 22, 26], maxH: 32 },
-          { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, sizes: [7, 8, 10], maxH: 10 } ] },
-        back: { cx: 0, pxcm: 11, places: [
-          { id: "back", name: { es: "Espalda completa", en: "Full back" }, sizes: [22, 26, 30], maxH: 36 },
-          { id: "nape", name: { es: "Nuca", en: "Back neck" }, sizes: [6, 8, 10], maxH: 5 } ] } } },
-      { id: "hoodie", quote: 2, name: { es: "Sudadera", en: "Hoodie" }, views: {
+      // Women's t-shirt: photo blanks made with Canva AI, plus its CAD pattern for 3D.
+      { id: "dama", quote: 0, pattern: "playera-dama", name: { es: "Playera dama", en: "Women's tee" },
+        sections: ["front", "back", "nape", "sleeveR", "sleeveL"], views: {
+        front: { src: "blanks/dama-front.webp", cx: 630, pxcm: 11.5, places: [
+          { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 270, sizes: [18, 22, 26], maxH: 32 },
+          { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 735, top: 275, sizes: [7, 8, 10], maxH: 10 } ] },
+        back: { src: "blanks/dama-back.webp", cx: 630, pxcm: 11.5, places: [
+          { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 190, sizes: [22, 26, 30], maxH: 36 },
+          { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 125, sizes: [6, 8, 10], maxH: 5 } ] } } },
+      { id: "hoodie", quote: 2, name: { es: "Sudadera", en: "Hoodie" }, sections: ["front", "back"], views: {
         front: { src: "blanks/hoodie-front.webp", cx: 632, pxcm: 10.7, places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 320, sizes: [20, 25, 28], maxH: 38 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 770, top: 330, sizes: [7, 9, 10], maxH: 10 } ] },
         back: { src: "blanks/hoodie-back.webp", cx: 632, pxcm: 10.7, places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 440, sizes: [25, 30, 35], maxH: 40 } ] } } },
-      { id: "polo", quote: 1, name: { es: "Polo", en: "Polo" }, views: {
+      { id: "polo", quote: 1, name: { es: "Polo", en: "Polo" }, sections: ["front", "back", "nape"], views: {
         front: { src: "blanks/polo-front.webp", cx: 632, pxcm: 10.9, places: [
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 762, top: 300, sizes: [7, 9, 10], maxH: 9 } ] },
         back: { src: "blanks/polo-back.webp", cx: 628, pxcm: 10.5, places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 205, sizes: [25, 30, 33], maxH: 38 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 160, sizes: [6, 8, 10], maxH: 5 } ] } } }
     ],
+    // Print sections: each one holds at most ONE graphic. "side" is where it shows:
+    // the front or back photo, or a sleeve (3D and pattern views only).
+    sections: {
+      bg:      { name: { es: "Fondo", en: "Background" }, side: "all" },
+      front:   { name: { es: "Frente", en: "Front" }, side: "front", places: ["full", "chest"] },
+      back:    { name: { es: "Espalda", en: "Back" }, side: "back", places: ["back"] },
+      nape:    { name: { es: "Nuca", en: "Back neck" }, side: "back", places: ["nape"] },
+      sleeveR: { name: { es: "Manga derecha", en: "Right sleeve" }, side: "sleeveR" },
+      sleeveL: { name: { es: "Manga izquierda", en: "Left sleeve" }, side: "sleeveL" }
+    },
+    sleevePlace: { id: "sleeve", name: { es: "Manga", en: "Sleeve" }, sizes: [6, 8, 10], maxH: 10 },
     colors: [
       { hex: "#F4F4F2", name: { es: "Blanco", en: "White" } },
       { hex: "#1C1C1E", name: { es: "Negro", en: "Black" } },
@@ -1700,18 +1724,31 @@
     ],
     sizeNames: [{ es: "Chico", en: "Small" }, { es: "Mediano", en: "Medium" }, { es: "Grande", en: "Large" }]
   };
-  // side = which face is being placed on; display = photo mockup, 3D or the flat pattern;
-  // mode = placement print (screen printing) or full print (sublimation, Chilian Sport only).
-  const st = { g: 0, side: "front", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M",
-               place: 0, size: 1, color: 0, dx: 0, dy: 0, art: null, artName: "", knockout: false, cache: {} };
+  // side = photo face shown; display = photo mockup, 3D or the flat pattern;
+  // mode = placement print (screen printing) or full print (sublimation, patterned garments only);
+  // active = the print section being edited; prints[section] = one graphic and its settings.
+  const st = { g: 0, side: "front", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M", color: 0,
+               active: "front", prints: {}, cache: {} };
 
   const stCanvas = $("#st-canvas"), stCtx = stCanvas.getContext("2d", { willReadFrequently: true });
   const SIZE = 1264;
+  const L = (es, en) => (lang === "en" ? en : es);
   const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
-  const curView = () => STUDIO.garments[st.g].views[st.side];
-  const hasPattern = () => !!STUDIO.garments[st.g].pattern;      // garments with a CAD pattern get 3D and full print
-  const hasPhoto = () => STUDIO.garments[st.g].photo !== false;
-  const curPlace = () => curView().places[Math.min(st.place, curView().places.length - 1)];
+  const garment = () => STUDIO.garments[st.g];
+  const curView = () => garment().views[st.side];
+  const hasPattern = () => !!garment().pattern;      // garments with a CAD pattern get 3D, sleeves and full print
+  const hasPhoto = () => garment().photo !== false;
+  const secDef = (id) => STUDIO.sections[id];
+  const isSleeve = (id) => id === "sleeveR" || id === "sleeveL";
+  // Sections this garment offers right now (sleeves need the pattern; the background needs full print).
+  const sectionsNow = () => (st.mode === "full" ? ["bg"] : []).concat(garment().sections.filter((id) => !isSleeve(id) || hasPattern()));
+  function placesOf(id) {
+    if (isSleeve(id)) return [STUDIO.sleevePlace];
+    const d = secDef(id), v = garment().views[d.side];
+    return d.places ? v.places.filter((p) => d.places.includes(p.id)) : [];
+  }
+  const activePrint = () => st.prints[st.active];
+  const newPrint = () => ({ art: null, source: null, name: "", knockout: false, place: 0, size: 1, dx: 0, dy: 0 });
 
   // Load a blank once: keep its alpha and its shade map.
   function loadBlank(src) {
@@ -1755,19 +1792,46 @@
     return (blank.tinted[hex] = c);
   }
 
-  // The design's box on the garment, in blank pixels, kept to the real size in cm.
-  function printRect() {
-    const v = curView(), p = curPlace(), art = st.art;
-    let wcm = p.sizes[st.size], hcm = wcm * (art.height / art.width);
+  // A print's box, in real centimeters; on the photo also in blank pixels.
+  function printRect(id, pr = st.prints[id]) {
+    const p = placesOf(id)[Math.min(pr.place, placesOf(id).length - 1)], art = pr.art;
+    let wcm = p.sizes[pr.size], hcm = wcm * (art.height / art.width);
     if (hcm > p.maxH) { hcm = p.maxH; wcm = hcm * (art.width / art.height); }
-    const w = wcm * v.pxcm, h = hcm * v.pxcm;
-    return { x: (p.cx || v.cx) - w / 2 + st.dx, y: p.top + st.dy, w, h, wcm, hcm };
+    if (isSleeve(id)) return { wcm, hcm, place: p };
+    const v = garment().views[secDef(id).side], w = wcm * v.pxcm, h = hcm * v.pxcm;
+    return { x: (p.cx || v.cx) - w / 2 + pr.dx, y: p.top + pr.dy, w, h, wcm, hcm, place: p };
   }
 
-  // One reusable canvas the size of the print box (not the whole garment), so a
-  // redraw only touches the pixels under the design. Redraws are batched to one
-  // per screen frame, which keeps dragging smooth on phones.
+  // Print a design INTO the fabric of the photo blank, as realistic as the photo allows:
+  //   · folds bend the print (each ink pixel is shifted along the slope of the fabric),
+  //   · the fabric's light and shadow run over the ink,
+  //   · a faint cotton grain shows through, and the ink never leaves the garment.
   const stLayer = document.createElement("canvas"), stLx = stLayer.getContext("2d", { willReadFrequently: true });
+  const grain = (i) => (((i * 2654435761) >>> 0) & 1023) / 1023 - 0.5;
+  function inkInto(blank, art, r) {
+    const x0 = Math.max(1, Math.floor(r.x)), y0 = Math.max(1, Math.floor(r.y));
+    const x1 = Math.min(SIZE - 1, Math.ceil(r.x + r.w)), y1 = Math.min(SIZE - 1, Math.ceil(r.y + r.h)), w = x1 - x0, h = y1 - y0;
+    if (w <= 0 || h <= 0) return;
+    if (stLayer.width !== w || stLayer.height !== h) { stLayer.width = w; stLayer.height = h; } else stLx.clearRect(0, 0, w, h);
+    stLx.drawImage(art, r.x - x0, r.y - y0, r.w, r.h);
+    const src = stLx.getImageData(0, 0, w, h).data, out = stLx.createImageData(w, h), o = out.data;
+    const S = blank.shade, A = blank.alpha, K = 120, MAXD = 6;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y + y0) * SIZE + (x + x0);
+      if (!A[i]) continue;
+      const gx = Math.max(-MAXD, Math.min(MAXD, (S[i + 1] - S[i - 1]) * K));
+      const gy = Math.max(-MAXD, Math.min(MAXD, (S[i + SIZE] - S[i - SIZE]) * K));
+      const sx = Math.min(w - 1, Math.max(0, Math.round(x - gx))), sy = Math.min(h - 1, Math.max(0, Math.round(y - gy)));
+      const j = (sy * w + sx) * 4, a = src[j + 3];
+      if (!a) continue;
+      const k = Math.min(1.08, S[i]) * (1 + grain(i) * 0.07), q = (y * w + x) * 4;
+      o[q] = src[j] * k; o[q + 1] = src[j + 1] * k; o[q + 2] = src[j + 2] * k;
+      o[q + 3] = a * (A[i] / 255) * 0.96;
+    }
+    stLx.putImageData(out, 0, 0);
+    stCtx.drawImage(stLayer, x0, y0);
+  }
+
   let stDrawing = 0, stFrame = 0, stDragging = false;
   function requestDraw() { if (!stFrame) stFrame = requestAnimationFrame(() => { stFrame = 0; drawStudio(); }); }
   async function drawStudio() {
@@ -1775,42 +1839,39 @@
     const ticket = ++stDrawing;
     $("#st-3d").hidden = true; stCanvas.style.visibility = "visible"; $("#st-loading").hidden = true;
     const blank = await loadBlank(curView().src);
-    if (ticket !== stDrawing || !st.art) return;
+    if (ticket !== stDrawing) return;
     stCtx.clearRect(0, 0, SIZE, SIZE);
     stCtx.drawImage(tinted(blank, STUDIO.colors[st.color].hex), 0, 0);
-    // Print the design into the fabric.
-    const r = printRect(), x0 = Math.max(0, Math.floor(r.x)), y0 = Math.max(0, Math.floor(r.y));
-    const x1 = Math.min(SIZE, Math.ceil(r.x + r.w)), y1 = Math.min(SIZE, Math.ceil(r.y + r.h)), w = x1 - x0, h = y1 - y0;
-    if (w > 0 && h > 0) {
-      if (stLayer.width !== w || stLayer.height !== h) { stLayer.width = w; stLayer.height = h; } else stLx.clearRect(0, 0, w, h);
-      stLx.drawImage(st.art, r.x - x0, r.y - y0, r.w, r.h);
-      const img = stLx.getImageData(0, 0, w, h), p = img.data;
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const i = (y + y0) * SIZE + (x + x0), j = (y * w + x) * 4;
-        const k = Math.min(1.06, blank.shade[i]);
-        p[j] *= k; p[j + 1] *= k; p[j + 2] *= k;
-        p[j + 3] = p[j + 3] * (blank.alpha[i] / 255) * 0.97;   // ink sits in the fabric, never outside it
+    // Every section with a graphic on this face of the garment.
+    for (const id of sectionsNow()) {
+      const pr = st.prints[id];
+      if (!pr || !pr.art || secDef(id).side !== st.side) continue;
+      const r = printRect(id);
+      inkInto(blank, pr.art, r);
+      if (stDragging && id === st.active) {   // outline what is moving
+        stCtx.save(); stCtx.setLineDash([14, 10]); stCtx.lineWidth = 3;
+        stCtx.strokeStyle = "rgba(255,255,255,.9)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
+        stCtx.lineDashOffset = 12; stCtx.strokeStyle = "rgba(0,0,0,.55)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
+        stCtx.restore();
       }
-      stLx.putImageData(img, 0, 0);
-      stCtx.drawImage(stLayer, x0, y0);
     }
-    // While dragging, outline the design so it is clear what is moving.
-    if (stDragging) {
-      stCtx.save(); stCtx.setLineDash([14, 10]); stCtx.lineWidth = 3;
-      stCtx.strokeStyle = "rgba(255,255,255,.9)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
-      stCtx.lineDashOffset = 12; stCtx.strokeStyle = "rgba(0,0,0,.55)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
-      stCtx.restore();
-    }
-    $("#st-size-label").textContent = `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
+    updateSizeLabel();
+  }
+  function updateSizeLabel() {
+    const pr = activePrint();
+    if (st.mode === "full" && st.active === "bg") { $("#st-size-label").textContent = L(`Molde ${t(garment().name).toLowerCase()} · talla ${st.pat}`, `${t(garment().name)} pattern · size ${st.pat}`); return; }
+    if (!pr || !pr.art) { $("#st-size-label").textContent = L("Sin gráfico en esta sección", "No graphic in this section"); return; }
+    const r = printRect(st.active);
+    $("#st-size-label").textContent = `${t(secDef(st.active).name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm` + (st.display !== "photo" ? ` · ${L("talla", "size")} ${st.pat}` : "");
   }
 
   // Turn any upload into a trimmed canvas (optionally without its white background).
-  function prepareArt(img) {
+  function prepareArt(img, knockout) {
     const max = 1600, w0 = img.naturalWidth || 1000, h0 = img.naturalHeight || 1000, sc = Math.min(1, max / Math.max(w0, h0));
     const c = document.createElement("canvas"); c.width = Math.round(w0 * sc); c.height = Math.round(h0 * sc);
     const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, c.width, c.height);
     const data = x.getImageData(0, 0, c.width, c.height), d = data.data;
-    if (st.knockout) for (let i = 0; i < d.length; i += 4) {
+    if (knockout) for (let i = 0; i < d.length; i += 4) {
       const mn = Math.min(d[i], d[i + 1], d[i + 2]);
       if (mn > 232) d[i + 3] = Math.round(d[i + 3] * Math.max(0, (248 - mn) / 16));
     }
@@ -1824,8 +1885,11 @@
     out.getContext("2d").drawImage(c, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
     return out;
   }
-  let stSource = null;
-  function setSource(img, name) { stSource = img; st.artName = name; st.art = prepareArt(img); st.dx = st.dy = 0; drawStudio(); }
+  // Put an image in a section (replacing what was there: one graphic per section).
+  function setSource(id, img, name) {
+    const pr = st.prints[id] || (st.prints[id] = newPrint());
+    pr.source = img; pr.name = name; pr.art = prepareArt(img, pr.knockout); pr.dx = pr.dy = 0;
+  }
 
   // Until the visitor uploads, show a sample design so the preview is never empty.
   async function sampleArt() {
@@ -1850,16 +1914,43 @@
       box.append(el("label", { class: "chip" }, [input, el("span", { text: label })]));
     });
   }
-  const L = (es, en) => (lang === "en" ? en : es);
+
+  // Choosing a section shows it: front/back sections switch the photo, sleeves open 3D.
+  function focusSection(id) {
+    st.active = id;
+    const side = secDef(id).side;
+    if (st.mode === "place") {
+      if (isSleeve(id)) st.display = "3d";
+      else if (side === "front" || side === "back") { if (st.display === "photo") st.side = side; }
+    }
+    // Turn the 3D model to the section (applied after the model loads, if it isn't there yet).
+    st.faceReq = side === "back" ? "back" : side === "sleeveR" ? "right" : side === "sleeveL" ? "left" : "front";
+  }
+
   function renderStudio() {
-    const g = STUDIO.garments[st.g];
+    const g = garment();
     if (!g.views[st.side]) st.side = "front";
     if (!hasPattern()) { st.mode = "place"; if (st.display !== "photo") st.display = "photo"; }
     if (st.mode === "full" && st.display === "photo") st.display = "flat";
     if (st.mode === "place" && st.display === "flat") st.display = hasPhoto() ? "photo" : "3d";
-    if (!hasPhoto() && st.display === "photo") st.display = "3d";
-    st.place = Math.min(st.place, curView().places.length - 1);
-    stChips($("#st-garments"), "st-g", STUDIO.garments.map((x) => t(x.name)), (i) => i === st.g, (i) => { st.g = i; st.place = 0; st.dx = st.dy = 0; });
+    if (!sectionsNow().includes(st.active)) st.active = sectionsNow()[0];
+    stChips($("#st-garments"), "st-g", STUDIO.garments.map((x) => t(x.name)), (i) => i === st.g, (i) => { st.g = i; });
+
+    // Sections: one chip each, filled dot = has a graphic.
+    const sbox = $("#st-sections"); sbox.textContent = "";
+    for (const id of sectionsNow()) {
+      const input = el("input", { type: "radio", name: "st-sec", value: id, id: `st-sec-${id}` });
+      if (id === st.active) input.checked = true;
+      input.addEventListener("change", () => { focusSection(id); renderStudio(); drawStudio(); });
+      const has = !!(st.prints[id] && st.prints[id].art);
+      sbox.append(el("label", { class: "chip" }, [input, el("span", {}, [el("i", { class: "dot" + (has ? " on" : ""), "aria-hidden": "true" }), t(secDef(id).name)])]));
+    }
+    const pr = activePrint(), secName = t(secDef(st.active).name);
+    $("#st-drop-title").textContent = pr && pr.art ? L(`Cambiar el gráfico de ${secName}`, `Replace the ${secName} graphic`) : L(`Sube el gráfico para ${secName}`, `Upload the ${secName} graphic`);
+    $("#st-file-name").textContent = pr && pr.art ? (pr.name === "sample" ? L("Diseño de ejemplo.", "Sample design.") : pr.name)
+      : L("Esta sección está vacía.", "This section is empty.");
+    $("#st-knockout").checked = !!(pr && pr.knockout);
+    $("#st-remove").disabled = !(pr && pr.art);
 
     // Views: front / back photo mockups and 3D; in full print, the flat pattern and 3D.
     const views = st.mode === "full"
@@ -1870,25 +1961,29 @@
       const on = id === "3d" || id === "flat" ? st.display === id : st.display === "photo" && st.side === id;
       const input = el("input", { type: "radio", name: "st-v", value: id, id: `st-v-${id}` });
       if (on) input.checked = true;
-      if (id === "3d" && !hasPattern()) { input.disabled = true; input.title = L("3D disponible en playera", "3D available on the t-shirt"); }
+      if (id === "3d" && !hasPattern()) { input.disabled = true; input.title = L("3D disponible en playeras", "3D available on t-shirts"); }
       input.addEventListener("change", () => {
-        if (id === "3d" || id === "flat") st.display = id; else { st.display = "photo"; st.side = id; st.place = 0; st.dx = st.dy = 0; }
+        if (id === "3d" || id === "flat") st.display = id;
+        else { st.display = "photo"; st.side = id; if (secDef(st.active).side !== id) st.active = sectionsNow().find((s) => secDef(s).side === id) || st.active; }
         renderStudio(); drawStudio();
       });
       vbox.append(el("label", { class: "chip" }, [input, el("span", { text: label })]));
     });
 
-    // Print type (the t-shirt only, the one garment with its pattern).
+    // Print type: only garments with a CAD pattern can be fully printed.
     $("#st-step-mode").hidden = !hasPattern();
     stChips($("#st-modes"), "st-m", [L("Serigrafía por posición", "Placement print"), L("Estampado completo", "Full print")],
-      (i) => (i ? "full" : "place") === st.mode, (i) => { st.mode = i ? "full" : "place"; st.display = i ? "flat" : "photo"; });
+      (i) => (i ? "full" : "place") === st.mode, (i) => { st.mode = i ? "full" : "place"; st.display = i ? "flat" : hasPhoto() ? "photo" : "3d"; st.active = i ? "bg" : "front"; });
     $("#st-mode-note").textContent = st.mode === "full"
-      ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a binding of the same fabric, in one tone.`)
-      : L("Tu diseño en una posición: frente, pecho, espalda o nuca.", "Your design in one spot: front, chest, back or neck.");
-    $("#st-step-place").hidden = $("#st-step-size").hidden = st.mode === "full";
-    $("#st-step-fill").hidden = st.mode !== "full";
+      ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono. Puedes sumar un gráfico por sección encima del fondo.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a same-fabric binding in one tone. You can add one graphic per section over the background.`)
+      : L("Un gráfico por sección: frente, espalda, nuca y mangas.", "One graphic per section: front, back, neck and sleeves.");
+    const editingBg = st.active === "bg";
+    $("#st-step-place").hidden = editingBg || placesOf(st.active).length < 2;
+    $("#st-step-size").hidden = editingBg || !(pr && pr.art);
+    $("#st-step-fill").hidden = !editingBg;
     $("#st-step-pat").hidden = !(st.mode === "full" || st.display === "3d");
     $("#st-production").hidden = st.mode !== "full";
+    $("#st-reset").hidden = editingBg || isSleeve(st.active);
     $("#st-color-legend").textContent = st.mode === "full" ? L("Color de fondo", "Background color") : L("Color de la prenda", "Garment color");
     stChips($("#st-fills"), "st-f", [L("Cubrir cada pieza", "Cover each piece"), L("Repetir como patrón", "Repeat as a pattern")],
       (i) => (i ? "repeat" : "cover") === st.fill, (i) => { st.fill = i ? "repeat" : "cover"; });
@@ -1897,16 +1992,12 @@
     stChips($("#st-pat-sizes"), "st-ps", ["S", "M", "L", "XL"], (i) => ["S", "M", "L", "XL"][i] === st.pat, (i) => { st.pat = ["S", "M", "L", "XL"][i]; });
     $("#st-hint").textContent = st.display === "3d" ? L("Arrastra para girar · rueda o pellizco para acercar", "Drag to turn · wheel or pinch to zoom")
       : st.display === "flat" ? L("Así se corta e imprime cada pieza del molde", "How each pattern piece is cut and printed")
-      : L("Arrastra el diseño o usa las flechas", "Drag the design or use the arrow keys");
-    if (hasPhoto()) {
-      stChips($("#st-places"), "st-p", curView().places.map((p) => t(p.name)), (i) => i === st.place, (i) => { st.place = i; st.dx = st.dy = 0; });
-    } else {
-      // Without photos, front and back placements share one list; picking one turns the 3D model.
-      const all = ["front", "back"].flatMap((side) => g.views[side].places.map((pl, i) => ({ side, i, pl })));
-      stChips($("#st-places"), "st-p", all.map((o) => t(o.pl.name)), (k) => all[k].side === st.side && all[k].i === st.place,
-        (k) => { st.side = all[k].side; st.place = all[k].i; st.dx = st.dy = 0; if (window.Chilian3D) Chilian3D.face(st.side); });
+      : L("Arrastra el gráfico de la sección o usa las flechas", "Drag the section's graphic or use the arrow keys");
+    if (pr && !editingBg) {
+      const places = placesOf(st.active);
+      stChips($("#st-places"), "st-p", places.map((p) => t(p.name)), (i) => i === pr.place, (i) => { pr.place = i; pr.dx = pr.dy = 0; });
+      stChips($("#st-sizes"), "st-s", places[Math.min(pr.place, places.length - 1)].sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === pr.size, (i) => { pr.size = i; });
     }
-    stChips($("#st-sizes"), "st-s", curPlace().sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === st.size, (i) => { st.size = i; });
     const sw = $("#st-colors"); sw.textContent = "";
     STUDIO.colors.forEach((c, i) => {
       const input = el("input", { type: "radio", name: "st-c", value: String(i), id: `st-c-${i}`, "aria-label": t(c.name) });
@@ -1915,13 +2006,18 @@
       sw.append(el("label", { class: "swatch-opt", title: t(c.name) }, [input, el("span", { style: `--c:${c.hex}` })]));
     });
     $("#st-color-name").textContent = t(STUDIO.colors[st.color].name);
-    $("#st-file-name").textContent = st.artName && !st.artName.startsWith("sample") ? st.artName : (lang === "en" ? "Showing a sample design." : "Mostrando un diseño de ejemplo.");
   }
 
   function studioSummary() {
-    const g = STUDIO.garments[st.g], r = printRect();
-    if (st.mode === "full") return `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")} · ${L("talla", "size")} ${st.pat}`;
-    return `${t(g.name)} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${t(curPlace().name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
+    const g = garment(), color = t(STUDIO.colors[st.color].name).toLowerCase();
+    const parts = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art).map((id) => {
+      const r = printRect(id), places = placesOf(id);
+      return `${t(secDef(id).name)}${places.length > 1 ? ` (${t(r.place.name).toLowerCase()})` : ""} ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
+    });
+    const head = st.mode === "full"
+      ? `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${color}${st.prints.bg && st.prints.bg.art ? ` + ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")}` : ""} · ${L("talla", "size")} ${st.pat}`
+      : `${t(g.name)} ${color}`;
+    return [head, ...parts].join(" · ");
   }
 
   /* ---- 3D and flat pattern views (studio3d.js, loaded on first use) ---- */
@@ -1933,31 +2029,36 @@
     st3dReady.catch(() => { st3dReady = null; });
     return st3dReady;
   }
-  // What studio3d.js needs to paint the pattern pieces.
+  // What studio3d.js needs to paint the pattern pieces: the background and every section's graphic.
   function patternDesign() {
-    return { mode: st.mode, color: STUDIO.colors[st.color].hex, colorName: STUDIO.colors[st.color].name.es, art: st.art, fill: st.fill, tileMM: st.tile,
-             place: { ...curPlace() }, sizeIdx: st.size, dxmm: (st.dx / curView().pxcm) * 10, dymm: (st.dy / curView().pxcm) * 10 };
+    const prints = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art).map((id) => {
+      const pr = st.prints[id], r = printRect(id), v = garment().views[isSleeve(id) ? "front" : secDef(id).side];
+      return { section: id, placeId: r.place.id, wmm: r.wcm * 10, hmm: r.hcm * 10, art: pr.art, dxmm: (pr.dx / v.pxcm) * 10, dymm: (pr.dy / v.pxcm) * 10 };
+    });
+    const bg = st.mode === "full" && st.prints.bg && st.prints.bg.art;
+    return { mode: st.mode, color: STUDIO.colors[st.color].hex, colorName: STUDIO.colors[st.color].name.es, bg: bg || null, fill: st.fill, tileMM: st.tile, prints };
   }
   let patTicket = 0;
   async function drawPatternViews() {
     const ticket = ++patTicket, c3 = $("#st-3d"), loading = $("#st-loading");
-    if (!st.art) return;
     const want3D = st.display === "3d";
     loading.hidden = !!window.Chilian3D;
     try { await ensure3D(); } catch (e) { loading.textContent = L("No se pudo cargar la vista 3D. Revisa tu conexión.", "The 3D view could not load. Check your connection."); return; }
     if (ticket !== patTicket) return;
     loading.hidden = true;
     c3.hidden = !want3D; stCanvas.style.visibility = want3D ? "hidden" : "visible";
-    const style = STUDIO.garments[st.g].pattern;
-    if (want3D) await Chilian3D.show3D(c3, style, st.pat, patternDesign());
-    else await Chilian3D.drawFlat(stCanvas, style, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeve: L("MANGA", "SLEEVE"),
+    const style = garment().pattern;
+    if (want3D) {
+      await Chilian3D.show3D(c3, style, st.pat, patternDesign());
+      if (st.faceReq) { Chilian3D.face(st.faceReq); st.faceReq = null; }
+    }
+    else await Chilian3D.drawFlat(stCanvas, style, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeveR: L("MANGA DERECHA", "RIGHT SLEEVE"), sleeveL: L("MANGA IZQUIERDA", "LEFT SLEEVE"),
       binding: (mm) => L(`CUELLO: CINTA DE LA MISMA TELA, 1 TONO · ESCOTE ${mm} MM`, `NECK: SAME-FABRIC BINDING, ONE TONE · NECKLINE ${mm} MM`) });
-    const r = printRect();
-    $("#st-size-label").textContent = st.mode === "full" ? L(`Molde ${t(STUDIO.garments[st.g].name).toLowerCase()} · talla ${st.pat}`, `${t(STUDIO.garments[st.g].name)} pattern · size ${st.pat}`) : `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm · ${L("talla", "size")} ${st.pat}`;
+    updateSizeLabel();
   }
 
   async function openStudio() {
-    if (!st.art) setSource(await sampleArt(), "sample");
+    if (!Object.values(st.prints).some((p) => p && p.art)) setSource("front", await sampleArt(), "sample");
     renderStudio(); drawStudio();
     $("#studio").showModal();
   }
@@ -1965,11 +2066,12 @@
   function initStudio() {
     document.querySelectorAll("[data-studio]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openStudio(); }));
     const file = $("#st-file"), drop = $("#st-drop");
+    // Uploads go to the section being edited (and replace its graphic: one per section).
     const useFile = (f) => {
-      if (!f || !/^image\//.test(f.type)) { $("#st-file-name").textContent = lang === "en" ? "That file is not an image. Use PNG, JPG, SVG or WebP." : "Ese archivo no es una imagen. Usa PNG, JPG, SVG o WebP."; return; }
-      const url = URL.createObjectURL(f), img = new Image();
-      img.onload = () => { setSource(img, f.name); renderStudio(); URL.revokeObjectURL(url); };
-      img.onerror = () => { $("#st-file-name").textContent = lang === "en" ? "We could not open that file. Try a PNG or JPG." : "No pudimos abrir ese archivo. Prueba con PNG o JPG."; };
+      if (!f || !/^image\//.test(f.type)) { $("#st-file-name").textContent = L("Ese archivo no es una imagen. Usa PNG, JPG, SVG o WebP.", "That file is not an image. Use PNG, JPG, SVG or WebP."); return; }
+      const id = st.active, url = URL.createObjectURL(f), img = new Image();
+      img.onload = () => { setSource(id, img, f.name); URL.revokeObjectURL(url); renderStudio(); drawStudio(); };
+      img.onerror = () => { $("#st-file-name").textContent = L("No pudimos abrir ese archivo. Prueba con PNG o JPG.", "We could not open that file. Try a PNG or JPG."); };
       img.src = url;
     };
     // Clear the input after reading, so choosing the same file again still reloads it.
@@ -1983,38 +2085,46 @@
     studioEl.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) useFile(e.dataTransfer.files[0]); });
     addEventListener("dragover", (e) => { if (studioEl.open) e.preventDefault(); });
     addEventListener("drop", (e) => { if (studioEl.open) e.preventDefault(); });
-    $("#st-knockout").addEventListener("change", (e) => { st.knockout = e.target.checked; if (stSource) { st.art = prepareArt(stSource); drawStudio(); } });
+    $("#st-knockout").addEventListener("change", (e) => {
+      const pr = activePrint(); if (!pr) return;
+      pr.knockout = e.target.checked; if (pr.source) pr.art = prepareArt(pr.source, pr.knockout); drawStudio();
+    });
+    $("#st-remove").addEventListener("click", () => { delete st.prints[st.active]; renderStudio(); drawStudio(); });
 
-    // Drag the design (mouse, finger or pen), limited to ±6 cm sideways and ±10 cm up/down.
+    // Drag the active section's graphic (mouse, finger or pen), limited to ±6 cm sideways and ±10 cm up/down.
     let drag = null;
-    const limit = () => ({ x: 6 * curView().pxcm, y: 10 * curView().pxcm });
-    const clampMove = () => { const l = limit(); st.dx = Math.max(-l.x, Math.min(l.x, st.dx)); st.dy = Math.max(-l.y, Math.min(l.y, st.dy)); };
-    stCanvas.addEventListener("pointerdown", (e) => { if (st.display !== "photo" || st.mode === "full") return; drag = { x: e.clientX, y: e.clientY, dx: st.dx, dy: st.dy }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); stDragging = true; requestDraw(); });
+    const canDrag = () => st.display === "photo" && st.mode === "place" && activePrint() && activePrint().art && secDef(st.active).side === st.side;
+    const clampMove = (pr) => { const k = curView().pxcm; pr.dx = Math.max(-6 * k, Math.min(6 * k, pr.dx)); pr.dy = Math.max(-10 * k, Math.min(10 * k, pr.dy)); };
+    stCanvas.addEventListener("pointerdown", (e) => {
+      if (!canDrag()) return;
+      const pr = activePrint(); drag = { x: e.clientX, y: e.clientY, dx: pr.dx, dy: pr.dy };
+      stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); stDragging = true; requestDraw();
+    });
     stCanvas.addEventListener("pointermove", (e) => {
       if (!drag) return;
-      const k = SIZE / stCanvas.getBoundingClientRect().width;
-      st.dx = drag.dx + (e.clientX - drag.x) * k; st.dy = drag.dy + (e.clientY - drag.y) * k; clampMove(); requestDraw();
+      const pr = activePrint(), k = SIZE / stCanvas.getBoundingClientRect().width;
+      pr.dx = drag.dx + (e.clientX - drag.x) * k; pr.dy = drag.dy + (e.clientY - drag.y) * k; clampMove(pr); requestDraw();
     });
     const end = () => { drag = null; stCanvas.classList.remove("dragging"); stDragging = false; requestDraw(); };
     stCanvas.addEventListener("pointerup", end); stCanvas.addEventListener("pointercancel", end);
     stCanvas.addEventListener("keydown", (e) => {
-      if (st.display !== "photo" || st.mode === "full") return;
+      if (!canDrag()) return;
       const step = (e.shiftKey ? 2 : 0.5) * curView().pxcm, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
-      if (!m) return; e.preventDefault(); st.dx += m[0]; st.dy += m[1]; clampMove(); requestDraw();
+      if (!m) return; e.preventDefault(); const pr = activePrint(); pr.dx += m[0]; pr.dy += m[1]; clampMove(pr); requestDraw();
     });
-    $("#st-reset").addEventListener("click", () => { st.dx = st.dy = 0; drawStudio(); });
+    $("#st-reset").addEventListener("click", () => { const pr = activePrint(); if (pr) { pr.dx = pr.dy = 0; drawStudio(); } });
     $("#st-tile").addEventListener("input", (e) => { st.tile = +e.target.value; $("#st-tile-out").textContent = `${st.tile} mm`; drawStudio(); });
 
-    // Production file (route 2): the CAD marker at real scale with the design on every piece.
+    // Production file (route 2): the CAD marker at real scale with every graphic on its piece.
     // It goes to the printer, so it carries no watermark.
     $("#st-production").addEventListener("click", async () => {
       const btn = $("#st-production"), label = btn.textContent;
       btn.disabled = true; btn.textContent = L("Preparando archivo…", "Preparing file…");
       try {
         await ensure3D();
-        const c = await Chilian3D.productionFile(STUDIO.garments[st.g].pattern, st.pat, patternDesign(), 100);
+        const c = await Chilian3D.productionFile(garment().pattern, st.pat, patternDesign(), 100);
         c.toBlob((blob) => {
-          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `chilian-${STUDIO.garments[st.g].pattern}-trazo-${st.pat}.png`;
+          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `chilian-${garment().pattern}-trazo-${st.pat}.png`;
           document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
           btn.disabled = false; btn.textContent = label;
         }, "image/png");
@@ -2027,6 +2137,7 @@
     const WATERMARK = "Generated by Chilian";
     const markImg = new Image(); markImg.src = "logos/chilian-c.png";
     stCanvas.addEventListener("contextmenu", (e) => e.preventDefault());   // "Save image as" would skip the watermark
+    $("#st-3d").addEventListener("contextmenu", (e) => e.preventDefault());
     $("#st-download").addEventListener("click", async () => {
       const band = 120, c = document.createElement("canvas"); c.width = SIZE; c.height = SIZE + band;
       const x = c.getContext("2d");
@@ -2063,8 +2174,11 @@
       x.fillStyle = "#FFFFFF"; x.textBaseline = "alphabetic"; x.textAlign = "left";
       x.font = '900 46px "Big Shoulders Display", Impact, sans-serif';
       x.fillText(WATERMARK.toUpperCase(), 130, SIZE + 62);
-      x.fillStyle = "rgba(255,255,255,.7)"; x.font = '500 22px "IBM Plex Mono", monospace';
-      x.fillText(studioSummary().toUpperCase(), 130, SIZE + 96);
+      x.fillStyle = "rgba(255,255,255,.7)"; x.font = '500 18px "IBM Plex Mono", monospace';
+      let line = studioSummary().toUpperCase();
+      while (x.measureText(line).width > SIZE - 400 && line.length > 20) line = line.slice(0, -2);
+      if (line.length < studioSummary().length) line = line.trimEnd() + "…";
+      x.fillText(line, 130, SIZE + 96);
       x.textAlign = "right"; x.fillText(location.hostname || "chilian.vercel.app", SIZE - 40, SIZE + 96);
 
       c.toBlob((blob) => {
@@ -2073,13 +2187,13 @@
       }, "image/png");
     });
 
-    // Quote: carry garment, placement and size into the form.
+    // Quote: carry garment, sections and sizes into the form.
     $("#st-quote").addEventListener("click", () => {
-      $("#q-garment").selectedIndex = STUDIO.garments[st.g].quote;
-      const notes = $("#q-notes"), line = (lang === "en" ? "Mockup: " : "Mockup: ") + studioSummary();
+      $("#q-garment").selectedIndex = garment().quote;
+      const notes = $("#q-notes"), line = "Mockup: " + studioSummary();
       notes.value = notes.value.split("\n").filter((l) => !l.startsWith("Mockup: ")).concat(line).filter(Boolean).join("\n");
       updateTicket();
-      $("#ticket-note").textContent = lang === "en" ? "Your mockup details are in the request. Attach your design file in WhatsApp." : "Los datos de tu mockup ya están en la solicitud. Adjunta tu archivo de diseño en WhatsApp.";
+      $("#ticket-note").textContent = L("Los datos de tu mockup ya están en la solicitud. Adjunta tus archivos de diseño en WhatsApp.", "Your mockup details are in the request. Attach your design files in WhatsApp.");
       $("#studio").close();
       $("#cotizar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     });
