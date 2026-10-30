@@ -8,7 +8,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Chilian Screen Printing">
 <meta property="og:description" content="Serigrafía industrial certificada en Puebla, México. Hasta 20,000 piezas al día.">
-<meta property="og:image" content="photos/prensa-pantalla-magenta.jpg">
+<meta property="og:image" content="https://chilian.vercel.app/photos/prensa-pantalla-magenta.jpg">
 <title>Chilian Screen Printing · Serigrafía industrial en Puebla</title>
 <meta name="description" content="Chilian: serigrafía industrial certificada en Puebla, México. Hasta 20,000 piezas al día, 8 pulpos automáticos Roq y M&R, auditorías Disney FAMA, WRAP, VF y C&A.">
 <!--
@@ -29,12 +29,20 @@
     4. Español completo y botón EN con la versión en inglés para marcas
        de EE. UU. (cada texto en inglés vive en su atributo data-en).
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Big Shoulders Display = letrero industrial condensado (titulares).
      Instrument Sans = texto. IBM Plex Mono = la voz de ficha técnica:
-     estaciones, colores, mínimos, códigos. -->
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+     estaciones, colores, mínimos, códigos. Las tres (licencia OFL) se sirven
+     desde fonts/ y se precargan, así llegan antes del primer pintado y el
+     titular no salta al cambiar de letra. Subconjunto latino (incluye acentos y ñ). -->
+<link rel="preload" href="fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face { font-family: "Big Shoulders Display"; font-style: normal; font-weight: 700 900; font-display: swap; src: url(fonts/big-shoulders-display.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 400 700; font-display: swap; src: url(fonts/instrument-sans.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/ibm-plex-mono-400.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/ibm-plex-mono-500.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+</style>
+<link rel="preload" as="image" href="photos/opt/prensa-pantalla-magenta-960.webp" imagesrcset="photos/opt/prensa-pantalla-magenta-480.webp 480w, photos/opt/prensa-pantalla-magenta-960.webp 960w, photos/opt/prensa-pantalla-magenta-1600.webp 1600w" imagesizes="(max-width: 860px) 100vw, 46vw" fetchpriority="high">
 
 <style>
   /* Layout: una "orden de producción" — bandas a todo lo ancho, fotos de planta
@@ -177,7 +185,8 @@
   /* ---------- HERO ---------- */
   .hero > .wrap {
     display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(2rem, 5vw, 4.5rem);
-    align-items: center; padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 4.5rem);
+    /* Top-aligned: if the headline reflows while the fonts arrive, the photo stays put. */
+    align-items: start; padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 4.5rem);
   }
   .hero h1 {
     font: 900 clamp(3.4rem, 8.6vw, 7.4rem)/.84 var(--f-display); text-transform: uppercase; letter-spacing: -.01em;
@@ -494,7 +503,8 @@
   @media (max-width: 560px) { .team { grid-template-columns: 1fr; } }
 
   /* ---------- FOOTER ---------- */
-  .site-footer { background: var(--ink); color: var(--paper); padding-block: 4rem 2rem; }
+  /* Extra room at the bottom so the floating buttons never cover the legal links. */
+  .site-footer { background: var(--ink); color: var(--paper); padding-block: 4rem calc(6rem + env(safe-area-inset-bottom, 0px)); }
   .foot-grid { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 2rem; }
   .site-footer h4 { margin: 0 0 .8rem; font: 500 .68rem var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: color-mix(in srgb, var(--paper) 55%, transparent); }
   .site-footer p, .site-footer li { font-size: .92rem; color: color-mix(in srgb, var(--paper) 82%, transparent); }
@@ -553,7 +563,7 @@
   .menu-sheet[open] { animation: slide-in .3s ease; display: flex; flex-direction: column; }
   .menu-sheet nav { display: grid; padding: 1rem 1.4rem calc(1.4rem + env(safe-area-inset-bottom, 0px)); gap: .2rem; }
   .menu-sheet nav a { font: 800 2.2rem/1.15 var(--f-display); text-transform: uppercase; text-decoration: none; padding: .3rem 0; border-bottom: 1px solid var(--rule); }
-  .menu-sheet .btn { margin-top: 1.2rem; }
+  .menu-sheet .btn { margin-top: 1.2rem; font: 600 .95rem/1 var(--f-mono); letter-spacing: .1em; padding: 1.1rem 1.4rem; border-bottom: 1.5px solid var(--magenta); }
   @keyframes slide-in { from { transform: translateX(100%); } }
   @keyframes rise { from { opacity: 0; transform: translateY(20px); } }
 
@@ -646,8 +656,143 @@
     .studio { width: 100vw; max-height: 100dvh; height: 100dvh; border: 0; }
   }
 
+  /* ---------- MOTION ----------
+     Everything moves the way a press does: short, firm, in register. All of it
+     switches off for visitors who ask their system for less motion. */
+  :root { --ease-out: cubic-bezier(.2,.8,.2,1); }
+  /* Buttons: a sheen crosses on hover, an ink drop spreads from where you press. */
+  .btn, .x, .lb-nav button, .qty-quick button, .menu-btn, .st-remove, .to-top { position: relative; overflow: hidden; isolation: isolate; }
+  .btn::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, #fff 35%, transparent) 50%, transparent 70%);
+    transform: translateX(-130%); transition: transform .7s var(--ease-out);
+  }
+  @media (hover: hover) { .btn:hover::before { transform: translateX(130%); } }
+  .ripple {
+    position: absolute; z-index: -1; left: var(--x); top: var(--y); width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+    border-radius: 50%; background: currentColor; opacity: .28; pointer-events: none; transform: scale(0); animation: ripple .6s var(--ease-out) forwards;
+  }
+  @keyframes ripple { to { transform: scale(1); opacity: 0; } }
+  .btn { will-change: transform; }
+  .btn.magnet { transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .25s var(--ease-out); }
+  .btn-studio .new { animation: badge 2.6s ease-in-out infinite; }
+  @keyframes badge { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-2px) rotate(-4deg); } 90% { transform: translateY(0) rotate(3deg); } }
+  .x { transition: transform .25s var(--ease-out), border-color .2s ease; }
+  /* Language switch: one ink block slides between ES and EN. */
+  .lang { position: relative; }
+  .lang::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 50%; background: var(--ink); transition: transform .35s var(--ease-out); }
+  html[lang="en"] .lang::before { transform: translateX(100%); }
+  .lang button { position: relative; z-index: 1; flex: 1; transition: color .25s ease; }
+  .lang button[aria-pressed="true"] { background: none; }
+  /* Chips you pick in the quote form snap in. */
+  .q-step .chip input:checked + span, .qty-quick button.on { animation: pop .28s var(--ease-out); }
+  .qty-quick button.on { border-style: solid; border-color: var(--ink); color: var(--ink); }
+  @keyframes pop { 40% { transform: scale(1.07); } }
+  /* Header: a shadow once the page moves, an ink bar for how far you have read,
+     and the section you are in underlined in the menu. */
+  .site-header { transition: box-shadow .3s ease; }
+  .site-header.scrolled { box-shadow: 0 10px 30px var(--shade); }
+  .read-bar { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--magenta); transform-origin: left; transform: scaleX(var(--p, 0)); pointer-events: none; }
+  .nav a.active { background-size: 100% 2px; }
+  /* Content develops in as it scrolls into view (only when scripts run). */
+  html.motion [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity .8s var(--ease-out), transform .8s var(--ease-out); transition-delay: calc(var(--i, 0) * 70ms); }
+  html.motion [data-reveal].in { opacity: 1; transform: none; }
+  html.motion [data-reveal="fade"] { transform: none; }
+  html.motion [data-reveal="photo"] { transform: none; transition: opacity 1s var(--ease-out); transition-delay: calc(var(--i, 0) * 90ms); }
+  html.motion [data-reveal="photo"] img { transform: scale(1.08); transition: transform 1.4s var(--ease-out); }
+  html.motion [data-reveal="photo"].in img { transform: none; }
+  .kicker svg { transition: transform 1s var(--ease-out); }
+  html.motion [data-reveal]:not(.in) .kicker svg { transform: rotate(-180deg) scale(.4); }
+  /* Hero: the photo settles like a sheet landing on the pallet; slow drift on scroll. */
+  .hero-photo { overflow: hidden; }
+  .hero-photo img { animation: settle 1.8s var(--ease-out) both; transform: translateY(var(--drift, 0)); will-change: transform; }
+  @keyframes settle { from { transform: scale(1.08); filter: saturate(.4) contrast(1.1); } }
+  /* Process: the line fills and each station lights up in turn. */
+  .steps { position: relative; }
+  .steps::before { content: ""; position: absolute; left: 0; right: 0; top: -2px; height: 2px; background: var(--magenta); transform-origin: left; transform: scaleX(0); transition: transform 1.8s var(--ease-out); }
+  .steps.in::before { transform: scaleX(1); }
+  .steps li::after { transition: background-color .3s ease, border-color .3s ease, transform .3s var(--ease-out); transition-delay: calc(var(--i, 0) * .32s); }
+  .steps.in li::after { background: var(--magenta); border-color: var(--magenta); transform: scale(1.15); }
+  /* Cards that open something: lift, and a hint of what happens. */
+  .line-card, .service, .mini, .plant-photos figure { cursor: pointer; transition: transform .3s var(--ease-out), box-shadow .3s ease, border-color .2s ease; }
+  .line-card img, .mini img, .plant-photos img { transition: transform .8s var(--ease-out); }
+  .line-card > div, .plant-photos figure { overflow: hidden; }
+  .line-card { overflow: hidden; }
+  .more-hint { font: 600 .7rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); display: inline-flex; gap: .4rem; align-items: center; }
+  .more-hint::after { content: "→"; transition: transform .25s var(--ease-out); }
+  .line-card:focus-visible, .service:focus-visible, .mini:focus-visible, .plant-photos figure:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+  @media (hover: hover) {
+    .line-card:hover, .mini:hover { transform: translateY(-4px); box-shadow: 0 18px 40px var(--shade); border-color: var(--ink); }
+    .line-card:hover img, .mini:hover img, .plant-photos figure:hover img { transform: scale(1.05); }
+    .line-card:hover .more-hint::after, .mini:hover .more-hint::after, .service:hover .more-hint::after { transform: translateX(4px); }
+    .service:hover { position: relative; z-index: 1; box-shadow: 0 18px 40px var(--shade); }
+  }
+  .plant-photos figure { position: relative; }
+  .plant-photos figure::after { content: "+"; position: absolute; top: .6rem; right: .6rem; width: 2rem; height: 2rem; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 1.2rem/1 var(--f-mono); opacity: 0; transform: scale(.7); transition: opacity .2s ease, transform .25s var(--ease-out); }
+  @media (hover: hover) { .plant-photos figure:hover::after { opacity: 1; transform: none; } }
+  .tech { transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .4s var(--ease-out); }
+  .work button img { transition: transform .8s var(--ease-out), opacity .3s ease; }
+  .work button { overflow: hidden; }
+  @media (hover: hover) { .work button:hover img { transform: scale(1.04); } }
+  .calc.flash, .person.flash { animation: flash-ring 1.4s ease; }
+  @keyframes flash-ring { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 4px var(--magenta); } }
+  /* The work order: what changed glows for a moment. */
+  .ticket dd { transition: background-color .6s ease; }
+  .ticket dd.changed { background: color-mix(in srgb, var(--magenta) 16%, transparent); transition: none; }
+  #sport-unit, #sport-total { display: inline-block; }
+  #sport-total.tick { animation: tick .3s var(--ease-out); }
+  @keyframes tick { 50% { transform: translateY(-3px); color: var(--magenta); } }
+  /* Floating WhatsApp: a slow ring, like the "on line" light of the presses. */
+  .wa-float::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 color-mix(in srgb, var(--press) 60%, transparent); animation: ring 3.2s ease-out infinite 2s; pointer-events: none; }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--press) 55%, transparent); } 60%, 100% { box-shadow: 0 0 0 16px transparent; } }
+  .to-top {
+    position: fixed; z-index: 40; left: calc(18px + env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer;
+    font: 500 1.1rem/1 var(--f-mono); display: grid; place-items: center; box-shadow: 0 10px 30px var(--shade);
+    opacity: 0; transform: translateY(16px) scale(.9); pointer-events: none; transition: opacity .3s ease, transform .35s var(--ease-out);
+  }
+  .to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+  @media (hover: hover) { .to-top:hover { background: var(--ink); color: var(--paper); } }
+  /* Toasts: one line of confirmation at the bottom, gone by itself. */
+  .toast {
+    position: fixed; z-index: 1000; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); max-width: min(92vw, 520px);
+    padding: .8rem 1.1rem; background: var(--ink); color: var(--paper); font: 500 .78rem/1.4 var(--f-mono); letter-spacing: .04em;
+    box-shadow: 0 14px 40px rgba(0,0,0,.3); transform: translate(-50%, 20px); opacity: 0; transition: opacity .3s ease, transform .35s var(--ease-out); pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  /* Pop-ups leave the way they came. */
+  dialog[open]::backdrop { animation: fade-in .3s ease; }
+  dialog.closing::backdrop { animation: fade-out .24s ease forwards; }
+  .sheet.closing, .studio.closing, .legal-sheet.closing { animation: sink .24s ease forwards; }
+  .lightbox[open] { animation: zoom-in .3s var(--ease-out); }
+  .lightbox.closing { animation: zoom-out .22s ease forwards; }
+  .menu-sheet.closing { animation: slide-out .26s ease forwards; }
+  .menu-sheet[open] nav a { animation: rise .45s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms + 80ms); }
+  #lb-img { transition: opacity .25s ease, transform .35s var(--ease-out); }
+  #lb-img.swap { opacity: 0; transform: translateX(calc(var(--dir, 1) * 24px)); }
+  .lightbox figure { touch-action: pan-y; }
+  @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
+  @keyframes sink { to { opacity: 0; transform: translateY(16px); } }
+  @keyframes zoom-in { from { opacity: 0; transform: scale(.96); } }
+  @keyframes zoom-out { to { opacity: 0; transform: scale(.97); } }
+  @keyframes slide-out { to { transform: translateX(100%); } }
+  /* Legal pop-up */
+  .legal-sheet { width: min(760px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; margin: auto; border: 1.5px solid var(--ink); }
+  .legal-sheet[open] { animation: rise .35s var(--ease-out); }
+  .legal-body { padding: clamp(1.2rem, 3vw, 2rem); display: grid; gap: .9rem; }
+  .legal-body h2 { font: 900 clamp(2rem, 4vw, 2.8rem)/.95 var(--f-display); text-transform: uppercase; }
+  .legal-body h3 { font: 700 1rem/1.3 var(--f-body); margin-top: .6rem; }
+  .legal-body p, .legal-body li { font-size: .94rem; color: var(--steel); }
+  .legal-body ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+  .legal-tabs { display: flex; gap: .5rem; }
+  .legal button.link, .site-footer .link { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .legal button.link:focus-visible { outline: 2px solid var(--magenta); outline-offset: 2px; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    html.motion [data-reveal], html.motion [data-reveal] img { opacity: 1; transform: none; }
+    .ripple { display: none; }
     .reg::before, .reg::after { display: none; }
     .marquee { flex-wrap: wrap; width: auto; justify-content: center; }
     .marquee [aria-hidden="true"] { display: none; }
@@ -668,7 +813,7 @@
 
 <div class="strip">
   <div class="wrap">
-    <span class="live"><span class="dot" aria-hidden="true"></span><span data-en="Certified plant · Puebla, Mexico">Planta certificada · Puebla, México</span><span class="long">&nbsp;· Disney FAMA · WRAP · VF · C&amp;A</span></span>
+    <a class="live" href="#certificaciones"><span class="dot" aria-hidden="true"></span><span data-en="Certified plant · Puebla, Mexico">Planta certificada · Puebla, México</span><span class="long">&nbsp;· Disney FAMA · WRAP · VF · C&amp;A</span></a>
     <span class="strip-links">
       <a class="hide-sm" href="#usa" data-en="US brands →">Marcas de EE. UU. →</a>
       <a href="https://wa.me/522226925404" target="_blank" rel="noopener">WhatsApp 222 692 5404</a>
@@ -699,6 +844,7 @@
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" stroke-width="1.8"/></svg>
     </button>
   </div>
+  <span class="read-bar" aria-hidden="true"></span>
 </header>
 
 <main id="top">
@@ -724,7 +870,7 @@
       <figure class="hero-photo">
         <svg class="reg-corner tl" aria-hidden="true"><use href="#reg"/></svg>
         <svg class="reg-corner br" aria-hidden="true"><use href="#reg"/></svg>
-        <img src="photos/prensa-pantalla-magenta.jpg" width="1600" height="1067" alt="Pantalla con emulsión magenta montada en un pulpo automático de la planta Chilian" data-en-alt="Magenta emulsion screen mounted on an automatic press at the Chilian plant">
+        <img fetchpriority="high" src="photos/opt/prensa-pantalla-magenta-960.webp" srcset="photos/opt/prensa-pantalla-magenta-480.webp 480w, photos/opt/prensa-pantalla-magenta-960.webp 960w, photos/opt/prensa-pantalla-magenta-1600.webp 1600w" sizes="(max-width: 860px) 100vw, 46vw" decoding="async" width="1600" height="1067" alt="Pantalla con emulsión magenta montada en un pulpo automático de la planta Chilian" data-en-alt="Magenta emulsion screen mounted on an automatic press at the Chilian plant">
         <figcaption><span data-en="Automatic press · Santa Isabel Cholula plant">Pulpo automático · planta Santa Isabel Cholula</span><span data-en="35+ years">35+ años</span></figcaption>
       </figure>
     </div>
@@ -763,7 +909,7 @@
       <div class="doors">
         <article class="door">
           <div class="door-photo">
-            <img src="photos/trabajo-tipografia-varsity.jpg" width="1067" height="1600" loading="lazy" alt="Estampado plastisol de tipografía universitaria en dos tintas" data-en-alt="Two-ink plastisol varsity type print">
+            <img src="photos/opt/trabajo-tipografia-varsity-960.webp" srcset="photos/opt/trabajo-tipografia-varsity-480.webp 480w, photos/opt/trabajo-tipografia-varsity-960.webp 960w, photos/opt/trabajo-tipografia-varsity-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1067" height="1600" loading="lazy" alt="Estampado plastisol de tipografía universitaria en dos tintas" data-en-alt="Two-ink plastisol varsity type print">
             <span class="door-tag" data-en="Brands · OEM · Licensing">Marcas · OEM · Licencias</span>
           </div>
           <div class="door-body">
@@ -779,7 +925,7 @@
         </article>
         <article class="door">
           <div class="door-photo">
-            <img src="photos/uniformes.jpg" width="1067" height="1600" loading="lazy" alt="Polo de uniforme gris con logotipo bordado" data-en-alt="Grey uniform polo with embroidered logo">
+            <img src="photos/opt/uniformes-960.webp" srcset="photos/opt/uniformes-480.webp 480w, photos/opt/uniformes-960.webp 960w, photos/opt/uniformes-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1067" height="1600" loading="lazy" alt="Polo de uniforme gris con logotipo bordado" data-en-alt="Grey uniform polo with embroidered logo">
             <span class="door-tag" data-en="Corporate · Industrial">Corporativo · Industrial</span>
           </div>
           <div class="door-body">
@@ -795,7 +941,7 @@
         </article>
         <article class="door">
           <div class="door-photo">
-            <img src="photos/promocionales.jpg" width="1067" height="1600" loading="lazy" alt="Playera, tote bag y gorra con logotipo de marca" data-en-alt="T-shirt, tote bag and cap with brand logo">
+            <img src="photos/opt/promocionales-960.webp" srcset="photos/opt/promocionales-480.webp 480w, photos/opt/promocionales-960.webp 960w, photos/opt/promocionales-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1067" height="1600" loading="lazy" alt="Playera, tote bag y gorra con logotipo de marca" data-en-alt="T-shirt, tote bag and cap with brand logo">
             <span class="door-tag" data-en="Events · Merch · Campaigns">Eventos · Merch · Campañas</span>
           </div>
           <div class="door-body">
@@ -812,9 +958,9 @@
       </div>
 
       <div class="more-lines">
-        <div class="mini"><img src="photos/chilian-sport.jpg" width="1200" height="1600" loading="lazy" alt=""><div><h4>Chilian Sport</h4><p data-en="Full-print sports tee for mass events.">Playera deportiva full print para eventos masivos.</p></div></div>
-        <div class="mini"><img src="photos/proyectos-especiales.jpg" width="1067" height="1600" loading="lazy" alt=""><div><h4 data-en="Special projects">Proyectos especiales</h4><p data-en="Cut, sew, dye and print: the whole garment.">Corte, costura, teñido y estampado: la prenda completa.</p></div></div>
-        <div class="mini"><img src="photos/accesorios.jpg" width="1080" height="891" loading="lazy" alt=""><div><h4 data-en="Promotional items">Promocionales</h4><p data-en="Caps, totes, tumblers and accessories with your logo.">Gorras, totes, termos y accesorios con tu logo.</p></div></div>
+        <div class="mini"><img src="photos/opt/chilian-sport-960.webp" srcset="photos/opt/chilian-sport-480.webp 480w, photos/opt/chilian-sport-960.webp 960w, photos/opt/chilian-sport-1600.webp 1600w" sizes="76px" decoding="async" width="1200" height="1600" loading="lazy" alt=""><div><h4>Chilian Sport</h4><p data-en="Full-print sports tee for mass events.">Playera deportiva full print para eventos masivos.</p></div></div>
+        <div class="mini"><img src="photos/opt/proyectos-especiales-960.webp" srcset="photos/opt/proyectos-especiales-480.webp 480w, photos/opt/proyectos-especiales-960.webp 960w, photos/opt/proyectos-especiales-1600.webp 1600w" sizes="76px" decoding="async" width="1067" height="1600" loading="lazy" alt=""><div><h4 data-en="Special projects">Proyectos especiales</h4><p data-en="Cut, sew, dye and print: the whole garment.">Corte, costura, teñido y estampado: la prenda completa.</p></div></div>
+        <div class="mini"><img src="photos/opt/accesorios-960.webp" srcset="photos/opt/accesorios-480.webp 480w, photos/opt/accesorios-960.webp 960w, photos/opt/accesorios-1600.webp 1600w" sizes="76px" decoding="async" width="1080" height="891" loading="lazy" alt=""><div><h4 data-en="Promotional items">Promocionales</h4><p data-en="Caps, totes, tumblers and accessories with your logo.">Gorras, totes, termos y accesorios con tu logo.</p></div></div>
       </div>
     </div>
   </section>
@@ -832,7 +978,7 @@
           </div>
           <p class="lead" data-en="Five Roq and three M&amp;R automatic presses, two industrial belt dryers and a team trained in continuous improvement. Cutting, sewing, embroidery, dyeing and printing under one roof.">Cinco pulpos Roq y tres M&amp;R automáticos, dos hornos de secado industriales y un equipo formado en mejora continua. Corte, costura, bordado, teñido y estampado bajo un mismo techo.</p>
           <div class="hero-actions" style="margin-top:2rem">
-            <a class="btn" href="#cotizar" data-en="Book capacity">Reservar capacidad</a>
+            <a class="btn" href="#cotizar" data-type="marca" data-en="Book capacity">Reservar capacidad</a>
             <a class="btn btn-ghost" href="https://www.youtube.com/@grupochilian4341" target="_blank" rel="noopener" data-en="Plant video ↗">Video de la planta ↗</a>
           </div>
         </div>
@@ -855,13 +1001,13 @@
       </div>
 
       <div class="plant-photos" tabindex="0" aria-label="Fotos de la planta">
-        <figure><img src="photos/pulpo-roq-oval-xl.jpg" width="1600" height="1194" loading="lazy" alt="Pulpo automático Roq verde en la nave de impresión"><figcaption data-en="Roq automatic press">Pulpo automático Roq</figcaption></figure>
-        <figure><img src="photos/planta-linea-roq.jpg" width="1600" height="1194" loading="lazy" alt="Línea de pulpos y hornos de secado"><figcaption data-en="Press line and dryers">Línea de impresión y hornos</figcaption></figure>
-        <figure><img src="photos/equipo-en-prensa.jpg" width="1600" height="1187" loading="lazy" alt="Operadores ajustando un pulpo automático"><figcaption data-en="Press setup and registration">Montaje y registro</figcaption></figure>
-        <figure><img src="photos/horno-de-secado.jpg" width="1600" height="1200" loading="lazy" alt="Horno de secado de banda industrial"><figcaption data-en="Industrial belt dryer">Horno de banda industrial</figcaption></figure>
-        <figure><img src="photos/costura.jpg" width="1600" height="1067" loading="lazy" alt="Área de costura con operadoras"><figcaption data-en="Sewing floor">Área de costura</figcaption></figure>
-        <figure><img src="photos/mesa-de-doblado.jpg" width="1600" height="1194" loading="lazy" alt="Mesas de revisión y doblado"><figcaption data-en="Inspection and folding">Revisión y doblado</figcaption></figure>
-        <figure><img src="photos/pulpo-manual-pantallas.jpg" width="1600" height="1206" loading="lazy" alt="Pulpo con pantallas magenta listas para imprimir"><figcaption data-en="Screens ready to print">Pantallas listas para imprimir</figcaption></figure>
+        <figure><img src="photos/opt/pulpo-roq-oval-xl-960.webp" srcset="photos/opt/pulpo-roq-oval-xl-480.webp 480w, photos/opt/pulpo-roq-oval-xl-960.webp 960w, photos/opt/pulpo-roq-oval-xl-1600.webp 1600w" sizes="(max-width: 900px) 78vw, 30vw" decoding="async" width="1600" height="1194" loading="lazy" alt="Pulpo automático Roq verde en la nave de impresión"><figcaption data-en="Roq automatic press">Pulpo automático Roq</figcaption></figure>
+        <figure><img src="photos/opt/planta-linea-roq-960.webp" srcset="photos/opt/planta-linea-roq-480.webp 480w, photos/opt/planta-linea-roq-960.webp 960w, photos/opt/planta-linea-roq-1600.webp 1600w" sizes="(max-width: 900px) 78vw, 30vw" decoding="async" width="1600" height="1194" loading="lazy" alt="Línea de pulpos y hornos de secado"><figcaption data-en="Press line and dryers">Línea de impresión y hornos</figcaption></figure>
+        <figure><img src="photos/opt/equipo-en-prensa-960.webp" srcset="photos/opt/equipo-en-prensa-480.webp 480w, photos/opt/equipo-en-prensa-960.webp 960w, photos/opt/equipo-en-prensa-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 50vw" decoding="async" width="1600" height="1187" loading="lazy" alt="Operadores ajustando un pulpo automático"><figcaption data-en="Press setup and registration">Montaje y registro</figcaption></figure>
+        <figure><img src="photos/opt/horno-de-secado-960.webp" srcset="photos/opt/horno-de-secado-480.webp 480w, photos/opt/horno-de-secado-960.webp 960w, photos/opt/horno-de-secado-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 50vw" decoding="async" width="1600" height="1200" loading="lazy" alt="Horno de secado de banda industrial"><figcaption data-en="Industrial belt dryer">Horno de banda industrial</figcaption></figure>
+        <figure><img src="photos/opt/costura-960.webp" srcset="photos/opt/costura-480.webp 480w, photos/opt/costura-960.webp 960w, photos/opt/costura-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 50vw" decoding="async" width="1600" height="1067" loading="lazy" alt="Área de costura con operadoras"><figcaption data-en="Sewing floor">Área de costura</figcaption></figure>
+        <figure><img src="photos/opt/mesa-de-doblado-960.webp" srcset="photos/opt/mesa-de-doblado-480.webp 480w, photos/opt/mesa-de-doblado-960.webp 960w, photos/opt/mesa-de-doblado-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 50vw" decoding="async" width="1600" height="1194" loading="lazy" alt="Mesas de revisión y doblado"><figcaption data-en="Inspection and folding">Revisión y doblado</figcaption></figure>
+        <figure><img src="photos/opt/pulpo-manual-pantallas-960.webp" srcset="photos/opt/pulpo-manual-pantallas-480.webp 480w, photos/opt/pulpo-manual-pantallas-960.webp 960w, photos/opt/pulpo-manual-pantallas-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 50vw" decoding="async" width="1600" height="1206" loading="lazy" alt="Pulpo con pantallas magenta listas para imprimir"><figcaption data-en="Screens ready to print">Pantallas listas para imprimir</figcaption></figure>
       </div>
     </div>
   </section>
@@ -885,10 +1031,10 @@
       </ol>
 
       <div class="services">
-        <div class="service"><img src="photos/corte.jpg" width="1280" height="960" loading="lazy" alt="Cortes de tela apilados"><div><h3 data-en="Cutting">Corte</h3><p data-en="Precision cutting of knit and woven fabrics.">Corte de precisión en tejido de punto y plano.</p></div></div>
-        <div class="service"><img src="photos/costura.jpg" width="1600" height="1067" loading="lazy" alt="Línea de costura"><div><h3 data-en="Sewing">Costura</h3><p data-en="Made-to-measure garments, from fabric to final seam.">Prenda a la medida, de la tela a la última costura.</p></div></div>
-        <div class="service"><img src="photos/bordado.jpg" width="847" height="652" loading="lazy" alt="Máquinas de bordado multicabeza"><div><h3 data-en="Embroidery">Bordado</h3><p data-en="Flat, 3D embroidery and patches.">Bordado plano, 3D y parches.</p></div></div>
-        <div class="service"><img src="photos/lavado-industrial.jpg" width="1067" height="1600" loading="lazy" alt="Lavadora industrial para teñido y lavado"><div><h3 data-en="Dye &amp; wash">Teñido y lavado</h3><p data-en="Stone and enzyme washes, custom colors.">Stone wash, enzimáticos y color a la medida.</p></div></div>
+        <div class="service"><img src="photos/opt/corte-960.webp" srcset="photos/opt/corte-480.webp 480w, photos/opt/corte-960.webp 960w, photos/opt/corte-1600.webp 1600w" sizes="(max-width: 900px) 50vw, 25vw" decoding="async" width="1280" height="960" loading="lazy" alt="Cortes de tela apilados"><div><h3 data-en="Cutting">Corte</h3><p data-en="Precision cutting of knit and woven fabrics.">Corte de precisión en tejido de punto y plano.</p></div></div>
+        <div class="service"><img src="photos/opt/costura-960.webp" srcset="photos/opt/costura-480.webp 480w, photos/opt/costura-960.webp 960w, photos/opt/costura-1600.webp 1600w" sizes="(max-width: 900px) 50vw, 25vw" decoding="async" width="1600" height="1067" loading="lazy" alt="Línea de costura"><div><h3 data-en="Sewing">Costura</h3><p data-en="Made-to-measure garments, from fabric to final seam.">Prenda a la medida, de la tela a la última costura.</p></div></div>
+        <div class="service"><img src="photos/opt/bordado-960.webp" srcset="photos/opt/bordado-480.webp 480w, photos/opt/bordado-960.webp 960w, photos/opt/bordado-1600.webp 1600w" sizes="(max-width: 900px) 50vw, 25vw" decoding="async" width="847" height="652" loading="lazy" alt="Máquinas de bordado multicabeza"><div><h3 data-en="Embroidery">Bordado</h3><p data-en="Flat, 3D embroidery and patches.">Bordado plano, 3D y parches.</p></div></div>
+        <div class="service"><img src="photos/opt/lavado-industrial-960.webp" srcset="photos/opt/lavado-industrial-480.webp 480w, photos/opt/lavado-industrial-960.webp 960w, photos/opt/lavado-industrial-1600.webp 1600w" sizes="(max-width: 900px) 50vw, 25vw" decoding="async" width="1067" height="1600" loading="lazy" alt="Lavadora industrial para teñido y lavado"><div><h3 data-en="Dye &amp; wash">Teñido y lavado</h3><p data-en="Stone and enzyme washes, custom colors.">Stone wash, enzimáticos y color a la medida.</p></div></div>
       </div>
     </div>
   </section>
@@ -958,14 +1104,14 @@
         <p class="lead" data-en="Or send your own garment: we print on what your brand already makes.">O manda tu propia prenda: estampamos sobre lo que tu marca ya fabrica.</p>
       </div>
       <div class="lines">
-        <article class="line-card"><img src="photos/linea-basica.jpg" width="1536" height="1024" loading="lazy" alt="Línea Básica: playeras en cuatro colores"><div><span class="code">CHL-BA</span><h3 data-en="Basic">Básica</h3><p data-en="Volume that drives your message: good cost–benefit without losing presentation.">Volumen que impulsa tu mensaje: buena relación costo–beneficio sin perder presentación.</p><span class="for" data-en="Events · promotions · activations · operating uniforms">Eventos · promociones · activaciones · uniforme operativo</span></div></article>
-        <article class="line-card"><img src="photos/linea-clasica.jpg" width="1536" height="1024" loading="lazy" alt="Línea Clásica: polos, playeras y sudadera"><div><span class="code">CHL-CL</span><h3 data-en="Classic">Clásica</h3><p data-en="Balance of quality, comfort and durability for daily use.">Balance entre calidad, comodidad y durabilidad para uso diario.</p><span class="for" data-en="Corporate uniforms · teams · merch">Uniforme empresarial · equipos · merch</span></div></article>
-        <article class="line-card"><img src="photos/linea-premium.jpg" width="1536" height="1024" loading="lazy" alt="Línea Premium: playeras y sudaderas de alto gramaje"><div><span class="code">CHL-PR</span><h3>Premium</h3><p data-en="Superior fabrics, fine finishes and higher perceived value.">Materiales superiores, acabados finos y mayor valor percibido.</p><span class="for" data-en="Apparel brands · premium merch · collections">Marcas de ropa · merch premium · colecciones</span></div></article>
+        <article class="line-card"><img src="photos/opt/linea-basica-960.webp" srcset="photos/opt/linea-basica-480.webp 480w, photos/opt/linea-basica-960.webp 960w, photos/opt/linea-basica-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1536" height="1024" loading="lazy" alt="Línea Básica: playeras en cuatro colores"><div><span class="code">CHL-BA</span><h3 data-en="Basic">Básica</h3><p data-en="Volume that drives your message: good cost–benefit without losing presentation.">Volumen que impulsa tu mensaje: buena relación costo–beneficio sin perder presentación.</p><span class="for" data-en="Events · promotions · activations · operating uniforms">Eventos · promociones · activaciones · uniforme operativo</span></div></article>
+        <article class="line-card"><img src="photos/opt/linea-clasica-960.webp" srcset="photos/opt/linea-clasica-480.webp 480w, photos/opt/linea-clasica-960.webp 960w, photos/opt/linea-clasica-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1536" height="1024" loading="lazy" alt="Línea Clásica: polos, playeras y sudadera"><div><span class="code">CHL-CL</span><h3 data-en="Classic">Clásica</h3><p data-en="Balance of quality, comfort and durability for daily use.">Balance entre calidad, comodidad y durabilidad para uso diario.</p><span class="for" data-en="Corporate uniforms · teams · merch">Uniforme empresarial · equipos · merch</span></div></article>
+        <article class="line-card"><img src="photos/opt/linea-premium-960.webp" srcset="photos/opt/linea-premium-480.webp 480w, photos/opt/linea-premium-960.webp 960w, photos/opt/linea-premium-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 33vw" decoding="async" width="1536" height="1024" loading="lazy" alt="Línea Premium: playeras y sudaderas de alto gramaje"><div><span class="code">CHL-PR</span><h3>Premium</h3><p data-en="Superior fabrics, fine finishes and higher perceived value.">Materiales superiores, acabados finos y mayor valor percibido.</p><span class="for" data-en="Apparel brands · premium merch · collections">Marcas de ropa · merch premium · colecciones</span></div></article>
       </div>
 
       <!-- Volume calculator: the real price breaks published for Chilian Sport. -->
       <div class="calc">
-        <div class="calc-photo"><img src="photos/chilian-sport.jpg" width="1200" height="1600" loading="lazy" alt="Playera Chilian Sport full print"></div>
+        <div class="calc-photo"><img src="photos/opt/chilian-sport-960.webp" srcset="photos/opt/chilian-sport-480.webp 480w, photos/opt/chilian-sport-960.webp 960w, photos/opt/chilian-sport-1600.webp 1600w" sizes="(max-width: 820px) 100vw, 40vw" decoding="async" width="1200" height="1600" loading="lazy" alt="Playera Chilian Sport full print"></div>
         <div class="calc-body">
           <div>
             <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span data-en="Price by volume">Precio por volumen</span></p>
@@ -996,7 +1142,7 @@
       <div class="usa-photo">
         <svg class="reg-corner tl" aria-hidden="true"><use href="#reg"/></svg>
         <svg class="reg-corner br" aria-hidden="true"><use href="#reg"/></svg>
-        <img src="photos/planta-pulpos-automaticos.jpg" width="1600" height="1067" loading="lazy" alt="Nave de impresión con pulpos automáticos" data-en-alt="Print floor with automatic presses">
+        <img src="photos/opt/planta-pulpos-automaticos-960.webp" srcset="photos/opt/planta-pulpos-automaticos-480.webp 480w, photos/opt/planta-pulpos-automaticos-960.webp 960w, photos/opt/planta-pulpos-automaticos-1600.webp 1600w" sizes="(max-width: 860px) 100vw, 50vw" decoding="async" width="1600" height="1067" loading="lazy" alt="Nave de impresión con pulpos automáticos" data-en-alt="Print floor with automatic presses">
       </div>
       <div>
         <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span data-en="For US brands · Nearshoring">Para marcas de EE. UU. · Nearshoring</span></p>
@@ -1112,13 +1258,13 @@
       </div>
       <div>
         <h4 data-en="Plant &amp; showroom">Planta y showroom</h4>
-        <p>Tlacomulco No. 2, San Pablo Ahuatempan<br>Santa Isabel Cholula, Pue. C.P. 74355</p>
+        <p><a href="https://www.google.com/maps/search/?api=1&amp;query=Tlacomulco+2+San+Pablo+Ahuatempan+Santa+Isabel+Cholula+Puebla+74355" target="_blank" rel="noopener">Tlacomulco No. 2, San Pablo Ahuatempan<br>Santa Isabel Cholula, Pue. C.P. 74355 ↗</a></p>
         <p class="foot-note" data-en="The showroom is inside the plant: see samples and production in one visit.">El showroom está dentro de la planta: ves muestras y producción en una sola visita.</p>
       </div>
       <div>
         <h4 data-en="Hours">Horario</h4>
         <p data-en="Mon–Fri 9:00–18:00">Lun–Vie 9:00–18:00</p>
-        <p class="foot-note">WhatsApp 222 692 5404</p>
+        <p class="foot-note"><a href="https://wa.me/522226925404" target="_blank" rel="noopener">WhatsApp 222 692 5404 ↗</a></p>
       </div>
       <div>
         <h4 data-en="Follow">Síguenos</h4>
@@ -1132,14 +1278,20 @@
     </div>
     <div class="legal">
       <span>© 2026 Grupo Chilian · Industrias Chilian, S.A. de C.V.</span>
-      <span data-en="Privacy notice · Terms">Aviso de privacidad · Términos</span>
+      <span><button class="link" type="button" data-legal="privacy" data-en="Privacy notice">Aviso de privacidad</button> · <button class="link" type="button" data-legal="terms" data-en="Terms">Términos</button></span>
     </div>
   </div>
 </footer>
 
 <a class="wa-float" href="https://wa.me/522226925404" target="_blank" rel="noopener" aria-label="WhatsApp"><svg aria-hidden="true"><use href="#wa"/></svg><span class="txt" data-en="Quote by WhatsApp">Cotiza por WhatsApp</span></a>
 
+<button class="to-top" type="button" id="to-top" aria-label="Volver arriba" data-en-label="Back to top" tabindex="-1" aria-hidden="true">↑</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- ============ POP-UPS ============ -->
+<dialog class="legal-sheet" id="legal" aria-labelledby="legal-title">
+  <div class="bar"><span class="legal-tabs"><span data-en="Legal">Legal</span></span><button class="x" type="button" data-close aria-label="Cerrar">×</button></div>
+  <div class="legal-body" id="legal-body"></div>
+</dialog>
 <dialog class="sheet" id="detail" aria-labelledby="detail-title">
   <div class="bar"><span id="detail-code">—</span><button class="x" type="button" data-close aria-label="Cerrar">×</button></div>
   <div class="td">
@@ -1357,6 +1509,9 @@
      HELPERS
      ================================================================ */
   const $ = (s, r = document) => r.querySelector(s);
+  // A photo from photos/ through its responsive WebP copies (tools/optimize_photos.py).
+  const srcsetOf = (file) => { const o = "photos/opt/" + file.replace(/\.(jpe?g|png)$/i, ""); return { src: `${o}-960.webp`, srcset: `${o}-480.webp 480w, ${o}-960.webp 960w, ${o}-1600.webp 1600w`, big: `${o}-1600.webp` }; };
+  const pic = (file, sizes, props = {}) => { const s = srcsetOf(file); return el("img", { src: s.src, srcset: s.srcset, sizes, decoding: "async", ...props }); };
   const el = (tag, props = {}, kids = []) => {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
@@ -1403,7 +1558,7 @@
     const box = $("#techs"); box.textContent = "";
     for (const tech of TECHS) {
       const media = tech.img
-        ? el("img", { src: "photos/" + tech.img, alt: "", loading: "lazy" })
+        ? pic(tech.img, "(max-width: 900px) 50vw, 25vw", { alt: "", loading: "lazy" })
         : el("span", { class: "swatch", style: `--sw:${tech.sw}`, "aria-hidden": "true" });
       box.append(el("button", { class: "tech", type: "button", onclick: () => openTech(tech) }, [
         media, el("span", { class: "label" }, [el("strong", { text: t(tech.name) }), el("span", { text: t(tech.tag) })])
@@ -1414,8 +1569,8 @@
   function renderWork() {
     const box = $("#work"); box.textContent = "";
     WORK.forEach(([file, w, h, cap], i) => {
-      box.append(el("button", { type: "button", onclick: () => openLightbox(i), "aria-label": t(cap) }, [
-        el("img", { src: "photos/" + file, width: w, height: h, alt: t(cap), loading: "lazy" }),
+      box.append(el("button", { type: "button", onclick: () => openGallery(WORK_SET(), i), "aria-label": t(cap) }, [
+        pic(file, "(max-width: 560px) 100vw, (max-width: 1000px) 50vw, 25vw", { width: w, height: h, alt: t(cap), loading: "lazy" }),
         el("span", { class: "cap", text: t(cap) })
       ]));
     });
@@ -1434,7 +1589,7 @@
         el("span", { class: "role", text: t(p.role) }), el("h3", { text: p.name }), el("p", { text: t(p.text) }),
         el("div", { class: "contact" }, [
           el("a", { class: "wa", href: `https://wa.me/${p.wa}`, target: "_blank", rel: "noopener", text: "WhatsApp " + p.phone }),
-          el("span", { text: p.email })
+          el("a", { href: `mailto:${p.email}`, text: p.email })
         ])
       ]));
     }
@@ -1468,7 +1623,7 @@
     }
     const quick = $("#qty-quick"); quick.textContent = "";
     for (const n of [600, 3000, 10000, 50000]) {
-      quick.append(el("button", { type: "button", text: fmt(n), onclick: () => { $("#q-qty").value = n; updateTicket(); } }));
+      quick.append(el("button", { type: "button", text: fmt(n), "data-n": n, onclick: () => { $("#q-qty").value = n; updateTicket(); } }));
     }
   }
 
@@ -1520,6 +1675,12 @@
     $("#t-advisor-role").textContent = t(s.advisor.role);
     $("#t-advisor-contact").textContent = `WhatsApp ${s.advisor.phone} · ${s.advisor.email}`;
     $("#ticket-no").textContent = orderNo(briefText(s));
+    // What just changed in the work order glows for a moment.
+    document.querySelectorAll(".ticket dd").forEach((dd) => {
+      if (dd.dataset.was !== undefined && dd.dataset.was !== dd.textContent) { dd.classList.add("changed"); requestAnimationFrame(() => requestAnimationFrame(() => dd.classList.remove("changed"))); }
+      dd.dataset.was = dd.textContent;
+    });
+    document.querySelectorAll("#qty-quick button").forEach((b) => b.classList.toggle("on", +b.dataset.n === s.qty));
     $("#send-wa").href = `https://wa.me/${s.advisor.wa}?text=${encodeURIComponent(briefText(s))}`;
   }
 
@@ -1545,7 +1706,7 @@
     $("#send-wa").addEventListener("click", (e) => { if (!validate()) e.preventDefault(); });
     $("#copy-brief").addEventListener("click", async () => {
       const text = briefText(summary()), note = $("#ticket-note");
-      try { await navigator.clipboard.writeText(text); note.textContent = lang === "en" ? "Request copied. Paste it in WhatsApp or an email." : "Solicitud copiada. Pégala en WhatsApp o en un correo."; note.classList.add("copied"); }
+      try { await navigator.clipboard.writeText(text); note.textContent = lang === "en" ? "Request copied. Paste it in WhatsApp or an email." : "Solicitud copiada. Pégala en WhatsApp o en un correo."; note.classList.add("copied"); toast(note.textContent); }
       catch (err) { note.textContent = text; note.classList.remove("copied"); }
     });
     // Any "Quote" button on a door picks that project type.
@@ -1554,7 +1715,7 @@
   }
   function pickType(id) {
     const r = $("#type-" + id); if (r) r.checked = true;
-    updateTicket(); $("#cotizar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    updateTicket(); $("#cotizar").scrollIntoView({ behavior: smooth() });
   }
 
   /* ================================================================
@@ -1565,7 +1726,8 @@
     const tier = [...TIERS].reverse().find((x) => q >= x.min);
     $("#sport-out").textContent = fmt(q);
     $("#sport-unit").textContent = "$" + fmt(tier.reg, 2);
-    $("#sport-total").textContent = "$" + fmt(Math.round(q * tier.reg));
+    const total = "$" + fmt(Math.round(q * tier.reg)), tot = $("#sport-total");
+    if (tot.textContent !== total) { tot.textContent = total; tot.classList.remove("tick"); void tot.offsetWidth; tot.classList.add("tick"); }
     const body = $("#tiers tbody"); body.textContent = "";
     for (const x of TIERS) {
       body.append(el("tr", { class: x === tier ? "on" : "" }, [el("td", { text: x.label }), el("td", { text: "$" + fmt(x.reg, 2) }), el("td", { text: "$" + fmt(x.xl, 2) })]));
@@ -1584,23 +1746,24 @@
     $("#detail").showModal();
   }
   function openTech(tech) {
-    lastTech = tech.id;
+    lastTech = tech.id; detailApply = null;
     fillDetail({
       code: (lang === "en" ? "Technique · " : "Técnica · ") + t(tech.tag), title: t(tech.name), text: t(tech.text),
       rows: [[lang === "en" ? "Best for" : "Ideal para", t(tech.use)], [lang === "en" ? "Fabrics" : "Telas", t(tech.fabric)], [lang === "en" ? "Minimum" : "Mínimo", lang === "en" ? "Confirmed in your quote" : "Se confirma en tu cotización"]],
-      media: tech.img ? el("img", { src: "photos/" + tech.img, alt: t(tech.name) }) : el("div", { class: "swatch-big", style: `--sw:${tech.sw}` })
+      media: tech.img ? pic(tech.img, "(max-width: 700px) 100vw, 480px", { alt: t(tech.name) }) : el("div", { class: "swatch-big", style: `--sw:${tech.sw}` })
     });
   }
   function openCert(c) {
-    lastTech = null;
+    lastTech = null; detailApply = null;
     const logo = el("div", { style: "aspect-ratio:1;display:grid;place-items:center;background:var(--ink)" }, [
       el("span", { class: "logo", style: `--src:url("logos/${c.logo}.png");--ar:${c.ar};--h:${c.id === "chemiq" ? "50px" : "200px"};max-width:80%;background:var(--paper);opacity:1`, role: "img", "aria-label": c.name })
     ]);
     fillDetail({ code: lang === "en" ? "Audit / certification" : "Auditoría / certificación", title: c.name, text: t(c.long),
       rows: [[lang === "en" ? "In short" : "En corto", t(c.short)], [lang === "en" ? "Proof" : "Comprobante", lang === "en" ? "Audit reports available on request" : "Reportes de auditoría disponibles a solicitud"]], media: logo, cta: false });
   }
-  let lastTech = null;
+  let lastTech = null, detailApply = null;
   $("#detail-cta").addEventListener("click", () => {
+    if (detailApply) { detailApply(); detailApply = null; updateTicket(); return; }
     if (!lastTech) return;
     const box = $("#tech-" + lastTech);
     if (box) box.checked = true;
@@ -1612,24 +1775,55 @@
     updateTicket();
   });
 
-  let lbIndex = 0;
-  function openLightbox(i) {
-    lbIndex = (i + WORK.length) % WORK.length;
-    const [file, w, h, cap] = WORK[lbIndex];
-    const img = $("#lb-img"); img.src = "photos/" + file; img.width = w; img.height = h; img.alt = t(cap);
-    $("#lb-cap").textContent = t(cap); $("#lb-count").textContent = `${lbIndex + 1} / ${WORK.length}`;
+  // One lightbox for every gallery (work, plant): arrows, keys, swipe, and the next photo preloaded.
+  let lbSet = [], lbIndex = 0;
+  const WORK_SET = () => WORK.map(([file, w, h, cap]) => ({ file, w, h, cap: t(cap) }));
+  function openGallery(set, i) { lbSet = set; openLightbox(i, 0); }
+  function openLightbox(i, dir = 1) {
+    if (!lbSet.length) lbSet = WORK_SET();
+    lbIndex = (i + lbSet.length) % lbSet.length;
+    const { file, w, h, cap } = lbSet[lbIndex], img = $("#lb-img"), s = srcsetOf(file);
+    const show = () => { img.src = s.big; img.width = w; img.height = h; img.alt = cap; $("#lb-cap").textContent = cap; };
+    $("#lb-count").textContent = `${lbIndex + 1} / ${lbSet.length}`;
+    if (!$("#lightbox").open || !dir || reduceMotion()) { show(); img.classList.remove("swap"); }
+    else {
+      img.style.setProperty("--dir", dir); img.classList.add("swap");
+      setTimeout(() => { show(); img.style.setProperty("--dir", -dir); requestAnimationFrame(() => img.classList.remove("swap")); }, 180);
+    }
+    new Image().src = srcsetOf(lbSet[(lbIndex + 1) % lbSet.length].file).big;   // next one ready
     if (!$("#lightbox").open) $("#lightbox").showModal();
   }
-  $("#lb-prev").addEventListener("click", () => openLightbox(lbIndex - 1));
-  $("#lb-next").addEventListener("click", () => openLightbox(lbIndex + 1));
-  $("#lightbox").addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") openLightbox(lbIndex - 1); if (e.key === "ArrowRight") openLightbox(lbIndex + 1); });
+  $("#lb-prev").addEventListener("click", () => openLightbox(lbIndex - 1, -1));
+  $("#lb-next").addEventListener("click", () => openLightbox(lbIndex + 1, 1));
+  $("#lightbox").addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") openLightbox(lbIndex - 1, -1); if (e.key === "ArrowRight") openLightbox(lbIndex + 1, 1); });
+  {
+    let sx = null; const fig = $("#lightbox figure");
+    fig.addEventListener("pointerdown", (e) => { sx = e.clientX; });
+    fig.addEventListener("pointerup", (e) => { if (sx === null) return; const d = e.clientX - sx; sx = null; if (Math.abs(d) > 50) openLightbox(lbIndex + (d < 0 ? 1 : -1), d < 0 ? 1 : -1); });
+  }
 
-  $("#menu-open").addEventListener("click", () => $("#menu").showModal());
-  // Close buttons, links inside pop-ups, and clicks on the dimmed backdrop.
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const smooth = () => (reduceMotion() ? "auto" : "smooth");
+  // Pop-ups close with a short exit animation (instantly when motion is reduced).
+  function closeDialog(d) {
+    if (!d.open || d.classList.contains("closing")) return;
+    if (reduceMotion()) { d.close(); return; }
+    d.classList.add("closing");
+    let done = false;
+    const finish = () => { if (done) return; done = true; d.classList.remove("closing"); d.close(); };
+    d.addEventListener("animationend", (e) => { if (e.target === d) finish(); }, { once: true });
+    setTimeout(finish, 320);
+  }
+  $("#menu-open").addEventListener("click", () => {
+    document.querySelectorAll("#menu nav a").forEach((a, i) => a.style.setProperty("--i", i));
+    $("#menu").showModal();
+  });
+  // Close buttons, links inside pop-ups, clicks on the dimmed backdrop, and Escape.
   document.querySelectorAll("dialog").forEach((d) => {
     d.addEventListener("click", (e) => {
-      if (e.target === d || e.target.closest("[data-close]")) d.close();
+      if (e.target === d || e.target.closest("[data-close]")) closeDialog(d);
     });
+    d.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(d); });
   });
 
   /* ================================================================
@@ -1649,6 +1843,10 @@
     document.querySelectorAll("[data-en-alt]").forEach((n) => {
       if (n.dataset.esAlt === undefined) n.dataset.esAlt = n.alt;
       n.alt = next === "en" ? n.dataset.enAlt : n.dataset.esAlt;
+    });
+    document.querySelectorAll("[data-en-label]").forEach((n) => {
+      if (n.dataset.esLabel === undefined) n.dataset.esLabel = n.getAttribute("aria-label");
+      n.setAttribute("aria-label", next === "en" ? n.dataset.enLabel : n.dataset.esLabel);
     });
     // The registration layers print the same words as their line.
     document.querySelectorAll(".reg").forEach((n) => (n.dataset.text = n.textContent));
@@ -2312,8 +2510,9 @@
       notes.value = notes.value.split("\n").filter((l) => !l.startsWith("Mockup: ")).concat(line).filter(Boolean).join("\n");
       updateTicket();
       $("#ticket-note").textContent = L("Los datos de tu mockup ya están en la solicitud. Adjunta tus archivos de diseño en WhatsApp.", "Your mockup details are in the request. Attach your design files in WhatsApp.");
-      $("#studio").close();
-      $("#cotizar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      closeDialog($("#studio"));
+      $("#cotizar").scrollIntoView({ behavior: smooth() });
+      toast(L("Tu mockup ya está en la solicitud de cotización.", "Your mockup is now in the quote request."));
     });
   }
 
@@ -2323,12 +2522,232 @@
   renderMarquee();
   initStudio();
   // No past dates in "date you need it".
-  $("#q-date").min = new Date().toISOString().slice(0, 10);
+  { const d = new Date(); $("#q-date").min = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
   $("#sport-qty").addEventListener("input", updateCalc);
   wireQuote();
   // English for visitors whose browser is in English (US buyers), unless they chose.
   const saved = store.get("chilian-lang");
   setLang(saved || ((navigator.language || "es").toLowerCase().startsWith("en") ? "en" : "es"));
+
+  /* ================================================================
+     EXTRAS: the cards that open something, legal notes, toasts
+     ================================================================ */
+  function toast(msg) {
+    const box = $("#toast"); box.textContent = msg; box.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => box.classList.remove("show"), 3200);
+  }
+  // Make a card act like a button: click, Enter or Space.
+  function actAsButton(node, label, fn) {
+    node.setAttribute("role", "button"); node.tabIndex = 0; if (label) node.setAttribute("aria-label", label);
+    node.addEventListener("click", (e) => { if (!e.target.closest("a, button")) fn(e); });
+    node.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(e); } });
+  }
+  const addNote = (line) => { const n = $("#q-notes"); if (!n.value.includes(line)) n.value = (n.value ? n.value + "\n" : "") + line; };
+  const pickGarment = (i) => { $("#q-garment").selectedIndex = i; };
+  function goQuote(type, msg) {
+    if (type) { const r = $("#type-" + type); if (r) r.checked = true; }
+    updateTicket(); $("#cotizar").scrollIntoView({ behavior: smooth() });
+    if (msg) toast(msg);
+  }
+
+  const LINES = {
+    "CHL-BA": { use: { es: "Eventos, promociones, activaciones y uniforme operativo", en: "Events, promotions, activations and operating uniforms" } },
+    "CHL-CL": { use: { es: "Uniforme empresarial, equipos y merch", en: "Corporate uniforms, teams and merch" } },
+    "CHL-PR": { use: { es: "Marcas de ropa, merch premium y colecciones", en: "Apparel brands, premium merch and collections" } }
+  };
+  function initExtras() {
+    // Garment lines: open the line, quote with it.
+    document.querySelectorAll(".line-card").forEach((card) => {
+      const code = card.querySelector(".code").textContent.trim(), img = card.querySelector("img");
+      card.querySelector("div").append(el("span", { class: "more-hint", "data-en": "See the line", text: "Ver la línea" }));
+      actAsButton(card, null, () => {
+        const name = card.querySelector("h3").textContent.trim();
+        lastTech = null;
+        fillDetail({
+          code: (lang === "en" ? "Garment line · " : "Línea de prenda · ") + code, title: name, text: card.querySelector("p").textContent,
+          rows: [[lang === "en" ? "Best for" : "Ideal para", t(LINES[code].use)], [lang === "en" ? "Garments" : "Prendas", lang === "en" ? "Tees, polos, shirts and hoodies" : "Playeras, polos, camisas y sudaderas"],
+                 [lang === "en" ? "Price" : "Precio", lang === "en" ? "By volume, confirmed in your quote" : "Por volumen, se confirma en tu cotización"]],
+          media: el("img", { src: img.currentSrc || img.src, alt: img.alt })
+        });
+        detailApply = () => { addNote((lang === "en" ? "Line: " : "Línea: ") + `${name} (${code})`); toast(L(`Línea ${name} agregada a tu solicitud.`, `${name} line added to your request.`)); };
+      });
+    });
+    // Plant services (cutting, sewing...): what it is, quote with it.
+    document.querySelectorAll(".service").forEach((card) => {
+      const name = card.querySelector("h3").textContent.trim(), img = card.querySelector("img");
+      card.querySelector("div").append(el("span", { class: "more-hint", "data-en": "Details", text: "Detalles" }));
+      actAsButton(card, null, () => {
+        lastTech = null;
+        fillDetail({
+          code: lang === "en" ? "In-house service" : "Servicio en planta", title: name, text: card.querySelector("p").textContent,
+          rows: [[lang === "en" ? "Where" : "Dónde", lang === "en" ? "Santa Isabel Cholula plant, under the same roof as printing" : "Planta Santa Isabel Cholula, bajo el mismo techo que el estampado"],
+                 [lang === "en" ? "Lead time" : "Tiempo", lang === "en" ? "Confirmed in your quote" : "Se confirma en tu cotización"]],
+          media: el("img", { src: img.currentSrc || img.src, alt: img.alt })
+        });
+        detailApply = () => { pickGarment(7); addNote((lang === "en" ? "Service: " : "Servicio: ") + name); toast(L(`${name} agregado a tu solicitud.`, `${name} added to your request.`)); };
+      });
+    });
+    // The three small lines under the doors.
+    const minis = document.querySelectorAll(".mini");
+    const miniActs = [
+      () => { const c = $(".calc"); c.scrollIntoView({ behavior: smooth(), block: "center" }); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); },
+      () => { pickGarment(7); goQuote("marca", L("Proyecto especial: prenda completa a la medida.", "Special project: full custom garment.")); },
+      () => { pickGarment(4); addNote(L("Promocionales: gorras, totes, termos y accesorios", "Promotional items: caps, totes, tumblers and accessories")); goQuote("promo", L("Promocionales seleccionados en tu solicitud.", "Promotional items picked in your request.")); }
+    ];
+    minis.forEach((m, i) => { m.querySelector("div").append(el("span", { class: "more-hint", "data-en": i ? "Quote" : "See prices", text: i ? "Cotizar" : "Ver precios" })); actAsButton(m, null, miniActs[i]); });
+    // Plant photos open in the lightbox, as a gallery of their own.
+    const figs = [...document.querySelectorAll(".plant-photos figure")];
+    const plantSet = () => figs.map((f) => { const img = f.querySelector("img"); return { file: img.getAttribute("src").replace(/^photos\/opt\//, "").replace(/-960\.webp$/, ".jpg"), w: +img.getAttribute("width"), h: +img.getAttribute("height"), cap: f.querySelector("figcaption").textContent }; });
+    figs.forEach((f, i) => actAsButton(f, null, () => openGallery(plantSet(), i)));
+    // Legal notes
+    document.querySelectorAll("[data-legal]").forEach((b) => b.addEventListener("click", () => openLegal(b.dataset.legal)));
+    // Back to top
+    $("#to-top").addEventListener("click", () => scrollTo({ top: 0, behavior: smooth() }));
+    // Words added by script follow the language too.
+    setLang(lang);
+  }
+
+  function openLegal(which) {
+    const P = (es, en) => el("p", { text: L(es, en) }), H = (es, en) => el("h3", { text: L(es, en) });
+    const UL = (items) => el("ul", {}, items.map(([es, en]) => el("li", { text: L(es, en) })));
+    const body = $("#legal-body"); body.textContent = "";
+    if (which === "privacy") body.append(
+      el("h2", { id: "legal-title", text: L("Aviso de privacidad", "Privacy notice") }),
+      P("Resumen del aviso de privacidad de Industrias Chilian, S.A. de C.V. (Grupo Chilian), con domicilio en Tlacomulco No. 2, San Pablo Ahuatempan, Santa Isabel Cholula, Puebla, C.P. 74355.", "Summary of the privacy notice of Industrias Chilian, S.A. de C.V. (Grupo Chilian), Tlacomulco No. 2, San Pablo Ahuatempan, Santa Isabel Cholula, Puebla, 74355, Mexico."),
+      H("Qué datos usamos", "What we use"),
+      UL([["Los que tú escribes en el cotizador: nombre, empresa, correo o WhatsApp y los datos de tu proyecto.", "What you type in the quote form: name, company, email or WhatsApp and your project details."],
+          ["Este sitio no guarda esos datos: tú los envías por WhatsApp o los copias; nosotros los recibimos solo cuando los mandas.", "This site does not store them: you send them by WhatsApp or copy them; we only receive them when you send them."],
+          ["Los diseños que subes a Estampa tu idea se procesan en tu propio navegador y no se envían a ningún servidor.", "Designs you upload to Print your idea are processed in your own browser and are not sent to any server."],
+          ["Tu navegador recuerda el idioma que elegiste.", "Your browser remembers the language you picked."]]),
+      H("Para qué", "What for"),
+      P("Para responder tu cotización, dar seguimiento a tu pedido y, si lo pides, enviarte información comercial.", "To answer your quote, follow up on your order and, if you ask for it, send you sales information."),
+      H("Tus derechos", "Your rights"),
+      P("Puedes pedir acceso, corrección, cancelación u oposición al uso de tus datos escribiendo a ventas@grupochilian.com. El aviso completo está disponible a solicitud.", "You can request access, correction, deletion or objection to the use of your data by writing to ventas@grupochilian.com. The full notice is available on request."));
+    else body.append(
+      el("h2", { id: "legal-title", text: L("Términos de uso", "Terms of use") }),
+      UL([["Los mockups de Estampa tu idea y el 3D son una referencia visual; el color, la medida y el acabado finales se aprueban en la muestra física.", "Print your idea mockups and the 3D are a visual reference; final color, size and finish are approved on the physical sample."],
+          ["Los precios publicados son de lista en MXN y pueden cambiar; el precio final es el de tu cotización.", "Published prices are list prices in MXN and may change; the final price is the one in your quote."],
+          ["Tus diseños siguen siendo tuyos. Al enviarlos confirmas que tienes derecho a reproducirlos.", "Your designs remain yours. By sending them you confirm you have the right to reproduce them."],
+          ["Las marcas y licencias que se muestran pertenecen a sus dueños y aparecen con su autorización.", "Brands and licenses shown belong to their owners and appear with their permission."],
+          ["Nada entra a producción sin una muestra aprobada por ti.", "Nothing goes into production without a sample you approve."]]));
+    $("#legal").showModal();
+  }
+
+  /* ================================================================
+     MOTION: reveals, counters, header, magnetic buttons, ripples
+     ================================================================ */
+  function initMotion() {
+    const reduced = reduceMotion();
+    // Ink drop from the press point, on every button.
+    document.addEventListener("pointerdown", (e) => {
+      const b = e.target.closest(".btn, .x, .lb-nav button, .qty-quick button, .menu-btn, .to-top");
+      if (!b || reduced) return;
+      const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2, dot = document.createElement("span");
+      dot.className = "ripple"; dot.style.cssText = `--x:${e.clientX - r.left}px;--y:${e.clientY - r.top}px;--d:${d}px`;
+      b.append(dot); dot.addEventListener("animationend", () => dot.remove());
+    });
+    // Header: shadow, reading bar, back-to-top, hero drift.
+    const header = $(".site-header"), bar = $(".read-bar"), top = $("#to-top"), heroImg = $(".hero-photo img");
+    let ticking = false;
+    const onScroll = () => {
+      ticking = false;
+      const y = scrollY, h = document.documentElement.scrollHeight - innerHeight;
+      header.classList.toggle("scrolled", y > 8);
+      bar.style.setProperty("--p", h > 0 ? (y / h).toFixed(4) : 0);
+      const showTop = y > innerHeight * 1.4;
+      if (showTop !== top.classList.contains("show")) { top.classList.toggle("show", showTop); top.tabIndex = showTop ? 0 : -1; top.setAttribute("aria-hidden", String(!showTop)); }
+      if (!reduced && heroImg && y < innerHeight * 1.2 && innerWidth > 860) heroImg.style.setProperty("--drift", `${(y * 0.08).toFixed(1)}px`);
+    };
+    addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+    onScroll();
+    // The section you are reading, underlined in the menu.
+    const links = [...document.querySelectorAll(".nav a")];
+    const spy = new IntersectionObserver((entries) => {
+      for (const en of entries) if (en.isIntersecting) links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + en.target.id));
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    links.forEach((a) => { const s = $(a.getAttribute("href")); if (s) spy.observe(s); });
+    // Primary buttons lean toward the pointer, a little.
+    if (!reduced && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      document.querySelectorAll(".hero-actions .btn, #usa-cta, #send-wa, .site-header .btn-accent").forEach((b) => {
+        b.classList.add("magnet");
+        b.addEventListener("pointermove", (e) => { const r = b.getBoundingClientRect(); b.style.transform = `translate(${((e.clientX - r.left) / r.width - 0.5) * 8}px, ${((e.clientY - r.top) / r.height - 0.5) * 6}px)`; });
+        b.addEventListener("pointerleave", () => { b.style.transform = ""; });
+      });
+      // Technique cards tilt with the pointer.
+      document.addEventListener("pointermove", (e) => {
+        const c = e.target.closest(".tech"); if (!c) return;
+        const r = c.getBoundingClientRect();
+        c.style.setProperty("--ry", `${((e.clientX - r.left) / r.width - 0.5) * 8}deg`); c.style.setProperty("--rx", `${-((e.clientY - r.top) / r.height - 0.5) * 8}deg`);
+      });
+      document.addEventListener("pointerout", (e) => { const c = e.target.closest && e.target.closest(".tech"); if (c && !c.contains(e.relatedTarget)) { c.style.removeProperty("--rx"); c.style.removeProperty("--ry"); } });
+    }
+    if (reduced || !("IntersectionObserver" in window)) return;
+    // Reveal on scroll: section heads, cards (staggered), photos (wipe), numbers (count up).
+    document.documentElement.classList.add("motion");
+    const groups = [".section-head", ".door", ".mini", ".big-numbers > div", ".presses", ".service", ".cert", ".commit li", ".tech", ".work > button",
+      ".line-card", ".calc", ".usa-list li", ".q-step", ".ticket", ".studio-hint", ".person", ".foot-grid > div", ".specs dl > div", ".trusted p"];
+    const pending = new Set();
+    const reveal = (n) => {
+      if (!pending.delete(n)) return;
+      io.unobserve(n); n.classList.add("in");
+      // Hand the element back to its own transitions (hover lifts) once it has arrived.
+      setTimeout(() => { n.removeAttribute("data-reveal"); n.classList.remove("in"); n.style.removeProperty("--i"); }, 900 + (+n.style.getPropertyValue("--i") || 0) * 70);
+    };
+    const io = new IntersectionObserver((entries) => {
+      for (const en of entries) if (en.isIntersecting || en.boundingClientRect.top < 0) reveal(en.target);
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    // A fast fling or a jump (menu link, back to top) can skip right past an element
+    // between two frames: anything already above the screen is shown at once.
+    const sweep = () => { for (const n of pending) if (n.getBoundingClientRect().bottom < innerHeight) reveal(n); };
+    addEventListener("scroll", () => { if (pending.size) requestAnimationFrame(sweep); }, { passive: true });
+    for (const sel of groups) {
+      const nodes = [...document.querySelectorAll(sel)];
+      nodes.forEach((n, i) => {
+        if (n.getBoundingClientRect().top < innerHeight * 0.9) return;   // already on screen: no flash
+        n.dataset.reveal = ""; n.style.setProperty("--i", Math.min(i % 6, 5)); pending.add(n); io.observe(n);
+      });
+    }
+    // Photos develop in: a soft fade with a slow settle of the image itself.
+    document.querySelectorAll(".usa-photo, .plant-photos").forEach((n) => { if (n.getBoundingClientRect().top > innerHeight * 0.9) { n.dataset.reveal = "photo"; pending.add(n); io.observe(n); } });
+    // The process line fills when it shows up.
+    const steps = $(".steps");
+    steps.querySelectorAll("li").forEach((li, i) => li.style.setProperty("--i", i));
+    new IntersectionObserver((en, o) => { if (en[0].isIntersecting) { steps.classList.add("in"); o.disconnect(); } }, { threshold: 0.4 }).observe(steps);
+    // Numbers count up to their value (the text stays exactly as written).
+    const counters = [...document.querySelectorAll(".specs dd, .big-numbers strong")];
+    const co = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        co.unobserve(en.target);
+        const node = [...en.target.childNodes].find((c) => c.nodeType === 3 && /\d/.test(c.textContent)) || (en.target.firstElementChild && en.target.firstElementChild.firstChild);
+        if (!node || !/\d/.test(node.textContent)) continue;
+        const final = node.textContent, target = +final.replace(/[^\d]/g, ""), t0 = performance.now(), dur = 1400;
+        const step = (now) => {
+          const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+          node.textContent = k < 1 ? Math.round(target * e).toLocaleString("en-US") : final;
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+    }, { threshold: 0.6 });
+    counters.forEach((c) => co.observe(c));
+  }
+
+  initExtras();
+  initMotion();
+
+  // Opening a link to a section (…/#cotizar): the browser jumps before the fonts and the lists
+  // built by this script are in, so the page grows and the jump lands off target. Align again
+  // once everything is in, unless the visitor has already started moving.
+  if (location.hash.length > 1) {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    let moved = false;
+    for (const ev of ["wheel", "touchstart", "keydown", "pointerdown"]) addEventListener(ev, () => { moved = true; }, { once: true, passive: true });
+    const align = () => { if (target && !moved) target.scrollIntoView({ behavior: "instant" }); };
+    const loaded = new Promise((r) => (document.readyState === "complete" ? r() : addEventListener("load", r, { once: true })));
+    align();
+    Promise.all([document.fonts.ready, loaded]).then(() => { align(); setTimeout(align, 350); });
+  }
 </script>
 </body>
 </html>

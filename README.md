@@ -18,7 +18,9 @@
 | `drape/` | Resultado de la simulación por estilo y talla: prenda drapeada + maniquí |
 | `vendor/three-r128.min.js`, `vendor/three-room-env-r128.js` | three.js r128 y su estudio de reflejos RoomEnvironment (licencia MIT), servidos desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
-| `vercel.json` | URLs limpias y caché larga para fotos y logos |
+| `photos/opt/` | Copias WebP de cada foto a 480, 960 y 1600 px (las genera `tools/optimize_photos.py`) |
+| `fonts/` | Big Shoulders Display, Instrument Sans e IBM Plex Mono (licencia OFL), servidas desde el sitio |
+| `vercel.json` | URLs limpias y caché larga para fotos, logos, prendas, fuentes y librerías |
 
 Es un sitio estático: no necesita build. Vercel publica la raíz del repositorio.
 
@@ -222,3 +224,34 @@ El 3D ya no dobla las piezas sobre un tubo: **cose el molde real sobre un maniqu
 En el navegador: maniquí mate sobre base de acero, sombras suaves (las mangas sobre el torso, los pliegues), reflejos de estudio, tejido de punto, interior en tela lisa y la cinta del cuello a 1 tono con su costura a 11 mm. Si falta el archivo de una talla, el 3D vuelve al modelo anterior.
 
 **Siguiente paso posible: render con IA sobre modelo.** Un botón "Render fotorrealista con IA" que envíe el mockup a un servicio de generación de imágenes y devuelva la prenda puesta en una persona. Requiere elegir proveedor, una llave de API guardada en Vercel y un presupuesto por render.
+
+## Movimiento, botones y rendimiento
+
+**Todo botón hace algo.**
+- Las líneas Básica, Clásica y Premium, los servicios de planta (corte, costura, bordado, teñido) y las tres tarjetas chicas (Chilian Sport, proyectos especiales, promocionales) abren su ficha o llevan al cotizador con la prenda, el tipo de proyecto o la nota ya puestos.
+- Las fotos de la planta abren en la galería (flechas, teclado y deslizar con el dedo), igual que los trabajos.
+- Pie de página: dirección con mapa, WhatsApp, y "Aviso de privacidad" y "Términos" en ventana propia. **Por revisar con Chilian:** son un resumen redactado a partir de cómo funciona el sitio; el aviso completo debe venir de su área legal.
+- Los correos del equipo son enlaces de correo; "Reservar capacidad" preselecciona Marca / OEM; la franja superior lleva a certificaciones.
+- Botón "volver arriba" y avisos breves (copiar solicitud, mockup agregado, línea agregada).
+
+**Movimiento** (se apaga si el sistema pide menos movimiento):
+- Botones con brillo al pasar, gota de tinta donde se presiona y un leve imán en los principales; insignia "NUEVO" que se mueve; selector ES/EN que se desliza.
+- Encabezado con sombra al bajar, barra magenta de lectura y la sección actual subrayada en el menú.
+- Las secciones aparecen al llegar a ellas (en escalera), los números cuentan hasta su valor, la línea del proceso se llena estación por estación, la foto principal se asienta y se desplaza lento.
+- Las ventanas cierran con animación; el menú del teléfono entra en escalera; en la orden de trabajo se ilumina lo que cambia.
+
+**Rendimiento** (4G lenta simulada, antes → después):
+
+| | Antes | Después |
+| --- | --- | --- |
+| Pintado principal (LCP), escritorio | 5.9 s | 1.2 s |
+| Carga completa, escritorio | 8.2 s | 4.1 s |
+| Imágenes al recorrer toda la página, escritorio | 9.4 MB | 3.0 MB |
+| Imágenes al recorrer toda la página, teléfono | 9.4 MB | 1.5 MB |
+| Saltos de diseño (CLS), escritorio / teléfono | 0.107 / 0.061 | 0.061 / 0.012 |
+
+Cómo: fotos WebP con `srcset` (el teléfono baja la de 480 o 960 px), foto principal precargada con prioridad alta, fuentes propias precargadas (sin pedirlas a Google), foto principal alineada arriba para que no salte, y caché larga en Vercel para fotos, fuentes, prendas y librerías.
+
+**Errores corregidos en la revisión:** un enlace directo a una sección (…/#equipo) caía fuera de lugar porque la página crecía después del salto; la fecha mínima del cotizador usaba la hora UTC (después de las 6 p. m. en México no dejaba elegir el día de hoy); la imagen para compartir en redes (og:image) no tenía dirección completa; el botón de WhatsApp flotante tapaba los enlaces legales del pie.
+
+    python3 tools/optimize_photos.py     # después de agregar o cambiar fotos en photos/

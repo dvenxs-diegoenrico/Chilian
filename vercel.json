@@ -2,8 +2,16 @@
   "cleanUrls": true,
   "headers": [
     {
-      "source": "/(photos|logos)/(.*)",
+      "source": "/(photos|logos|blanks|vendor|fonts)/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }]
+    },
+    {
+      "source": "/(patterns|drape)/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+    },
+    {
+      "source": "/(favicon.png|apple-touch-icon.png)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     }
   ]
 }
