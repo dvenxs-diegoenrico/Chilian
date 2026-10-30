@@ -612,6 +612,13 @@
   .swatch-opt input:focus-visible + span { outline: 2px solid var(--magenta); outline-offset: 5px; }
   @media (hover: hover) { .swatch-opt:hover span { transform: scale(1.08); } }
   .st-color-name { font-size: .85rem; color: var(--steel); }
+  #st-3d { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #st-3d:focus-visible { outline: 2px solid var(--magenta); outline-offset: 4px; }
+  .st-loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 .72rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .chip input:disabled + span { opacity: .4; cursor: not-allowed; }
+  .st-range { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1rem; font-size: .88rem; }
+  .st-range input { grid-column: 1 / -1; width: 100%; }
+  .st-range output { font: 500 .8rem var(--f-mono); }
   .st-actions { display: grid; gap: .6rem; padding-top: .4rem; border-top: 1px solid var(--rule); }
   .st-actions .btn { width: 100%; }
   .st-note { font: 400 .72rem/1.5 var(--f-mono); color: var(--steel); }
@@ -1168,9 +1175,11 @@
         <svg class="reg-corner tl" aria-hidden="true"><use href="#reg"/></svg>
         <svg class="reg-corner br" aria-hidden="true"><use href="#reg"/></svg>
         <canvas id="st-canvas" width="1264" height="1264" tabindex="0" role="img" aria-label="Vista previa de la prenda con tu diseño"></canvas>
+        <canvas id="st-3d" tabindex="0" role="img" aria-label="Prenda en 3D con tu diseño. Arrastra para girar." hidden></canvas>
+        <p class="st-loading" id="st-loading" hidden data-en="Loading 3D…">Cargando 3D…</p>
       </div>
       <div class="st-views chips" id="st-views"></div>
-      <div class="st-meta"><span><span data-en="Print size">Medida de impresión</span>: <strong id="st-size-label">—</strong></span><span data-en="Drag the design or use the arrow keys">Arrastra el diseño o usa las flechas</span></div>
+      <div class="st-meta"><span><span data-en="Print size">Medida de impresión</span>: <strong id="st-size-label">—</strong></span><span id="st-hint" data-en="Drag the design or use the arrow keys">Arrastra el diseño o usa las flechas</span></div>
     </div>
     <div class="st-panel">
       <div>
@@ -1178,7 +1187,7 @@
         <p class="lead" data-en="Upload your design and see it on the garment. Your file stays on your device.">Sube tu diseño y míralo en la prenda. Tu archivo no sale de tu dispositivo.</p>
       </div>
       <div class="st-step">
-        <span data-en="01 · Your design">01 · Tu diseño</span>
+        <span data-en="Your design">Tu diseño</span>
         <label class="st-drop" id="st-drop">
           <input type="file" id="st-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
           <strong data-en="Upload or drop your file">Sube o arrastra tu archivo</strong>
@@ -1187,13 +1196,19 @@
         <p class="st-file" id="st-file-name" aria-live="polite"></p>
         <label class="st-check"><input type="checkbox" id="st-knockout"><span data-en="Remove white background">Quitar fondo blanco</span></label>
       </div>
-      <fieldset class="st-step"><legend data-en="02 · Garment">02 · Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
-      <fieldset class="st-step"><legend data-en="03 · Color">03 · Color</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
-      <fieldset class="st-step"><legend data-en="04 · Placement">04 · Posición</legend><div class="chips" id="st-places"></div></fieldset>
-      <fieldset class="st-step"><legend data-en="05 · Size">05 · Tamaño</legend><div class="chips" id="st-sizes"></div></fieldset>
+      <fieldset class="st-step"><legend data-en="Garment">Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
+      <fieldset class="st-step" id="st-step-mode"><legend data-en="Print type">Tipo de impresión</legend><div class="chips" id="st-modes"></div>
+        <span class="st-color-name" id="st-mode-note"></span></fieldset>
+      <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
+      <fieldset class="st-step" id="st-step-place"><legend data-en="Placement">Posición</legend><div class="chips" id="st-places"></div></fieldset>
+      <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div></fieldset>
+      <fieldset class="st-step" id="st-step-fill" hidden><legend data-en="How the design fills the garment">Cómo llena la prenda tu diseño</legend><div class="chips" id="st-fills"></div>
+        <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
+      <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size (Chilian Sport)">Talla del molde (Chilian Sport)</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
       <div class="st-actions">
         <button class="btn btn-accent" type="button" id="st-quote"><span data-en="Quote with this design">Cotizar con este diseño</span> <span class="arrow" aria-hidden="true">→</span></button>
         <button class="btn btn-ghost" type="button" id="st-download" data-en="Download mockup">Descargar mockup</button>
+        <button class="btn btn-ghost" type="button" id="st-production" hidden data-en="Download production file (marker)">Descargar archivo de producción (trazo)</button>
         <button class="btn btn-ghost" type="button" id="st-reset" data-en="Center the design again">Volver a centrar el diseño</button>
         <p class="st-note" data-en="Preview for reference. Final colors and size are confirmed on the physical sample.">Vista de referencia. Los colores y la medida final se confirman en la muestra física.</p>
       </div>
@@ -1677,12 +1692,16 @@
     ],
     sizeNames: [{ es: "Chico", en: "Small" }, { es: "Mediano", en: "Medium" }, { es: "Grande", en: "Large" }]
   };
-  const st = { g: 0, view: "front", place: 0, size: 1, color: 0, dx: 0, dy: 0, art: null, artName: "", knockout: false, cache: {} };
+  // side = which face is being placed on; display = photo mockup, 3D or the flat pattern;
+  // mode = placement print (screen printing) or full print (sublimation, Chilian Sport only).
+  const st = { g: 0, side: "front", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M",
+               place: 0, size: 1, color: 0, dx: 0, dy: 0, art: null, artName: "", knockout: false, cache: {} };
 
   const stCanvas = $("#st-canvas"), stCtx = stCanvas.getContext("2d", { willReadFrequently: true });
   const SIZE = 1264;
   const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
-  const curView = () => STUDIO.garments[st.g].views[st.view];
+  const curView = () => STUDIO.garments[st.g].views[st.side];
+  const hasPattern = () => STUDIO.garments[st.g].id === "tee";   // only the t-shirt has its CAD pattern so far
   const curPlace = () => curView().places[Math.min(st.place, curView().places.length - 1)];
 
   // Load a blank once: keep its alpha and its shade map.
@@ -1743,7 +1762,9 @@
   let stDrawing = 0, stFrame = 0, stDragging = false;
   function requestDraw() { if (!stFrame) stFrame = requestAnimationFrame(() => { stFrame = 0; drawStudio(); }); }
   async function drawStudio() {
+    if (st.display !== "photo" || st.mode === "full") return drawPatternViews();
     const ticket = ++stDrawing;
+    $("#st-3d").hidden = true; stCanvas.style.visibility = "visible"; $("#st-loading").hidden = true;
     const blank = await loadBlank(curView().src);
     if (ticket !== stDrawing || !st.art) return;
     stCtx.clearRect(0, 0, SIZE, SIZE);
@@ -1820,13 +1841,53 @@
       box.append(el("label", { class: "chip" }, [input, el("span", { text: label })]));
     });
   }
+  const L = (es, en) => (lang === "en" ? en : es);
   function renderStudio() {
-    const g = STUDIO.garments[st.g], views = Object.keys(g.views);
-    if (!g.views[st.view]) st.view = "front";
+    const g = STUDIO.garments[st.g];
+    if (!g.views[st.side]) st.side = "front";
+    if (!hasPattern()) { st.mode = "place"; if (st.display !== "photo") st.display = "photo"; }
+    if (st.mode === "full" && st.display === "photo") st.display = "flat";
+    if (st.mode === "place" && st.display === "flat") st.display = "photo";
     st.place = Math.min(st.place, curView().places.length - 1);
     stChips($("#st-garments"), "st-g", STUDIO.garments.map((x) => t(x.name)), (i) => i === st.g, (i) => { st.g = i; st.place = 0; st.dx = st.dy = 0; });
-    stChips($("#st-views"), "st-v", views.map((v) => (v === "front" ? (lang === "en" ? "Front" : "Frente") : (lang === "en" ? "Back" : "Espalda"))),
-      (i) => views[i] === st.view, (i) => { st.view = views[i]; st.place = 0; st.dx = st.dy = 0; });
+
+    // Views: front / back photo mockups and 3D; in full print, the flat pattern and 3D.
+    const views = st.mode === "full"
+      ? [["flat", L("Molde", "Pattern")], ["3d", "3D beta"]]
+      : [["front", L("Frente", "Front")], ["back", L("Espalda", "Back")], ["3d", "3D beta"]];
+    const vbox = $("#st-views"); vbox.textContent = "";
+    views.forEach(([id, label]) => {
+      const on = id === "3d" || id === "flat" ? st.display === id : st.display === "photo" && st.side === id;
+      const input = el("input", { type: "radio", name: "st-v", value: id, id: `st-v-${id}` });
+      if (on) input.checked = true;
+      if (id === "3d" && !hasPattern()) { input.disabled = true; input.title = L("3D disponible en playera", "3D available on the t-shirt"); }
+      input.addEventListener("change", () => {
+        if (id === "3d" || id === "flat") st.display = id; else { st.display = "photo"; st.side = id; st.place = 0; st.dx = st.dy = 0; }
+        renderStudio(); drawStudio();
+      });
+      vbox.append(el("label", { class: "chip" }, [input, el("span", { text: label })]));
+    });
+
+    // Print type (the t-shirt only, the one garment with its pattern).
+    $("#st-step-mode").hidden = !hasPattern();
+    stChips($("#st-modes"), "st-m", [L("Serigrafía por posición", "Placement print"), L("Estampado completo", "Full print")],
+      (i) => (i ? "full" : "place") === st.mode, (i) => { st.mode = i ? "full" : "place"; st.display = i ? "flat" : "photo"; });
+    $("#st-mode-note").textContent = st.mode === "full"
+      ? L("Sublimación de costura a costura sobre el molde real de Chilian Sport.", "Seam-to-seam sublimation on the real Chilian Sport pattern.")
+      : L("Tu diseño en una posición: frente, pecho, espalda o nuca.", "Your design in one spot: front, chest, back or neck.");
+    $("#st-step-place").hidden = $("#st-step-size").hidden = st.mode === "full";
+    $("#st-step-fill").hidden = st.mode !== "full";
+    $("#st-step-pat").hidden = !(st.mode === "full" || st.display === "3d");
+    $("#st-production").hidden = st.mode !== "full";
+    $("#st-color-legend").textContent = st.mode === "full" ? L("Color de fondo", "Background color") : L("Color de la prenda", "Garment color");
+    stChips($("#st-fills"), "st-f", [L("Cubrir cada pieza", "Cover each piece"), L("Repetir como patrón", "Repeat as a pattern")],
+      (i) => (i ? "repeat" : "cover") === st.fill, (i) => { st.fill = i ? "repeat" : "cover"; });
+    $("#st-tile-wrap").hidden = st.fill !== "repeat";
+    $("#st-tile-out").textContent = `${st.tile} mm`;
+    stChips($("#st-pat-sizes"), "st-ps", ["S", "M", "L", "XL"], (i) => ["S", "M", "L", "XL"][i] === st.pat, (i) => { st.pat = ["S", "M", "L", "XL"][i]; });
+    $("#st-hint").textContent = st.display === "3d" ? L("Arrastra para girar · rueda o pellizco para acercar", "Drag to turn · wheel or pinch to zoom")
+      : st.display === "flat" ? L("Así se corta e imprime cada pieza del molde", "How each pattern piece is cut and printed")
+      : L("Arrastra el diseño o usa las flechas", "Drag the design or use the arrow keys");
     stChips($("#st-places"), "st-p", curView().places.map((p) => t(p.name)), (i) => i === st.place, (i) => { st.place = i; st.dx = st.dy = 0; });
     stChips($("#st-sizes"), "st-s", curPlace().sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === st.size, (i) => { st.size = i; });
     const sw = $("#st-colors"); sw.textContent = "";
@@ -1842,7 +1903,38 @@
 
   function studioSummary() {
     const g = STUDIO.garments[st.g], r = printRect();
+    if (st.mode === "full") return `Chilian Sport · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")} · ${L("talla", "size")} ${st.pat}`;
     return `${t(g.name)} ${t(STUDIO.colors[st.color].name).toLowerCase()} · ${t(curPlace().name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
+  }
+
+  /* ---- 3D and flat pattern views (studio3d.js, loaded on first use) ---- */
+  let st3dReady = null;
+  function ensure3D() {
+    if (st3dReady) return st3dReady;
+    const load = (src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.append(s); });
+    st3dReady = load("vendor/three-r128.min.js").then(() => load("studio3d.js"));
+    st3dReady.catch(() => { st3dReady = null; });
+    return st3dReady;
+  }
+  // What studio3d.js needs to paint the pattern pieces.
+  function patternDesign() {
+    return { mode: st.mode, color: STUDIO.colors[st.color].hex, art: st.art, fill: st.fill, tileMM: st.tile,
+             place: { ...curPlace() }, sizeIdx: st.size, dxmm: (st.dx / curView().pxcm) * 10, dymm: (st.dy / curView().pxcm) * 10 };
+  }
+  let patTicket = 0;
+  async function drawPatternViews() {
+    const ticket = ++patTicket, c3 = $("#st-3d"), loading = $("#st-loading");
+    if (!st.art) return;
+    const want3D = st.display === "3d";
+    loading.hidden = !!window.Chilian3D;
+    try { await ensure3D(); } catch (e) { loading.textContent = L("No se pudo cargar la vista 3D. Revisa tu conexión.", "The 3D view could not load. Check your connection."); return; }
+    if (ticket !== patTicket) return;
+    loading.hidden = true;
+    c3.hidden = !want3D; stCanvas.style.visibility = want3D ? "hidden" : "visible";
+    if (want3D) await Chilian3D.show3D(c3, st.pat, patternDesign());
+    else await Chilian3D.drawFlat(stCanvas, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeve: L("MANGA", "SLEEVE") });
+    const r = printRect();
+    $("#st-size-label").textContent = st.mode === "full" ? L(`Molde Chilian Sport · talla ${st.pat}`, `Chilian Sport pattern · size ${st.pat}`) : `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm · ${L("talla", "size")} ${st.pat}`;
   }
 
   async function openStudio() {
@@ -1878,7 +1970,7 @@
     let drag = null;
     const limit = () => ({ x: 6 * curView().pxcm, y: 10 * curView().pxcm });
     const clampMove = () => { const l = limit(); st.dx = Math.max(-l.x, Math.min(l.x, st.dx)); st.dy = Math.max(-l.y, Math.min(l.y, st.dy)); };
-    stCanvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, dx: st.dx, dy: st.dy }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); stDragging = true; requestDraw(); });
+    stCanvas.addEventListener("pointerdown", (e) => { if (st.display !== "photo" || st.mode === "full") return; drag = { x: e.clientX, y: e.clientY, dx: st.dx, dy: st.dy }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); stDragging = true; requestDraw(); });
     stCanvas.addEventListener("pointermove", (e) => {
       if (!drag) return;
       const k = SIZE / stCanvas.getBoundingClientRect().width;
@@ -1887,10 +1979,28 @@
     const end = () => { drag = null; stCanvas.classList.remove("dragging"); stDragging = false; requestDraw(); };
     stCanvas.addEventListener("pointerup", end); stCanvas.addEventListener("pointercancel", end);
     stCanvas.addEventListener("keydown", (e) => {
+      if (st.display !== "photo" || st.mode === "full") return;
       const step = (e.shiftKey ? 2 : 0.5) * curView().pxcm, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
       if (!m) return; e.preventDefault(); st.dx += m[0]; st.dy += m[1]; clampMove(); requestDraw();
     });
     $("#st-reset").addEventListener("click", () => { st.dx = st.dy = 0; drawStudio(); });
+    $("#st-tile").addEventListener("input", (e) => { st.tile = +e.target.value; $("#st-tile-out").textContent = `${st.tile} mm`; drawStudio(); });
+
+    // Production file (route 2): the CAD marker at real scale with the design on every piece.
+    // It goes to the printer, so it carries no watermark.
+    $("#st-production").addEventListener("click", async () => {
+      const btn = $("#st-production"), label = btn.textContent;
+      btn.disabled = true; btn.textContent = L("Preparando archivo…", "Preparing file…");
+      try {
+        await ensure3D();
+        const c = await Chilian3D.productionFile(st.pat, patternDesign(), 100);
+        c.toBlob((blob) => {
+          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `chilian-sport-trazo-${st.pat}.png`;
+          document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+          btn.disabled = false; btn.textContent = label;
+        }, "image/png");
+      } catch (err) { btn.disabled = false; btn.textContent = label; }
+    });
 
     // Download: every saved mockup carries the "Generated by Chilian" watermark,
     // tiled across the image (so it can't be cropped out) and in a footer band.
@@ -1902,7 +2012,8 @@
       const band = 120, c = document.createElement("canvas"); c.width = SIZE; c.height = SIZE + band;
       const x = c.getContext("2d");
       x.fillStyle = "#EEEDEF"; x.fillRect(0, 0, SIZE, SIZE);
-      x.drawImage(stCanvas, 0, 0);
+      if (st.display === "3d" && window.Chilian3D) { Chilian3D.render(); x.drawImage($("#st-3d"), 0, 0, SIZE, SIZE); }
+      else x.drawImage(stCanvas, 0, 0);
 
       // 1. Diagonal, repeated watermark: white text with a faint dark edge reads on light and dark garments.
       x.save();

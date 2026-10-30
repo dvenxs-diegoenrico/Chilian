@@ -10,6 +10,10 @@
 | `propuesta-v2.html` | Propuesta alternativa con referencias Nike y Apple |
 | `photos/`, `logos/` | Fotos de planta y trabajos; logos como máscaras de color |
 | `favicon.png`, `apple-touch-icon.png` | Ícono de la pestaña y del teléfono |
+| `studio3d.js` | 3D, vista de molde y archivo de producción (rutas 2 y 3) |
+| `patterns/play-sport-mc/` | Molde Chilian Sport (PLAY SPORT MCORTA) tallas S–XL en milímetros, trazado de los PDF de CAD |
+| `tools/extract_pattern.py` | Convierte un trazo PDF de CAD en el JSON del molde |
+| `vendor/three-r128.min.js` | three.js r128 (licencia MIT), servido desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
 | `vercel.json` | URLs limpias y caché larga para fotos y logos |
 
@@ -131,3 +135,25 @@ Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
 **Cómo se hicieron las prendas.** Con Canva AI, usando como referencia las fotos de las líneas Básica, Clásica y Premium del catálogo. Se generaron en blanco, se les quitó el fondo en Canva y se exportaron a 1264 × 1264 px. El sitio las recolorea conservando sus pliegues. Diseño de trabajo en Canva: "Blank garment mockup canvas" (páginas 2 a 7).
 
 **Para cambiar algo.** Colores, posiciones y medidas viven en el objeto `STUDIO` de `index.html`. Para usar fotos reales de la planta, reemplaza los archivos de `blanks/` con prendas blancas sobre fondo transparente, del mismo tamaño y encuadre.
+
+## Rutas 2 y 3: molde real y 3D (beta)
+
+**Molde.** Los cuatro PDF de CAD (`PLAY_SPORT_MCORTA_DIEG_S1…XL1.pdf`) se convierten con `tools/extract_pattern.py` en `patterns/play-sport-mc/<talla>.json`: delantero, espalda y dos mangas en milímetros, más su posición en el trazo. Verificación: el aprovechamiento de tela medido coincide con el que reporta CAD con menos de 0.75 % de diferencia (M: 61.01 % medido vs 61.42 %).
+
+    python3 tools/extract_pattern.py trazo.pdf M patterns/play-sport-mc/M.json
+
+**Una textura por pieza.** Cada pieza se pinta en sus propios milímetros. Esa misma textura alimenta:
+- la vista **Molde** (piezas planas),
+- la vista **3D**, donde cada pieza se dobla sobre el cuerpo (delantero y espalda alrededor de un torso ovalado, mangas en tubo),
+- el **archivo de producción**: el trazo completo a escala real (1500 mm × alto del trazo, 100 dpi), cada pieza donde la colocó CAD y con su línea de corte. Sin marca de agua.
+
+**En el estudio.**
+- Playera: "Serigrafía por posición" (frente, pecho, espalda, nuca) o "Estampado completo" (sublimación).
+- Vistas: Frente / Espalda / 3D en serigrafía; Molde / 3D en estampado completo.
+- Estampado completo: cubrir cada pieza o repetir como patrón (40–320 mm), color de fondo y talla del molde.
+- Sudadera y polo: 3D desactivado hasta tener su molde.
+
+**Pendiente.**
+- Moldes de sudadera y polo (PDF de CAD igual que estos) para llevarles el 3D.
+- Cerrar la unión manga–sisa en 3D (hoy se ve una abertura al girar).
+- Resolución final y perfil de color de la impresora de sublimación para el archivo de producción (hoy 100 dpi).
