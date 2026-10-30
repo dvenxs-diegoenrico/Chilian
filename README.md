@@ -19,6 +19,7 @@
 | `vendor/three-r128.min.js`, `vendor/three-room-env-r128.js` | three.js r128 y su estudio de reflejos RoomEnvironment (licencia MIT), servidos desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
 | `photos/opt/` | Copias WebP de cada foto a 480, 960 y 1600 px (las genera `tools/optimize_photos.py`) |
+| `catalogo/` | Catálogo navegable: 174 páginas de producto de los 8 catálogos PDF oficiales (WebP grande y miniatura) y `catalogo.json` con sus datos |
 | `fonts/` | Big Shoulders Display, Instrument Sans e IBM Plex Mono (licencia OFL), servidas desde el sitio |
 | `vercel.json` | URLs limpias y caché larga para fotos, logos, prendas, fuentes y librerías |
 
@@ -281,3 +282,19 @@ Recopilada de su sitio oficial (grupochilian.com.mx), LinkedIn, TikTok, YouTube,
 - **Datos de directorios** (Dun & Bradstreet, RocketReach) con fundación 2018 y 9 a 50 empleados: contradicen 1990 y 51–200 de LinkedIn. Se usó 1990.
 - **Teléfono en su sitio oficial** escrito como +51 2226 925404 (código de Perú): debería ser +52.
 - **"Einstein: Abre tu mente"** solo aparece en una nota de prensa; sería ideal una foto de la pieza y del reconocimiento para la sección Historia.
+
+## Catálogo, ventanas de información y animación de todo lo que se toca
+
+**Catálogo (sección "Elige la prenda", menú "Catálogo").**
+- 174 modelos tomados de los 8 catálogos PDF oficiales de Chilian (Básica: PLT y MK; Clásica: OPT, BON, KG y YBK; Premium: MYK y AK). Cada página de producto se convirtió en imagen y se le extrajo título, modelos, gramaje, tela, tallas y para quién es (caballero, dama, niños, unisex).
+- Filtros por línea, prenda y público (con conteo), búsqueda por prenda, modelo, tela o gramaje, y "Ver más" de 12 en 12. Se carga solo al acercarse a la sección.
+- Ficha de cada modelo: foto grande con zoom (tocar y mover), flechas, teclado y deslizar; datos; "Agregar a mi cotización"; "Ponle mi diseño" (abre Estampa tu idea con playera, playera dama, sudadera o polo); y "Ver en el PDF" en la página exacta.
+- "Mi selección": los modelos agregados aparecen en el cotizador (se pueden quitar) y viajan en el mensaje de WhatsApp como "Modelos del catálogo". Se recuerdan en el navegador.
+- Fuera del catálogo navegable: portadas, índices, separadores, guías de tallas y el catálogo de campañas políticas (lleva marcas de partidos y candidatos; sigue disponible como PDF desde el cotizador).
+- Imágenes: las páginas oficiales de los catálogos; no fue necesario generar imágenes con IA.
+
+**Ventanas de información nuevas:** los cuatro números de capacidad, cada paso del proceso, cada pulpo de la tabla (paletas, colores y para qué tiraje conviene), cada momento de la historia (con su fuente) y cada persona del equipo (WhatsApp y correo).
+
+**Animación de todo lo que se toca:** transición suave de color, fondo, borde y sombra en todos los enlaces y botones; botones y tarjetas se hunden al presionar; los chips se elevan al pasar el cursor; los enlaces de texto dibujan su subrayado; las tarjetas del catálogo entran en escalera.
+
+    # regenerar el catálogo (scripts en el historial de esta conversación): PDF -> páginas -> catalogo/*.webp + catalogo.json
