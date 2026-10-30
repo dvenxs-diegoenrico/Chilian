@@ -82,12 +82,26 @@ Se construyó con el mismo modelo que la página de Dstance: un `index.html` con
 
 Se cambia en el objeto `TYPES` dentro de `index.html`.
 
-## Por confirmar con Chilian antes de publicar en el dominio
+## Confirmado por Chilian
 
-- Años de trayectoria: el sitio dice "más de 35", un catálogo dice "más de 20". El hero usa 35.
+- 35 años de trayectoria.
+- Hay permiso para mostrar los logos de marcas y licencias.
+- Ya no hay showroom separado: el showroom está dentro de la planta (Tlacomulco No. 2, Santa Isabel Cholula).
+
+## Dirección elegida: v1 (`index-v1.html`)
+
+Cambios de la revisión:
+- Menos rosa: el magenta queda solo en los botones principales de cotizar, la línea "escala industrial." del hero y el anillo de foco del teclado.
+- Corregido: la franja de cifras del hero se comprimía a media columna y "450,000" encimaba el "8".
+- Corregido: el botón "Cotizar con esto" aparecía en las fichas de certificaciones.
+- Corregido: las técnicas sin opción en el cotizador (glitter, mezclilla, etiquetas…) ahora se agregan a las notas.
+- Corregido: la página no ocultaba elementos con `hidden` fuera del visor de artifacts.
+- La fecha del cotizador ya no acepta días pasados.
+- Pies de foto sin números de tintas inventados; se quitó "P36 / C12" de la foto del hero.
+
+## Por confirmar con Chilian
+
 - Capacidad: el estudio usa 20,000 piezas/día; un banner viejo dice "30,000 prints daily, 10,000 garments a week".
-- Permiso para mostrar logos de marcas y licencias (The North Face, Vans, Carhartt, Supreme, Marvel, Snoopy, Bluey, Minecraft, Tom & Jerry).
 - Vigencia de las auditorías. ISO 9001 se dejó fuera porque no hay certificado publicado.
-- Dirección exacta del showroom (2 Sur 1914 / 1914-C / 1704).
-- Tiempo de respuesta prometido en el cotizador ("un día hábil").
+- Promesas de servicio: respuesta a cotizaciones en un día hábil y "nada entra a producción sin muestra aprobada".
 - Contacto directo de Federico Chilian (hoy no se publica).
