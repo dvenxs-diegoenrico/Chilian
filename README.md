@@ -297,4 +297,4 @@ Recopilada de su sitio oficial (grupochilian.com.mx), LinkedIn, TikTok, YouTube,
 
 **Animación de todo lo que se toca:** transición suave de color, fondo, borde y sombra en todos los enlaces y botones; botones y tarjetas se hunden al presionar; los chips se elevan al pasar el cursor; los enlaces de texto dibujan su subrayado; las tarjetas del catálogo entran en escalera.
 
-    # regenerar el catálogo (scripts en el historial de esta conversación): PDF -> páginas -> catalogo/*.webp + catalogo.json
+Para regenerar el catálogo cuando Chilian actualice sus PDF: ver `tools/catalog/README.md`.
