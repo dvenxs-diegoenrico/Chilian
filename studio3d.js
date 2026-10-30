@@ -105,6 +105,8 @@
     x.save(); x.clip(p.path);
     x.fillStyle = d.color; x.fillRect(0, 0, p.width, p.height);
     if (d.mode === "full" && d.bg) drawFull(x, p, d);
+    const own = d.pieces && d.pieces[pieceKey(p)];
+    if (own && own.art) drawPieceArt(x, p, own);
     for (const pr of d.prints || []) drawPlaced(x, p, pr);
     // On the 3D only: the neck binding, a band of the same fabric and tone sewn over the
     // neck edge, shows as the stitch line 11 mm in (it covers any print under it).
@@ -152,7 +154,26 @@
   }
   function drawPlaced(x, p, pr) {
     const r = placedRect(p, pr);
-    if (r) x.drawImage(pr.art, r.x, r.y, r.w, r.h);
+    if (!r) return;
+    x.save(); x.translate(r.x + r.w / 2, r.y + r.h / 2); x.rotate(((pr.rot || 0) * Math.PI) / 180);
+    x.drawImage(pr.art, -r.w / 2, -r.h / 2, r.w, r.h);
+    x.restore();
+  }
+
+  // A piece's own image (full print, built piece by piece on the pattern): it starts covering
+  // the piece and can be scaled, moved (mm) and rotated. Key: front | back | sleeveR | sleeveL.
+  const pieceKey = (p) => (p.kind === "sleeve" ? `sleeve${p.side}` : p.kind);
+  function pieceArtRect(p, a) {
+    const ar = a.art.width / a.art.height;
+    let w = p.width, h = w / ar;
+    if (h < p.height) { h = p.height; w = h * ar; }
+    return { cx: p.width / 2 + a.dxmm, cy: p.height / 2 + a.dymm, w: w * a.scale, h: h * a.scale };
+  }
+  function drawPieceArt(x, p, a) {
+    const r = pieceArtRect(p, a);
+    x.save(); x.translate(r.cx, r.cy); x.rotate(((a.rot || 0) * Math.PI) / 180);
+    x.drawImage(a.art, -r.w / 2, -r.h / 2, r.w, r.h);
+    x.restore();
   }
 
   // A fine knit, as a normal map: vertical ribs a few millimeters apart plus a little
@@ -497,10 +518,22 @@
     const k = Math.min((S - 80) / totalW, (S - 120) / totalH);
     x.clearRect(0, 0, S, S);
     const ox = (S - totalW * k) / 2, oy = 40;
+    const layout = { k, items: [] }, sel = design.selected;
     const put = (p, px, py, label) => {
+      layout.items.push({ p, px, py });
       x.save(); x.translate(px, py); x.scale(k, k);
       x.drawImage(pieceTexture(p, design), 0, 0, p.width, p.height);
       x.lineWidth = 1.4 / k; x.strokeStyle = "#151316"; x.stroke(p.path);
+      // The layer being edited: a dashed frame around a graphic, a bold outline around a piece.
+      if (sel && sel.piece === pieceKey(p)) { x.lineWidth = 4 / k; x.strokeStyle = "#CF1069"; x.stroke(p.path); }
+      const pr = sel && sel.section && (design.prints || []).find((q) => q.section === sel.section), r = pr && placedRect(p, pr);
+      if (r) {
+        x.save(); x.translate(r.x + r.w / 2, r.y + r.h / 2); x.rotate(((pr.rot || 0) * Math.PI) / 180);
+        x.setLineDash([8 / k, 6 / k]); x.lineWidth = 2 / k;
+        x.strokeStyle = "rgba(255,255,255,.95)"; x.strokeRect(-r.w / 2, -r.h / 2, r.w, r.h);
+        x.lineDashOffset = 7 / k; x.strokeStyle = "rgba(0,0,0,.7)"; x.strokeRect(-r.w / 2, -r.h / 2, r.w, r.h);
+        x.restore();
+      }
       x.restore();
       x.fillStyle = "#67626B"; x.font = '500 20px "IBM Plex Mono", monospace'; x.textAlign = "center";
       x.fillText(label, px + (p.width * k) / 2, py + p.height * k + 26);
@@ -514,6 +547,7 @@
       x.fillStyle = "#151316"; x.font = '500 22px "IBM Plex Mono", monospace'; x.textAlign = "center";
       x.fillText(labels.binding(Math.round(pat.neckline_mm)), S / 2, S - 26);
     }
+    return layout;
   }
 
   /* -------------------- production file (route 2) -------------------- */
@@ -546,5 +580,5 @@
     three.rotY = { back: Math.PI - 0.35, right: 1.25, left: -1.25 }[side] ?? -0.35; render();
   }
 
-  window.Chilian3D = { face, loadPattern, show3D, render, resize, drawFlat, productionFile, placedRect, snapshot: () => three && three.canvas };
+  window.Chilian3D = { face, loadPattern, show3D, render, resize, drawFlat, productionFile, placedRect, pieceKey, pieceArtRect, snapshot: () => three && three.canvas };
 })();

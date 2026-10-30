@@ -606,6 +606,8 @@
   .st-sections .dot { width: .5rem; height: .5rem; border-radius: 50%; border: 1.5px solid currentColor; }
   .st-sections .dot.on { background: currentColor; }
   .st-file-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem 1rem; }
+  .st-subleg { flex-basis: 100%; margin-top: .35rem; font: 500 .68rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .st-subleg:first-child { margin-top: 0; }
   .st-remove { background: none; border: 0; padding: .2rem 0; cursor: pointer; color: var(--steel); font: 500 .78rem var(--f-mono); text-decoration: underline; text-underline-offset: 3px; }
   .st-remove:disabled { opacity: .4; cursor: default; }
   @media (hover: hover) { .st-remove:not(:disabled):hover { color: var(--ink); } }
@@ -1213,6 +1215,10 @@
       <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
       <fieldset class="st-step" id="st-step-place"><legend data-en="Placement in this section">Posición en la sección</legend><div class="chips" id="st-places"></div></fieldset>
       <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div></fieldset>
+      <fieldset class="st-step" id="st-step-edit" hidden><legend data-en="Edit on the pattern">Editar en el molde</legend>
+        <label class="st-range"><span id="st-scale-name">Tamaño</span> <output id="st-scale-out"></output><input type="range" id="st-scale" min="2" max="60" step="0.5" value="20"></label>
+        <label class="st-range"><span data-en="Rotation">Rotación</span> <output id="st-rot-out">0°</output><input type="range" id="st-rot" min="-180" max="180" step="1" value="0"></label>
+        <span class="st-color-name" data-en="Tap a piece or a graphic on the pattern to select it · drag to move · wheel to resize">Toca una pieza o un gráfico en el molde para elegirlo · arrastra para moverlo · rueda para cambiar el tamaño</span></fieldset>
       <fieldset class="st-step" id="st-step-fill" hidden><legend data-en="How the design fills the garment">Cómo llena la prenda tu diseño</legend><div class="chips" id="st-fills"></div>
         <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
       <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size">Talla del molde</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
@@ -1704,7 +1710,12 @@
     // Print sections: each one holds at most ONE graphic. "side" is where it shows:
     // the front or back photo, or a sleeve (3D and pattern views only).
     sections: {
-      bg:      { name: { es: "Fondo", en: "Background" }, side: "all" },
+      bg:      { name: { es: "Todas las piezas", en: "All pieces" }, side: "all" },
+      // Full print, built on the pattern: each piece can carry its own image under the graphics.
+      pieceFront:   { name: { es: "Delantero", en: "Front piece" }, side: "front", piece: "front" },
+      pieceBack:    { name: { es: "Espalda", en: "Back piece" }, side: "back", piece: "back" },
+      pieceSleeveR: { name: { es: "Manga der.", en: "Right sleeve" }, side: "sleeveR", piece: "sleeveR" },
+      pieceSleeveL: { name: { es: "Manga izq.", en: "Left sleeve" }, side: "sleeveL", piece: "sleeveL" },
       front:   { name: { es: "Frente", en: "Front" }, side: "front", places: ["full", "chest"] },
       back:    { name: { es: "Espalda", en: "Back" }, side: "back", places: ["back"] },
       nape:    { name: { es: "Nuca", en: "Back neck" }, side: "back", places: ["nape"] },
@@ -1741,14 +1752,19 @@
   const secDef = (id) => STUDIO.sections[id];
   const isSleeve = (id) => id === "sleeveR" || id === "sleeveL";
   // Sections this garment offers right now (sleeves need the pattern; the background needs full print).
-  const sectionsNow = () => (st.mode === "full" ? ["bg"] : []).concat(garment().sections.filter((id) => !isSleeve(id) || hasPattern()));
+  const isPiece = (id) => !!(STUDIO.sections[id] && STUDIO.sections[id].piece);
+  const PIECE_LAYERS = ["bg", "pieceFront", "pieceBack", "pieceSleeveR", "pieceSleeveL"];
+  const graphicsNow = () => garment().sections.filter((id) => !isSleeve(id) || hasPattern());
+  const sectionsNow = () => (st.mode === "full" ? PIECE_LAYERS : []).concat(graphicsNow());
   function placesOf(id) {
     if (isSleeve(id)) return [STUDIO.sleevePlace];
     const d = secDef(id), v = garment().views[d.side];
     return d.places ? v.places.filter((p) => d.places.includes(p.id)) : [];
   }
   const activePrint = () => st.prints[st.active];
-  const newPrint = () => ({ art: null, source: null, name: "", knockout: false, place: 0, size: 1, dx: 0, dy: 0 });
+  // place/size/dx/dy: placement presets (photo and screen print); wcm/rot: free size and rotation
+  // edited on the pattern (full print); scale/dxmm/dymm: a piece's own image.
+  const newPrint = () => ({ art: null, source: null, name: "", knockout: false, place: 0, size: 1, dx: 0, dy: 0, wcm: null, rot: 0, scale: 1, dxmm: 0, dymm: 0 });
 
   // Load a blank once: keep its alpha and its shade map.
   function loadBlank(src) {
@@ -1797,6 +1813,7 @@
     const p = placesOf(id)[Math.min(pr.place, placesOf(id).length - 1)], art = pr.art;
     let wcm = p.sizes[pr.size], hcm = wcm * (art.height / art.width);
     if (hcm > p.maxH) { hcm = p.maxH; wcm = hcm * (art.width / art.height); }
+    if (st.mode === "full" && pr.wcm) { wcm = pr.wcm; hcm = wcm * (art.height / art.width); }   // free size on the pattern
     if (isSleeve(id)) return { wcm, hcm, place: p };
     const v = garment().views[secDef(id).side], w = wcm * v.pxcm, h = hcm * v.pxcm;
     return { x: (p.cx || v.cx) - w / 2 + pr.dx, y: p.top + pr.dy, w, h, wcm, hcm, place: p };
@@ -1860,7 +1877,8 @@
   function updateSizeLabel() {
     const pr = activePrint();
     if (st.mode === "full" && st.active === "bg") { $("#st-size-label").textContent = L(`Molde ${t(garment().name).toLowerCase()} · talla ${st.pat}`, `${t(garment().name)} pattern · size ${st.pat}`); return; }
-    if (!pr || !pr.art) { $("#st-size-label").textContent = L("Sin gráfico en esta sección", "No graphic in this section"); return; }
+    if (!pr || !pr.art) { $("#st-size-label").textContent = isPiece(st.active) ? L(`Pieza ${t(secDef(st.active).name).toLowerCase()} · sube una imagen para esta pieza`, `${t(secDef(st.active).name)} · upload an image for this piece`) : L("Sin gráfico en esta sección", "No graphic in this section"); return; }
+    if (isPiece(st.active)) { $("#st-size-label").textContent = `${L("Pieza", "Piece")} ${t(secDef(st.active).name).toLowerCase()} · ${Math.round(pr.scale * 100)} % · ${L("talla", "size")} ${st.pat}`; return; }
     const r = printRect(st.active);
     $("#st-size-label").textContent = `${t(secDef(st.active).name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm` + (st.display !== "photo" ? ` · ${L("talla", "size")} ${st.pat}` : "");
   }
@@ -1888,7 +1906,8 @@
   // Put an image in a section (replacing what was there: one graphic per section).
   function setSource(id, img, name) {
     const pr = st.prints[id] || (st.prints[id] = newPrint());
-    pr.source = img; pr.name = name; pr.art = prepareArt(img, pr.knockout); pr.dx = pr.dy = 0;
+    pr.source = img; pr.name = name; pr.art = prepareArt(img, pr.knockout);
+    Object.assign(pr, { dx: 0, dy: 0, wcm: null, rot: 0, scale: 1, dxmm: 0, dymm: 0 });
   }
 
   // Until the visitor uploads, show a sample design so the preview is never empty.
@@ -1939,6 +1958,8 @@
     // Sections: one chip each, filled dot = has a graphic.
     const sbox = $("#st-sections"); sbox.textContent = "";
     for (const id of sectionsNow()) {
+      if (st.mode === "full" && (id === "bg" || id === graphicsNow()[0]))
+        sbox.append(el("span", { class: "st-subleg", text: id === "bg" ? L("Fondo · por pieza del molde", "Background · per pattern piece") : L("Gráficos encima", "Graphics on top") }));
       const input = el("input", { type: "radio", name: "st-sec", value: id, id: `st-sec-${id}` });
       if (id === st.active) input.checked = true;
       input.addEventListener("change", () => { focusSection(id); renderStudio(); drawStudio(); });
@@ -1946,7 +1967,9 @@
       sbox.append(el("label", { class: "chip" }, [input, el("span", {}, [el("i", { class: "dot" + (has ? " on" : ""), "aria-hidden": "true" }), t(secDef(id).name)])]));
     }
     const pr = activePrint(), secName = t(secDef(st.active).name);
-    $("#st-drop-title").textContent = pr && pr.art ? L(`Cambiar el gráfico de ${secName}`, `Replace the ${secName} graphic`) : L(`Sube el gráfico para ${secName}`, `Upload the ${secName} graphic`);
+    $("#st-drop-title").textContent = st.active === "bg" ? (pr && pr.art ? L("Cambiar el fondo de todas las piezas", "Replace the background of every piece") : L("Sube un fondo para todas las piezas", "Upload a background for every piece"))
+      : isPiece(st.active) ? (pr && pr.art ? L(`Cambiar la imagen de la pieza ${secName.toLowerCase()}`, `Replace the ${secName.toLowerCase()} image`) : L(`Sube la imagen de la pieza ${secName.toLowerCase()}`, `Upload the ${secName.toLowerCase()} image`))
+      : pr && pr.art ? L(`Cambiar el gráfico de ${secName}`, `Replace the ${secName} graphic`) : L(`Sube el gráfico para ${secName}`, `Upload the ${secName} graphic`);
     $("#st-file-name").textContent = pr && pr.art ? (pr.name === "sample" ? L("Diseño de ejemplo.", "Sample design.") : pr.name)
       : L("Esta sección está vacía.", "This section is empty.");
     $("#st-knockout").checked = !!(pr && pr.knockout);
@@ -1973,17 +1996,30 @@
     // Print type: only garments with a CAD pattern can be fully printed.
     $("#st-step-mode").hidden = !hasPattern();
     stChips($("#st-modes"), "st-m", [L("Serigrafía por posición", "Placement print"), L("Estampado completo", "Full print")],
-      (i) => (i ? "full" : "place") === st.mode, (i) => { st.mode = i ? "full" : "place"; st.display = i ? "flat" : hasPhoto() ? "photo" : "3d"; st.active = i ? "bg" : "front"; });
+      (i) => (i ? "full" : "place") === st.mode, (i) => {
+        st.mode = i ? "full" : "place"; st.display = i ? "flat" : hasPhoto() ? "photo" : "3d"; st.active = i ? "bg" : "front";
+        // On the pattern you build the shirt yourself: the sample design steps aside.
+        if (i && st.prints.front && st.prints.front.name === "sample") delete st.prints.front;
+      });
     $("#st-mode-note").textContent = st.mode === "full"
       ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono. Puedes sumar un gráfico por sección encima del fondo.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a same-fabric binding in one tone. You can add one graphic per section over the background.`)
       : L("Un gráfico por sección: frente, espalda, nuca y mangas.", "One graphic per section: front, back, neck and sleeves.");
-    const editingBg = st.active === "bg";
+    const editingBg = st.active === "bg" || isPiece(st.active), full = st.mode === "full";
     $("#st-step-place").hidden = editingBg || placesOf(st.active).length < 2;
-    $("#st-step-size").hidden = editingBg || !(pr && pr.art);
+    $("#st-step-size").hidden = editingBg || full || !(pr && pr.art);
+    // Full print: every image is edited on the pattern (free size and rotation).
+    const editable = full && st.active !== "bg" && pr && pr.art;
+    $("#st-step-edit").hidden = !editable;
+    if (editable) {
+      const sc = $("#st-scale");
+      if (isPiece(st.active)) { Object.assign(sc, { min: 20, max: 300, step: 1 }); sc.value = Math.round(pr.scale * 100); $("#st-scale-out").textContent = `${sc.value} %`; $("#st-scale-name").textContent = L("Tamaño sobre la pieza", "Size on the piece"); }
+      else { const w = printRect(st.active).wcm; Object.assign(sc, { min: 2, max: 60, step: 0.5 }); sc.value = w; $("#st-scale-out").textContent = `${fmt(w, 1)} cm`; $("#st-scale-name").textContent = L("Ancho", "Width"); }
+      $("#st-rot").value = pr.rot || 0; $("#st-rot-out").textContent = `${Math.round(pr.rot || 0)}°`;
+    }
     $("#st-step-fill").hidden = !editingBg;
     $("#st-step-pat").hidden = !(st.mode === "full" || st.display === "3d");
     $("#st-production").hidden = st.mode !== "full";
-    $("#st-reset").hidden = editingBg || isSleeve(st.active);
+    $("#st-reset").hidden = full ? !editable : editingBg || isSleeve(st.active);
     $("#st-color-legend").textContent = st.mode === "full" ? L("Color de fondo", "Background color") : L("Color de la prenda", "Garment color");
     stChips($("#st-fills"), "st-f", [L("Cubrir cada pieza", "Cover each piece"), L("Repetir como patrón", "Repeat as a pattern")],
       (i) => (i ? "repeat" : "cover") === st.fill, (i) => { st.fill = i ? "repeat" : "cover"; });
@@ -1991,9 +2027,9 @@
     $("#st-tile-out").textContent = `${st.tile} mm`;
     stChips($("#st-pat-sizes"), "st-ps", ["S", "M", "L", "XL"], (i) => ["S", "M", "L", "XL"][i] === st.pat, (i) => { st.pat = ["S", "M", "L", "XL"][i]; });
     $("#st-hint").textContent = st.display === "3d" ? L("Arrastra para girar · rueda o pellizco para acercar", "Drag to turn · wheel or pinch to zoom")
-      : st.display === "flat" ? L("Así se corta e imprime cada pieza del molde", "How each pattern piece is cut and printed")
+      : st.display === "flat" ? L("Toca una pieza o un gráfico para editarlo · así se corta e imprime", "Tap a piece or a graphic to edit it · this is how it is cut and printed")
       : L("Arrastra el gráfico de la sección o usa las flechas", "Drag the section's graphic or use the arrow keys");
-    if (pr && !editingBg) {
+    if (pr && !editingBg && placesOf(st.active).length) {
       const places = placesOf(st.active);
       stChips($("#st-places"), "st-p", places.map((p) => t(p.name)), (i) => i === pr.place, (i) => { pr.place = i; pr.dx = pr.dy = 0; });
       stChips($("#st-sizes"), "st-s", places[Math.min(pr.place, places.length - 1)].sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === pr.size, (i) => { pr.size = i; });
@@ -2011,8 +2047,9 @@
   function studioSummary() {
     const g = garment(), color = t(STUDIO.colors[st.color].name).toLowerCase();
     const parts = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art).map((id) => {
-      const r = printRect(id), places = placesOf(id);
-      return `${t(secDef(id).name)}${places.length > 1 ? ` (${t(r.place.name).toLowerCase()})` : ""} ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
+      if (isPiece(id)) return `${L("Pieza", "Piece")} ${t(secDef(id).name).toLowerCase()}: ${L("imagen propia", "own image")} ${Math.round(st.prints[id].scale * 100)} %`;
+      const r = printRect(id), places = placesOf(id), rot = st.mode === "full" && st.prints[id].rot ? ` ${L("girado", "rotated")} ${Math.round(st.prints[id].rot)}°` : "";
+      return `${t(secDef(id).name)}${places.length > 1 ? ` (${t(r.place.name).toLowerCase()})` : ""} ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm${rot}`;
     });
     const head = st.mode === "full"
       ? `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${color}${st.prints.bg && st.prints.bg.art ? ` + ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")}` : ""} · ${L("talla", "size")} ${st.pat}`
@@ -2031,12 +2068,15 @@
   }
   // What studio3d.js needs to paint the pattern pieces: the background and every section's graphic.
   function patternDesign() {
-    const prints = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art).map((id) => {
+    const full = st.mode === "full";
+    const prints = graphicsNow().filter((id) => st.prints[id] && st.prints[id].art).map((id) => {
       const pr = st.prints[id], r = printRect(id), v = garment().views[isSleeve(id) ? "front" : secDef(id).side];
-      return { section: id, placeId: r.place.id, wmm: r.wcm * 10, hmm: r.hcm * 10, art: pr.art, dxmm: (pr.dx / v.pxcm) * 10, dymm: (pr.dy / v.pxcm) * 10 };
+      return { section: id, placeId: r.place.id, wmm: r.wcm * 10, hmm: r.hcm * 10, art: pr.art, dxmm: (pr.dx / v.pxcm) * 10, dymm: (pr.dy / v.pxcm) * 10, rot: full ? pr.rot || 0 : 0 };
     });
-    const bg = st.mode === "full" && st.prints.bg && st.prints.bg.art;
-    return { mode: st.mode, color: STUDIO.colors[st.color].hex, colorName: STUDIO.colors[st.color].name.es, bg: bg || null, fill: st.fill, tileMM: st.tile, prints };
+    const bg = full && st.prints.bg && st.prints.bg.art, pieces = {};
+    if (full) for (const id of PIECE_LAYERS.slice(1)) { const pr = st.prints[id]; if (pr && pr.art) pieces[secDef(id).piece] = { art: pr.art, scale: pr.scale, dxmm: pr.dxmm, dymm: pr.dymm, rot: pr.rot || 0 }; }
+    const selected = full && st.active !== "bg" ? (isPiece(st.active) ? { piece: secDef(st.active).piece } : { section: st.active }) : null;
+    return { mode: st.mode, color: STUDIO.colors[st.color].hex, colorName: STUDIO.colors[st.color].name.es, bg: bg || null, fill: st.fill, tileMM: st.tile, prints, pieces, selected };
   }
   let patTicket = 0;
   async function drawPatternViews() {
@@ -2052,13 +2092,14 @@
       await Chilian3D.show3D(c3, style, st.pat, patternDesign());
       if (st.faceReq) { Chilian3D.face(st.faceReq); st.faceReq = null; }
     }
-    else await Chilian3D.drawFlat(stCanvas, style, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeveR: L("MANGA DERECHA", "RIGHT SLEEVE"), sleeveL: L("MANGA IZQUIERDA", "LEFT SLEEVE"),
+    else st.flat = await Chilian3D.drawFlat(stCanvas, style, st.pat, patternDesign(), { front: L("DELANTERO", "FRONT"), back: L("ESPALDA", "BACK"), sleeveR: L("MANGA DERECHA", "RIGHT SLEEVE"), sleeveL: L("MANGA IZQUIERDA", "LEFT SLEEVE"),
       binding: (mm) => L(`CUELLO: CINTA DE LA MISMA TELA, 1 TONO · ESCOTE ${mm} MM`, `NECK: SAME-FABRIC BINDING, ONE TONE · NECKLINE ${mm} MM`) });
     updateSizeLabel();
   }
 
   async function openStudio() {
-    if (!Object.values(st.prints).some((p) => p && p.art)) setSource("front", await sampleArt(), "sample");
+    // The sample design shows only the first time; once removed it stays removed.
+    if (!st.sampled) { st.sampled = true; if (!Object.values(st.prints).some((p) => p && p.art)) setSource("front", await sampleArt(), "sample"); }
     renderStudio(); drawStudio();
     $("#studio").showModal();
   }
@@ -2112,7 +2153,84 @@
       const step = (e.shiftKey ? 2 : 0.5) * curView().pxcm, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
       if (!m) return; e.preventDefault(); const pr = activePrint(); pr.dx += m[0]; pr.dy += m[1]; clampMove(pr); requestDraw();
     });
-    $("#st-reset").addEventListener("click", () => { const pr = activePrint(); if (pr) { pr.dx = pr.dy = 0; drawStudio(); } });
+    $("#st-reset").addEventListener("click", () => {
+      const pr = activePrint(); if (!pr) return;
+      pr.dx = pr.dy = 0;
+      if (st.mode === "full") Object.assign(pr, { rot: 0, dxmm: 0, dymm: 0, scale: 1, wcm: null });
+      renderStudio(); drawStudio();
+    });
+
+    // Full print, on the pattern: tap a piece or a graphic to select it, drag to move it,
+    // wheel to resize, arrows to nudge, Delete to remove. Pieces are selected even when empty,
+    // so the next upload goes to that piece.
+    const scratch = document.createElement("canvas").getContext("2d");
+    const graphicVPx = (id) => garment().views[isSleeve(id) ? "front" : secDef(id).side].pxcm;
+    function flatHit(e) {
+      if (!st.flat || !window.Chilian3D) return null;
+      const b = stCanvas.getBoundingClientRect(), cx = ((e.clientX - b.left) * SIZE) / b.width, cy = ((e.clientY - b.top) * SIZE) / b.height;
+      const design = patternDesign();
+      for (const it of st.flat.items) {
+        const mx = (cx - it.px) / st.flat.k, my = (cy - it.py) / st.flat.k;
+        if (!scratch.isPointInPath(it.p.path, mx, my)) continue;
+        // topmost first: the graphics drawn over this piece, then the piece itself
+        for (const pr of [...design.prints].reverse()) {
+          const r = Chilian3D.placedRect(it.p, pr); if (!r) continue;
+          const a = (-(pr.rot || 0) * Math.PI) / 180, ox = mx - (r.x + r.w / 2), oy = my - (r.y + r.h / 2);
+          const lx = ox * Math.cos(a) - oy * Math.sin(a), ly = ox * Math.sin(a) + oy * Math.cos(a);
+          if (Math.abs(lx) <= r.w / 2 && Math.abs(ly) <= r.h / 2) return { id: pr.section };
+        }
+        return { id: PIECE_LAYERS.find((id) => id !== "bg" && secDef(id).piece === Chilian3D.pieceKey(it.p)) };
+      }
+      return null;
+    }
+    const onPattern = () => st.mode === "full" && st.display === "flat";
+    function moveMM(id, mx, my) {
+      const pr = st.prints[id]; if (!pr) return;
+      if (isPiece(id)) { pr.dxmm = Math.max(-600, Math.min(600, pr.dxmm + mx)); pr.dymm = Math.max(-800, Math.min(800, pr.dymm + my)); return; }
+      const k = graphicVPx(id) / 10;   // photo pixels per mm (positions are stored like the photo's)
+      pr.dx = Math.max(-400 * k, Math.min(400 * k, pr.dx + mx * k)); pr.dy = Math.max(-700 * k, Math.min(700 * k, pr.dy + my * k));
+    }
+    function resizeBy(id, f) {
+      const pr = st.prints[id]; if (!pr || !pr.art) return;
+      if (isPiece(id)) pr.scale = Math.max(0.2, Math.min(3, pr.scale * f));
+      else pr.wcm = Math.max(2, Math.min(60, printRect(id).wcm * f));
+    }
+    let fdrag = null;
+    stCanvas.addEventListener("pointerdown", (e) => {
+      if (!onPattern()) return;
+      const hit = flatHit(e); if (!hit || !hit.id) return;
+      if (hit.id !== st.active) { focusSection(hit.id); st.faceReq = null; renderStudio(); }
+      if (st.prints[hit.id] && st.prints[hit.id].art) { fdrag = { x: e.clientX, y: e.clientY }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); }
+      drawStudio();
+    });
+    stCanvas.addEventListener("pointermove", (e) => {
+      if (!fdrag || !st.flat) return;
+      const b = stCanvas.getBoundingClientRect(), k = SIZE / b.width / st.flat.k;
+      moveMM(st.active, (e.clientX - fdrag.x) * k, (e.clientY - fdrag.y) * k);
+      fdrag = { x: e.clientX, y: e.clientY }; requestDraw();
+    });
+    const fend = () => { if (!fdrag) return; fdrag = null; stCanvas.classList.remove("dragging"); renderStudio(); requestDraw(); };
+    stCanvas.addEventListener("pointerup", fend); stCanvas.addEventListener("pointercancel", fend);
+    stCanvas.addEventListener("wheel", (e) => {
+      if (!onPattern() || !activePrint() || !activePrint().art || st.active === "bg") return;
+      e.preventDefault(); resizeBy(st.active, e.deltaY < 0 ? 1.05 : 1 / 1.05); renderStudio(); requestDraw();
+    }, { passive: false });
+    stCanvas.addEventListener("keydown", (e) => {
+      if (!onPattern() || !activePrint() || !activePrint().art || st.active === "bg") return;
+      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); delete st.prints[st.active]; renderStudio(); drawStudio(); return; }
+      const step = e.shiftKey ? 10 : 2, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+      if (!m) return; e.preventDefault(); moveMM(st.active, m[0], m[1]); requestDraw();
+    });
+    $("#st-scale").addEventListener("input", (e) => {
+      const pr = activePrint(); if (!pr || !pr.art) return;
+      if (isPiece(st.active)) { pr.scale = +e.target.value / 100; $("#st-scale-out").textContent = `${e.target.value} %`; }
+      else { pr.wcm = +e.target.value; $("#st-scale-out").textContent = `${fmt(pr.wcm, 1)} cm`; }
+      requestDraw();
+    });
+    $("#st-rot").addEventListener("input", (e) => {
+      const pr = activePrint(); if (!pr || !pr.art) return;
+      pr.rot = +e.target.value; $("#st-rot-out").textContent = `${pr.rot}°`; requestDraw();
+    });
     $("#st-tile").addEventListener("input", (e) => { st.tile = +e.target.value; $("#st-tile-out").textContent = `${st.tile} mm`; drawStudio(); });
 
     // Production file (route 2): the CAD marker at real scale with every graphic on its piece.

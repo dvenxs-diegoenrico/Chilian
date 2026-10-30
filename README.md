@@ -196,6 +196,17 @@ El escote se mide sobre la línea de corte (incluye margen de costura), ignorand
 - *Fotos (Canva AI):* el gráfico se dobla con los pliegues de la tela (cada píxel de tinta se desplaza según la pendiente del pliegue), toma la luz y sombra de la prenda y deja ver un grano sutil de algodón. La playera dama ya tiene fotos de frente y espalda generadas con Canva AI (`blanks/dama-*.webp`), con cuello de cinta.
 - *3D:* tono fílmico (ACES), iluminación de estudio de 3 luces, textura de tejido de punto, pliegues suaves que se desvanecen en las costuras, interior de la prenda en tela lisa y sombra de contacto.
 
+### Armar la playera desde el molde (estampado completo)
+
+En estampado completo la vista **Molde** es el editor: la playera se arma pieza por pieza, no con una foto encima de todo.
+
+- **Fondo por pieza:** "Todas las piezas" (cubrir o repetir, como antes) y además una imagen propia para Delantero, Espalda, Manga der. y Manga izq. Cada una empieza cubriendo su pieza.
+- **Gráficos encima:** Frente, Espalda, Nuca y mangas, uno por sección.
+- **Todo es editable en el molde:** tocar una pieza o un gráfico lo selecciona (la pieza se marca, el gráfico lleva marco punteado); arrastrar lo mueve, la rueda o el control "Tamaño" lo escala (gráficos por ancho en cm, piezas en %), "Rotación" lo gira, las flechas lo empujan y Suprimir lo quita. "Volver a centrar" deja la capa como al subirla.
+- Tocar una pieza vacía la deja lista para recibir la siguiente imagen que se suba.
+- El 3D, el resumen, el cotizador y el archivo de producción usan exactamente lo armado en el molde.
+- **Diseño de ejemplo ("TU DISEÑO"):** solo aparece la primera vez que se abre el estudio, se retira al pasar a estampado completo y, una vez quitado, no vuelve.
+
 ### 3D realista en hombre y mujer (simulación de tela)
 
 El 3D ya no dobla las piezas sobre un tubo: **cose el molde real sobre un maniquí y deja caer la tela**, como un programa de confección 3D.
