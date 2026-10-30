@@ -342,7 +342,11 @@
   @media (max-width: 900px) { .services { grid-template-columns: 1fr 1fr; } }
 
   /* ---------- CERTIFICATIONS ---------- */
-  .certs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }
+  .certs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .certs .cert:last-child { grid-column: span 2; }
+  /* Audits without a logo file show their name as a wordmark. */
+  .wordmark { display: flex; align-items: center; height: 76px; font: 900 2.3rem/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+  .cert-year { font: 500 .62rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--magenta); }
   .cert {
     all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 1rem; align-items: flex-start;
     padding: 1.3rem; border: 1px solid var(--rule); background: var(--card); transition: border-color .2s ease, transform .2s ease;
@@ -354,6 +358,7 @@
   .cert:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
   @media (hover: hover) { .cert:hover { border-color: var(--ink); transform: translateY(-3px); } }
   @media (max-width: 1000px) { .certs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cert:last-child { grid-column: span 2; } }
+  @media (max-width: 480px) { .certs .cert:last-child { grid-column: auto; } }
   @media (max-width: 480px) { .cert:last-child { grid-column: auto; } }
   @media (max-width: 480px) { .certs { grid-template-columns: 1fr; } }
   .commit { margin-top: 2.5rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem 2rem; list-style: none; padding: 0; }
@@ -656,6 +661,59 @@
     .studio { width: 100vw; max-height: 100dvh; height: 100dvh; border: 0; }
   }
 
+  /* ---------- HISTORY: 35 years, from a hinge-built table to audited plant ---------- */
+  .award {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1.2rem 1.6rem; align-items: center;
+    padding: 1.4rem clamp(1.1rem, 3vw, 2rem); background: var(--ink); color: var(--paper); margin-bottom: clamp(2rem, 5vw, 3rem);
+  }
+  .award .medal { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--magenta); color: var(--on-accent); font: 900 1.6rem/1 var(--f-display); }
+  .award strong { display: block; font: 800 clamp(1.5rem, 3vw, 2.1rem)/1 var(--f-display); text-transform: uppercase; margin-bottom: .3rem; }
+  .award span { font-size: .95rem; color: color-mix(in srgb, var(--paper) 72%, transparent); }
+  .award a { color: var(--paper); font: 500 .72rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+  @media (max-width: 700px) { .award { grid-template-columns: auto minmax(0, 1fr); } .award a { grid-column: 1 / -1; } }
+  .timeline { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .timeline li { background: var(--paper); padding: 1.3rem 1.3rem 1.5rem; display: grid; gap: .45rem; align-content: start; }
+  .timeline .when { font: 800 2.4rem/1 var(--f-display); color: var(--magenta); }
+  .timeline h3 { font: 700 1.05rem/1.25 var(--f-body); }
+  .timeline p { font-size: .92rem; color: var(--steel); }
+  @media (max-width: 900px) { .timeline { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .timeline { grid-template-columns: 1fr; } }
+  .press { margin-top: clamp(2rem, 5vw, 3rem); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .press a { display: grid; gap: .4rem; align-content: start; padding: 1.1rem; border: 1px solid var(--rule); background: var(--card); text-decoration: none; transition: border-color .2s ease, transform .3s var(--ease-out, ease); }
+  .press .src { font: 500 .64rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .press strong { font: 700 1rem/1.3 var(--f-body); }
+  .press .go { margin-top: .3rem; font: 600 .68rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; }
+  @media (hover: hover) { .press a:hover { border-color: var(--ink); transform: translateY(-3px); } }
+  @media (max-width: 900px) { .press { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .press { grid-template-columns: 1fr; } }
+  .press-note { margin-top: 1rem; font: 400 .72rem/1.5 var(--f-mono); color: var(--steel); }
+
+  /* ---------- VIDEOS + GUIDES ---------- */
+  .videos { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .8rem; }
+  .video { all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: block; aspect-ratio: 9 / 16; overflow: hidden; background: var(--ink); scroll-snap-align: start; }
+  .video img { width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease-out, ease); }
+  .video .play { position: absolute; top: 50%; left: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--magenta); display: grid; place-items: center; transition: transform .3s var(--ease-out, ease); }
+  .video .play::before { content: ""; margin-left: 4px; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; }
+  .video .vcap { position: absolute; inset: auto 0 0 0; padding: 2.4rem .8rem .8rem; color: #fff; background: linear-gradient(to top, rgba(10,8,10,.9), transparent); font: 600 .86rem/1.3 var(--f-body); }
+  .video:focus-visible { outline: 3px solid var(--magenta); outline-offset: 3px; }
+  @media (hover: hover) { .video:hover img { transform: scale(1.05); } .video:hover .play { transform: scale(1.12); } }
+  .guides { margin-top: clamp(2.2rem, 5vw, 3.2rem); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .guides a { background: var(--paper); padding: 1.1rem 1.2rem 1.2rem; text-decoration: none; display: grid; gap: .35rem; transition: background-color .2s ease; }
+  .guides .src { font: 500 .62rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .guides strong { font: 700 1rem/1.3 var(--f-body); }
+  @media (hover: hover) { .guides a:hover { background: var(--card); } }
+  @media (max-width: 900px) { .guides { grid-template-columns: 1fr; } }
+  .video-sheet { width: min(420px, calc(100vw - 2rem)); background: var(--ink); border: 0; margin: auto; }
+  .video-sheet[open] { animation: zoom-in .3s var(--ease-out, ease); }
+  .video-sheet.closing { animation: zoom-out .22s ease forwards; }
+  .video-sheet .frame { aspect-ratio: 9 / 16; max-height: calc(100dvh - 7rem); width: 100%; }
+  .video-sheet iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .detail-links { display: flex; flex-wrap: wrap; gap: .5rem; margin: -.4rem 0 1.4rem; }
+  .detail-links a { font: 600 .7rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: .5rem .7rem; border: 1px solid var(--rule); text-decoration: none; }
+  @media (hover: hover) { .detail-links a:hover { border-color: var(--ink); } }
+  .q-hint { margin-top: .7rem; font: 400 .8rem var(--f-mono); color: var(--steel); }
+  .q-hint a { color: var(--ink); }
+
   /* ---------- MOTION ----------
      Everything moves the way a press does: short, firm, in register. All of it
      switches off for visitors who ask their system for less motion. */
@@ -813,7 +871,7 @@
 
 <div class="strip">
   <div class="wrap">
-    <a class="live" href="#certificaciones"><span class="dot" aria-hidden="true"></span><span data-en="Certified plant · Puebla, Mexico">Planta certificada · Puebla, México</span><span class="long">&nbsp;· Disney FAMA · WRAP · VF · C&amp;A</span></a>
+    <a class="live" href="#certificaciones"><span class="dot" aria-hidden="true"></span><span data-en="Certified plant · Puebla, Mexico">Planta certificada · Puebla, México</span><span class="long">&nbsp;· Disney FAMA · SMETA · Walmart · WRAP · VF · C&amp;A</span></a>
     <span class="strip-links">
       <a class="hide-sm" href="#usa" data-en="US brands →">Marcas de EE. UU. →</a>
       <a href="https://wa.me/522226925404" target="_blank" rel="noopener">WhatsApp 222 692 5404</a>
@@ -860,7 +918,7 @@
           <span class="line"><span class="reg" data-en="printed at">estampada a</span></span>
           <span class="line"><span class="reg"><em data-en="industrial scale.">escala industrial.</em></span></span>
         </h1>
-        <p class="lead" data-en="Chilian prints and manufactures garments for global apparel brands, companies and campaigns: up to 20,000 pieces a day, in a plant audited by Disney, VF Corporation, C&amp;A and WRAP.">Chilian estampa y fabrica prendas para marcas globales de ropa, empresas y campañas: hasta 20,000 piezas al día, en una planta auditada por Disney, VF Corporation, C&amp;A y WRAP.</p>
+        <p class="lead" data-en="Chilian prints and manufactures garments for global apparel brands, companies and campaigns: up to 20,000 pieces a day, in a plant audited by Disney, Walmart, VF Corporation, C&amp;A and WRAP.">Chilian estampa y fabrica prendas para marcas globales de ropa, empresas y campañas: hasta 20,000 piezas al día, en una planta auditada por Disney, Walmart, VF Corporation, C&amp;A y WRAP.</p>
         <div class="hero-actions">
           <a class="btn btn-accent" href="#cotizar"><span data-en="Quote your project">Cotiza tu proyecto</span> <span class="arrow" aria-hidden="true">→</span></a>
           <a class="btn btn-ghost" href="#planta" data-en="See the plant">Conoce la planta</a>
@@ -1027,7 +1085,7 @@
         <li><h3 data-en="Proposal">Propuesta</h3><p data-en="Recommended garment and technique, with price per volume.">Prenda y técnica recomendadas, con precio por volumen.</p></li>
         <li><h3 data-en="Sample">Muestra</h3><p data-en="A physical pre-production sample with your real artwork.">Muestra física de preproducción con tu arte real.</p></li>
         <li><h3 data-en="Production">Producción</h3><p data-en="Scheduled on the press that fits your run and colors.">Programada en el pulpo que mejor va con tu tiraje y colores.</p></li>
-        <li><h3 data-en="Delivery">Entrega</h3><p data-en="Inspected, folded and packed. Shipping in Mexico or to the US.">Revisado, doblado y empacado. Envío en México o a EE. UU.</p></li>
+        <li><h3 data-en="Delivery">Entrega</h3><p data-en="Inspected, folded and packed. Shipping across Mexico and abroad.">Revisado, doblado y empacado. Envíos nacionales e internacionales.</p></li>
       </ol>
 
       <div class="services">
@@ -1064,6 +1122,41 @@
     </div>
   </section>
 
+  <!-- ============ HISTORY + PRESS ============ -->
+  <section class="band" id="historia" aria-labelledby="hist-title" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span data-en="Since 1990 · Puebla">Desde 1990 · Puebla</span></p>
+          <h2 class="h2" id="hist-title" data-en="35 years on the press.">35 años en el pulpo.</h2>
+        </div>
+        <p class="lead" data-en="It started with a hand-built table and logos on t-shirts. Today it is an audited plant printing for global licenses.">Empezó con una mesa armada a mano y logotipos en playeras. Hoy es una planta auditada que imprime para licencias globales.</p>
+      </div>
+      <div class="award">
+        <span class="medal" aria-hidden="true">1º</span>
+        <div>
+          <strong data-en="First place · Textile · PNAG 2025">Primer lugar · Textil · PNAG 2025</strong>
+          <span data-en="Premio Nacional de Artes Gráficas 2025, textile category, with the project “Einstein: Abre tu mente”.">Premio Nacional de Artes Gráficas 2025, categoría Textil, con el proyecto “Einstein: Abre tu mente”.</span>
+        </div>
+        <a href="https://www.diariocambio.com.mx/2025/puebla/grupo-chilian-industria-grafica-nacional/" target="_blank" rel="noopener" data-en="Read the note ↗">Leer la nota ↗</a>
+      </div>
+      <ol class="timeline">
+        <li><span class="when">1990</span><h3 data-en="Estampados Especiales">Estampados Especiales</h3><p data-en="Federico Chilian starts printing logos on t-shirts in Puebla. His first screen printing table was built with hinges bought with 6 pesos from his father.">Federico Chilian empieza a estampar logotipos en playeras en Puebla. Su primera mesa de serigrafía la armó con bisagras compradas con 6 pesos de su padre.</p></li>
+        <li><span class="when" data-en="Group">Grupo</span><h3 data-en="From a workshop to Grupo Chilian">Del taller a Grupo Chilian</h3><p data-en="Estampados Especiales, Promocionales Especiales, FDE Industries and Sport Exalta: printing, promotional items and sportswear under one group.">Estampados Especiales, Promocionales Especiales, FDE Industries y Sport Exalta: estampado, promocionales y ropa deportiva en un solo grupo.</p></li>
+        <li><span class="when" data-en="Plant">Planta</span><h3 data-en="Santa Isabel Cholula">Santa Isabel Cholula</h3><p data-en="Eight Roq and M&amp;R automatic presses, cutting, sewing, embroidery and dyeing: up to 20,000 pieces a day. The showroom lives inside the plant.">Ocho pulpos automáticos Roq y M&amp;R, corte, costura, bordado y teñido: hasta 20,000 piezas al día. El showroom está dentro de la planta.</p></li>
+        <li><span class="when" data-en="Industry">Industria</span><h3 data-en="A voice for the apparel sector">Voz del sector del vestido</h3><p data-en="Federico Chilian presided over the apparel industry chamber (CANAIVE) Puebla–Tlaxcala and speaks at Canagraf Puebla events on custom production.">Federico Chilian presidió la Cámara de la Industria del Vestido (CANAIVE) Puebla–Tlaxcala y participa en foros de Canagraf Puebla sobre producción personalizada.</p></li>
+        <li><span class="when">2025</span><h3 data-en="National Graphic Arts Award">Premio Nacional de Artes Gráficas</h3><p data-en="First place in the textile category with “Einstein: Abre tu mente”, a print recognized for its technique, quality and complexity.">Primer lugar en la categoría Textil con “Einstein: Abre tu mente”, una obra reconocida por su técnica, calidad y complejidad.</p></li>
+        <li><span class="when">2026</span><h3 data-en="SMETA, Walmart, C&amp;A and FAMA">SMETA, Walmart, C&amp;A y FAMA</h3><p data-en="Social compliance approvals renewed: labor standards, health and safety, environment and business ethics.">Aprobaciones de cumplimiento social: estándares laborales, salud y seguridad, medio ambiente y ética empresarial.</p></li>
+      </ol>
+      <div class="press">
+        <a href="https://www.diariocambio.com.mx/2025/puebla/grupo-chilian-industria-grafica-nacional/" target="_blank" rel="noopener"><span class="src">Diario Cambio · 2025</span><strong data-en="Grupo Chilian wins first place in the textile category of PNAG 2025">Grupo Chilian obtiene el primer lugar en la categoría Textil del PNAG 2025</strong><span class="go" data-en="Read ↗">Leer ↗</span></a>
+        <a href="https://mundoejecutivopuebla.com/wp-content/uploads/2023/10/Mundo_Ejecutivo_Puebla_AGT_SEP_2023_Web-1.pdf" target="_blank" rel="noopener"><span class="src">Mundo Ejecutivo Puebla · 2023</span><strong data-en="Federico Chilian: textile entrepreneur and creative leader">Federico Chilian: empresario textil y líder creativo</strong><span class="go" data-en="Read (PDF) ↗">Leer (PDF) ↗</span></a>
+        <a href="https://www.youtube.com/watch?v=qbHHhjfpMsg" target="_blank" rel="noopener"><span class="src">Hack-Eca Podcast</span><strong data-en="Federico Chilian, writer and graphic arts and textile entrepreneur">Federico Chilian, escritor y empresario de artes gráficas y textil</strong><span class="go" data-en="Watch ↗">Ver ↗</span></a>
+        <a href="https://heraldodepuebla.com/2025/08/05/en-marcha-la-proxima-feria-de-industrias-creativas-tecnologia-e-impresion/" target="_blank" rel="noopener"><span class="src">Heraldo de Puebla · 2025</span><strong data-en="Custom, on-demand production: the industry's shift">La industria textil hacia la producción personalizada</strong><span class="go" data-en="Read ↗">Leer ↗</span></a>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ TECHNIQUES ============ -->
   <section class="band" id="tecnicas" aria-labelledby="tech-title" style="padding-top:0">
     <div class="wrap">
@@ -1092,6 +1185,25 @@
       <p class="licence-note" data-en="Brands and licenses shown with their owners' permission.">Marcas y licencias mostradas con autorización de sus dueños.</p>
     </div>
   </section>
+
+  <!-- ============ VIDEOS + GUIDES ============ -->
+  <section class="band" id="videos" aria-labelledby="vid-title" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span>@chilianestampados</span></p>
+          <h2 class="h2" id="vid-title" data-en="Straight from the floor.">Directo de la planta.</h2>
+        </div>
+        <p class="lead" data-en="Short videos of real jobs and techniques, and guides to choose the right print.">Videos cortos de trabajos y técnicas reales, y guías para elegir el estampado correcto.</p>
+      </div>
+      <div class="videos" id="videos-list" tabindex="0" aria-label="Videos"></div>
+      <div class="guides" id="guides"></div>
+    </div>
+  </section>
+  <dialog class="video-sheet" id="video" aria-label="Video">
+    <div class="bar"><span id="video-title">—</span><button class="x" type="button" data-close aria-label="Cerrar">×</button></div>
+    <div class="frame" id="video-frame"></div>
+  </dialog>
 
   <!-- ============ GARMENT LINES + VOLUME PRICING ============ -->
   <section class="band" id="lineas" aria-labelledby="lines-title" style="padding-top:0">
@@ -1130,7 +1242,7 @@
             <div><span class="fine" data-en="Unit price, regular sizes">Precio unitario, tallas regulares</span><br><strong id="sport-unit">$155.40</strong></div>
             <div><span class="fine" data-en="Estimated total">Total estimado</span><br><strong id="sport-total">$466,200</strong></div>
           </div>
-          <p class="fine" data-en="MXN per piece, list prices published in the Chilian store. Final price is confirmed in your quote.">MXN por pieza, precios de lista publicados en la tienda Chilian. El precio final se confirma en tu cotización.</p>
+          <p class="fine" data-en="MXN per piece, list prices published in the &lt;a href=&quot;https://grupochilian.com.mx/collections/all&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Chilian online store ↗&lt;/a&gt;. Final price is confirmed in your quote.">MXN por pieza, precios de lista publicados en la <a href="https://grupochilian.com.mx/collections/all" target="_blank" rel="noopener">tienda en línea Chilian ↗</a>. El precio final se confirma en tu cotización.</p>
         </div>
       </div>
     </div>
@@ -1152,6 +1264,7 @@
           <li><svg aria-hidden="true"><use href="#i-truck"/></svg><div><strong data-en="Production in Mexico, import logistics coordinated">Producción en México, logística de importación coordinada</strong><span data-en="A dedicated US contact manages your run from approval to delivery.">Un contacto dedicado en EE. UU. lleva tu tiraje de la aprobación a la entrega.</span></div></li>
           <li><svg aria-hidden="true"><use href="#i-chat"/></svg><div><strong data-en="Bilingual team, same time zones">Equipo bilingüe, mismos husos horarios</strong><span data-en="Calls, approvals and samples without overnight delays.">Llamadas, aprobaciones y muestras sin esperar al día siguiente.</span></div></li>
           <li><svg aria-hidden="true"><use href="#i-layers"/></svg><div><strong data-en="Decoration plus full garment">Decorado y prenda completa</strong><span data-en="Print on your blanks, or cut, sew, dye and print from fabric.">Estampamos tu prenda lisa, o cortamos, cosemos, teñimos y estampamos desde la tela.</span></div></li>
+          <li><svg aria-hidden="true"><use href="#i-shield"/></svg><div><strong data-en="Standards for retail supply chains">Estándares para cadenas de suministro de retail</strong><span data-en="2026 social compliance approvals from SMETA, Walmart, C&amp;A and Disney FAMA: the standards supply chains like Walmart, Amazon, Costco, Disney, Carhartt, Nike and adidas ask for.">Aprobaciones de cumplimiento social 2026 de SMETA, Walmart, C&amp;A y Disney FAMA: los estándares que piden cadenas como Walmart, Amazon, Costco, Disney, Carhartt, Nike y adidas.</span></div></li>
         </ul>
         <a class="btn btn-accent" href="#cotizar" id="usa-cta"><span data-en="Talk to our US contact">Habla con el contacto en EE. UU.</span> <span class="arrow" aria-hidden="true">→</span></a>
       </div>
@@ -1254,6 +1367,7 @@
     <div class="foot-grid">
       <div>
         <p class="foot-claim" data-en="Your merch <em>on time.</em>">Your merch <em>on time.</em></p>
+        <p class="foot-note" style="margin:0 0 .8rem" data-en="#échalehuevos · shipping across Mexico and abroad">#échalehuevos · envíos nacionales e internacionales</p>
         <p data-en="Certified textile screen printing and manufacturing at industrial scale. Puebla, Mexico.">Serigrafía y manufactura textil certificada, a escala industrial. Puebla, México.</p>
       </div>
       <div>
@@ -1273,6 +1387,10 @@
           <li><a href="https://www.tiktok.com/@chilianestampados" target="_blank" rel="noopener">TikTok ↗</a></li>
           <li><a href="https://www.facebook.com/grupochilian" target="_blank" rel="noopener">Facebook ↗</a></li>
           <li><a href="https://www.youtube.com/@grupochilian4341" target="_blank" rel="noopener">YouTube ↗</a></li>
+          <li><a href="https://mx.linkedin.com/company/grupo-chilian" target="_blank" rel="noopener">LinkedIn ↗</a></li>
+          <li><a href="https://www.pinterest.com/chilianestampados/" target="_blank" rel="noopener">Pinterest ↗</a></li>
+          <li><a href="https://x.com/grupochilian" target="_blank" rel="noopener">X ↗</a></li>
+          <li><a href="https://grupochilian.com.mx/collections/all" target="_blank" rel="noopener" data-en="Online store ↗">Tienda en línea ↗</a></li>
         </ul>
       </div>
     </div>
@@ -1318,6 +1436,7 @@
     <a href="#tecnicas" data-close data-en="Techniques">Técnicas</a>
     <a href="#trabajos" data-close data-en="Work">Trabajos</a>
     <a href="#lineas" data-close data-en="Garments">Prendas</a>
+    <a href="#historia" data-close data-en="History">Historia</a>
     <a href="#usa" data-close data-en="US brands">Marcas EE. UU.</a>
     <a href="#equipo" data-close data-en="Contact">Contacto</a>
     <a href="#top" data-close data-studio data-en="Print your idea">Estampa tu idea</a>
@@ -1411,6 +1530,12 @@
     { id: "ca", logo: "cert-c-and-a", ar: "1", name: "C&A",
       short: { es: "Producción social y ambientalmente responsable.", en: "Socially and environmentally responsible production." },
       long: { es: "C&A revisa a sus proveedores con estándares globales de responsabilidad social y ambiental antes de colocar pedidos.", en: "C&A reviews its suppliers against global social and environmental standards before placing orders." } },
+    { id: "smeta", mark: "SMETA", year: "2026", name: "SMETA (Sedex)",
+      short: { es: "Auditoría de comercio ético en cuatro pilares.", en: "Ethical trade audit across four pillars." },
+      long: { es: "SMETA (Sedex Members Ethical Trade Audit) es una de las auditorías sociales más usadas por marcas y cadenas en el mundo. Revisa cuatro pilares: estándares laborales, salud y seguridad, medio ambiente y ética empresarial. Chilian obtuvo su aprobación en 2026.", en: "SMETA (Sedex Members Ethical Trade Audit) is one of the social audits most used by brands and retailers worldwide. It reviews four pillars: labor standards, health and safety, environment and business ethics. Chilian was approved in 2026." } },
+    { id: "walmart", mark: "Walmart", year: "2026", name: "Walmart",
+      short: { es: "Cumplimiento social para proveedores de Walmart.", en: "Social compliance for Walmart suppliers." },
+      long: { es: "Walmart exige a las fábricas de sus proveedores una aprobación de cumplimiento social antes de producir para sus tiendas. Chilian obtuvo la suya en 2026, junto con las de SMETA, C&A y FAMA para Disney.", en: "Walmart requires its suppliers' factories to hold a social compliance approval before producing for its stores. Chilian obtained it in 2026, together with SMETA, C&A and Disney FAMA." } },
     { id: "chemiq", logo: "cert-chemiq", ar: "281/66", name: "ChemIQ",
       short: { es: "Gestión de químicos en tintas y procesos.", en: "Chemical management for inks and processes." },
       long: { es: "Chemistry Innovation and Quality es el programa de VF para controlar las sustancias químicas en tintas, emulsiones y lavados. Es la respuesta a una pregunta que cada vez más marcas hacen: ¿qué lleva mi prenda?", en: "Chemistry Innovation and Quality is VF's program to control chemicals in inks, emulsions and washes. It answers a question more brands are asking: what is in my garment?" } }
@@ -1435,6 +1560,9 @@
     { id: "glitter", sw: "#C9B27A", name: { es: "Glitter", en: "Glitter" }, tag: { es: "Brillo", en: "Sparkle" },
       text: { es: "Tinta con partículas metálicas que reflejan la luz.", en: "Ink with metallic particles that catch the light." },
       use: { es: "Moda, eventos, infantil", en: "Fashion, events, kids" }, fabric: { es: "Algodón y mezclas", en: "Cotton and blends" } },
+    { id: "photochromic", sw: "#7A5CFF", name: { es: "Fotocromática", en: "Photochromic" }, tag: { es: "Cambia con el sol", en: "Changes in sunlight" },
+      text: { es: "Tinta que cambia de color con la luz del sol: el diseño aparece o se transforma al salir y vuelve al entrar.", en: "Ink that changes color in sunlight: the design appears or changes outdoors and goes back indoors." },
+      use: { es: "Merch de eventos, colecciones especiales, activaciones", en: "Event merch, special collections, activations" }, fabric: { es: "Algodón y mezclas claras", en: "Cotton and light blends" } },
     { id: "gitd", sw: "#B9F25C", name: { es: "Brilla en la oscuridad", en: "Glow in the dark" }, tag: { es: "GITD", en: "GITD" },
       text: { es: "Tinta fotoluminiscente: se carga con luz y brilla en la oscuridad.", en: "Photoluminescent ink: charges with light and glows in the dark." },
       use: { es: "Conciertos, merch de artistas, eventos nocturnos", en: "Concerts, artist merch, night events" }, fabric: { es: "Algodón y mezclas", en: "Cotton and blends" } },
@@ -1480,6 +1608,33 @@
     jenny:   { name: "Jenny Castro", role: { es: "Uniformes", en: "Uniforms" }, text: { es: "Uniformes corporativos e industriales.", en: "Corporate and industrial uniforms." }, email: "ventas@grupochilian.com", wa: "522201759053", phone: "220 175 9053" },
     itzel:   { name: "Itzel González", role: { es: "Marketing y atención comercial", en: "Marketing and sales" }, text: { es: "Merch para marcas, artistas e influencers.", en: "Merch for brands, artists and creators." }, email: "mkt@grupochilian.com", wa: "522226512650", phone: "222 651 2650" }
   };
+
+  // Official channels: short videos of the plant and the blog's printing guides.
+  const VIDEOS = [
+    ["6lxc-MAkAXI", { es: "Si The North Face elige calidad, tú también puedes", en: "If The North Face picks quality, so can you" }],
+    ["GeHYxV6gn7E", { es: "Calidad de exportación, con Chilian", en: "Export quality, with Chilian" }],
+    ["CykBbZ5sOg0", { es: "Efecto puff: volumen y detalle", en: "Puff effect: volume and detail" }],
+    ["yPrX-Md532k", { es: "Tu logo cobrando vida con la luz del sol", en: "Your logo coming alive in sunlight" }],
+    ["hqkS_bJovC0", { es: "No es solo un uniforme: es tu marca", en: "Not just a uniform: it's your brand" }],
+    ["FvWY6Zg_eDY", { es: "¿Tienes una campaña en puerta? La vestimos", en: "Campaign coming up? We dress it" }],
+    ["UrYXsFr1N7I", { es: "Bluey, el mejor amigo de los peques", en: "Bluey, the kids' best friend" }]
+  ];
+  const GUIDES = [
+    ["tipos-de-estampado-en-playeras-dtf-dtg-serigrafia-o-sublimado-cual-elegir", { es: "DTF, DTG, serigrafía o sublimado: ¿cuál elegir?", en: "DTF, DTG, screen printing or sublimation: which one?" }],
+    ["que-playera-elegir-para-tu-marca-uniformes-o-merch", { es: "¿Qué playera elegir para tu marca, uniformes o merch?", en: "Which tee for your brand, uniforms or merch?" }],
+    ["no-es-teoria-es-practica-asi-reaccionan-los-estampados-al-estirarse", { es: "Así reaccionan los estampados al estirarse", en: "How prints react when the fabric stretches" }],
+    ["que-es-dtg", { es: "¿Qué es DTG? Impresión digital directa sobre la prenda", en: "What is DTG? Direct-to-garment printing" }],
+    ["bordado-3d", { es: "Bordado 3D", en: "3D embroidery" }],
+    ["yo-no-pierdo-gano-o-aprendo", { es: "Yo no pierdo: gano o aprendo", en: "I never lose: I win or I learn" }]
+  ];
+  // Product catalogs (PDF) per garment line, as published in the Chilian store.
+  const CDN = "https://cdn.shopify.com/s/files/1/0716/8802/8409/files/";
+  const CATALOGS = {
+    "CHL-BA": [["PLT", "CATALOGO_PTX_-1.pdf"], ["MK", "CATALOGO_CHILIAN_MK_-_BASIC.pdf"]],
+    "CHL-CL": [["OPT", "CATALOGO_CHILIAN_-_OPT.pdf"], ["BON", "CATALOGO_CHILIAN-BON_-_PREMIUM.pdf"], ["KG", "CATALOGO_CHILIAN_KG_-_BASIC.pdf"], ["YBK", "CATALOGO_CHILIAN_-_YBK_-_BASIC.pdf"]],
+    "CHL-PR": [["MYK", "CATALOGO_CHILIAN_MYK_-_PREMIUM.pdf"], ["AK", "CATALOGO_CHILIAN_ak_-_GOLD.pdf"]]
+  };
+  const CAMPAIGN_PDF = CDN + "CAMPANAS_POLITICAS_VENTA.pdf";
 
   const TYPES = [
     { id: "marca", label: { es: "Marca / OEM", en: "Brand / OEM" }, advisor: "carlos" },
@@ -1547,7 +1702,9 @@
     const box = $("#certs"); box.textContent = "";
     for (const c of CERTS) {
       box.append(el("button", { class: "cert", type: "button", onclick: () => openCert(c) }, [
-        el("span", { class: "logo", style: `--src:url("logos/${c.logo}.png");--ar:${c.ar};${c.id === "chemiq" ? "--h:34px" : ""}`, role: "img", "aria-label": c.name }),
+        c.logo ? el("span", { class: "logo", style: `--src:url("logos/${c.logo}.png");--ar:${c.ar};${c.id === "chemiq" ? "--h:34px" : ""}`, role: "img", "aria-label": c.name })
+               : el("span", { class: "wordmark", text: c.mark }),
+        c.year ? el("span", { class: "cert-year", text: (lang === "en" ? "Approved " : "Aprobada ") + c.year }) : "",
         el("h3", { text: c.name }), el("p", { text: t(c.short) }),
         el("span", { class: "more", text: lang === "en" ? "What it covers →" : "Qué cubre →" })
       ]));
@@ -1576,11 +1733,34 @@
     });
   }
 
+  function renderVideos() {
+    const box = $("#videos-list"); box.textContent = "";
+    for (const [id, title] of VIDEOS) {
+      box.append(el("button", { class: "video", type: "button", "aria-label": t(title), onclick: () => openVideo(id, t(title)) }, [
+        el("img", { src: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, alt: "", loading: "lazy", decoding: "async" }),
+        el("span", { class: "play", "aria-hidden": "true" }), el("span", { class: "vcap", text: t(title) })
+      ]));
+    }
+    const g = $("#guides"); g.textContent = "";
+    for (const [slug, title] of GUIDES) {
+      g.append(el("a", { href: `https://grupochilian.com.mx/blogs/news/${slug}`, target: "_blank", rel: "noopener" }, [
+        el("span", { class: "src", text: lang === "en" ? "Chilian guide · blog ↗" : "Guía Chilian · blog ↗" }), el("strong", { text: t(title) })
+      ]));
+    }
+  }
+  // The video plays in a pop-up, loaded only when asked (no YouTube weight on the page).
+  function openVideo(id, title) {
+    $("#video-title").textContent = title;
+    $("#video-frame").replaceChildren(el("iframe", { src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`, title, allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "" }));
+    $("#video").showModal();
+  }
+
   function renderTeam() {
     const box = $("#team"); box.textContent = "";
     const ceo = el("div", { class: "person" }, [
       el("span", { class: "role", text: "CEO · Grupo Chilian" }), el("h3", { text: "Federico Chilian" }),
-      el("p", { text: lang === "en" ? "Leads the group and its relationships with global brands." : "Dirige el grupo y la relación con marcas globales." })
+      el("p", { text: lang === "en" ? "Founded the company in 1990. Leads the group and its relationships with global brands. Former president of CANAIVE Puebla–Tlaxcala and author of “Echando a perder se emprende”." : "Fundó la empresa en 1990. Dirige el grupo y la relación con marcas globales. Expresidente de CANAIVE Puebla–Tlaxcala y autor de “Echando a perder se emprende”." }),
+      el("div", { class: "contact" }, [el("a", { class: "wa", href: "https://www.youtube.com/watch?v=qbHHhjfpMsg", target: "_blank", rel: "noopener", text: lang === "en" ? "Interview ↗" : "Entrevista ↗" })])
     ]);
     box.append(ceo);
     for (const key of ["carlos", "ivan", "elizabeth", "jenny", "martha", "itzel"]) {
@@ -1682,6 +1862,12 @@
     });
     document.querySelectorAll("#qty-quick button").forEach((b) => b.classList.toggle("on", +b.dataset.n === s.qty));
     $("#send-wa").href = `https://wa.me/${s.advisor.wa}?text=${encodeURIComponent(briefText(s))}`;
+    // Political campaigns have their own catalog.
+    let hint = $("#q-hint");
+    if (s.ty.id === "campana") {
+      if (!hint) { hint = el("p", { class: "q-hint", id: "q-hint" }); $("#q-type").after(hint); }
+      hint.replaceChildren(lang === "en" ? "See the " : "Mira el ", el("a", { href: CAMPAIGN_PDF, target: "_blank", rel: "noopener", text: lang === "en" ? "political campaign catalog (PDF) ↗" : "catálogo de campañas políticas (PDF) ↗" }));
+    } else if (hint) hint.remove();
   }
 
   // Name and a way to reach you are the only required fields.
@@ -1737,10 +1923,12 @@
   /* ================================================================
      POP-UPS
      ================================================================ */
-  function fillDetail({ code, title, text, rows, media, cta = true }) {
+  function fillDetail({ code, title, text, rows, media, cta = true, links = [] }) {
     $("#detail-code").textContent = code; $("#detail-title").textContent = title; $("#detail-text").textContent = text;
     const spec = $("#detail-spec"); spec.textContent = "";
     for (const [k, v] of rows) spec.append(el("tr", {}, [el("td", { text: k }), el("td", { text: v })]));
+    $(".detail-links")?.remove();
+    if (links.length) spec.closest("table").after(el("div", { class: "detail-links" }, links.map(([label, href]) => el("a", { href, target: "_blank", rel: "noopener", text: label }))));
     const m = $("#detail-media"); m.textContent = ""; m.append(media);
     $("#detail-cta").hidden = !cta;   // certifications are not something you quote
     $("#detail").showModal();
@@ -1756,7 +1944,8 @@
   function openCert(c) {
     lastTech = null; detailApply = null;
     const logo = el("div", { style: "aspect-ratio:1;display:grid;place-items:center;background:var(--ink)" }, [
-      el("span", { class: "logo", style: `--src:url("logos/${c.logo}.png");--ar:${c.ar};--h:${c.id === "chemiq" ? "50px" : "200px"};max-width:80%;background:var(--paper);opacity:1`, role: "img", "aria-label": c.name })
+      c.logo ? el("span", { class: "logo", style: `--src:url("logos/${c.logo}.png");--ar:${c.ar};--h:${c.id === "chemiq" ? "50px" : "200px"};max-width:80%;background:var(--paper);opacity:1`, role: "img", "aria-label": c.name })
+             : el("span", { class: "wordmark", style: "color:var(--paper);font-size:clamp(3rem,9vw,5.5rem);height:auto", text: c.mark })
     ]);
     fillDetail({ code: lang === "en" ? "Audit / certification" : "Auditoría / certificación", title: c.name, text: t(c.long),
       rows: [[lang === "en" ? "In short" : "En corto", t(c.short)], [lang === "en" ? "Proof" : "Comprobante", lang === "en" ? "Audit reports available on request" : "Reportes de auditoría disponibles a solicitud"]], media: logo, cta: false });
@@ -1814,6 +2003,7 @@
     d.addEventListener("animationend", (e) => { if (e.target === d) finish(); }, { once: true });
     setTimeout(finish, 320);
   }
+  $("#video").addEventListener("close", () => $("#video-frame").replaceChildren());
   $("#menu-open").addEventListener("click", () => {
     document.querySelectorAll("#menu nav a").forEach((a, i) => a.style.setProperty("--i", i));
     $("#menu").showModal();
@@ -1852,7 +2042,7 @@
     document.querySelectorAll(".reg").forEach((n) => (n.dataset.text = n.textContent));
     $("#lang-es").setAttribute("aria-pressed", String(next === "es"));
     $("#lang-en").setAttribute("aria-pressed", String(next === "en"));
-    renderCerts(); renderTechs(); renderWork(); renderTeam(); renderQuoteChoices(); updateTicket(); updateCalc();
+    renderCerts(); renderTechs(); renderWork(); renderVideos(); renderTeam(); renderQuoteChoices(); updateTicket(); updateCalc();
     if (st.prints.front && st.prints.front.name === "sample") sampleArt().then((img) => { setSource("front", img, "sample"); drawStudio(); });
     if ($("#studio").open) { renderStudio(); drawStudio(); }
     store.set("chilian-lang", next);
@@ -2567,7 +2757,8 @@
           code: (lang === "en" ? "Garment line · " : "Línea de prenda · ") + code, title: name, text: card.querySelector("p").textContent,
           rows: [[lang === "en" ? "Best for" : "Ideal para", t(LINES[code].use)], [lang === "en" ? "Garments" : "Prendas", lang === "en" ? "Tees, polos, shirts and hoodies" : "Playeras, polos, camisas y sudaderas"],
                  [lang === "en" ? "Price" : "Precio", lang === "en" ? "By volume, confirmed in your quote" : "Por volumen, se confirma en tu cotización"]],
-          media: el("img", { src: img.currentSrc || img.src, alt: img.alt })
+          media: el("img", { src: img.currentSrc || img.src, alt: img.alt }),
+          links: (CATALOGS[code] || []).map(([n, f]) => [(lang === "en" ? "Catalog " : "Catálogo ") + n + " (PDF) ↗", CDN + f])
         });
         detailApply = () => { addNote((lang === "en" ? "Line: " : "Línea: ") + `${name} (${code})`); toast(L(`Línea ${name} agregada a tu solicitud.`, `${name} line added to your request.`)); };
       });
@@ -2685,7 +2876,7 @@
     // Reveal on scroll: section heads, cards (staggered), photos (wipe), numbers (count up).
     document.documentElement.classList.add("motion");
     const groups = [".section-head", ".door", ".mini", ".big-numbers > div", ".presses", ".service", ".cert", ".commit li", ".tech", ".work > button",
-      ".line-card", ".calc", ".usa-list li", ".q-step", ".ticket", ".studio-hint", ".person", ".foot-grid > div", ".specs dl > div", ".trusted p"];
+      ".line-card", ".calc", ".usa-list li", ".award", ".timeline li", ".press a", ".video", ".guides a", ".q-step", ".ticket", ".studio-hint", ".person", ".foot-grid > div", ".specs dl > div", ".trusted p"];
     const pending = new Set();
     const reveal = (n) => {
       if (!pending.delete(n)) return;

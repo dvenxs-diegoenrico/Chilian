@@ -255,3 +255,29 @@ Cómo: fotos WebP con `srcset` (el teléfono baja la de 480 o 960 px), foto prin
 **Errores corregidos en la revisión:** un enlace directo a una sección (…/#equipo) caía fuera de lugar porque la página crecía después del salto; la fecha mínima del cotizador usaba la hora UTC (después de las 6 p. m. en México no dejaba elegir el día de hoy); la imagen para compartir en redes (og:image) no tenía dirección completa; el botón de WhatsApp flotante tapaba los enlaces legales del pie.
 
     python3 tools/optimize_photos.py     # después de agregar o cambiar fotos en photos/
+
+## Información pública de Chilian integrada (octubre 2026)
+
+Recopilada de su sitio oficial (grupochilian.com.mx), LinkedIn, TikTok, YouTube, X, Pinterest y prensa de Puebla. Lo que se agregó al sitio:
+
+| Dato | Dónde quedó | Fuente |
+| --- | --- | --- |
+| 1er lugar, categoría Textil, Premio Nacional de Artes Gráficas (PNAG) 2025, con "Einstein: Abre tu mente" | Sección Historia (banda negra) | Diario Cambio, 2025 |
+| Origen en 1990 como Estampados Especiales; la primera mesa con bisagras compradas con 6 pesos | Historia | Sitio oficial, LinkedIn, Mundo Ejecutivo Puebla (2023) |
+| Unidades del grupo: Estampados Especiales, Promocionales Especiales, FDE Industries, Sport Exalta | Historia | LinkedIn de Grupo Chilian |
+| Federico Chilian: expresidente de CANAIVE Puebla–Tlaxcala, autor de "Echando a perder se emprende", entrevista Hack-Eca Podcast | Historia y tarjeta del CEO | Agencia Enfoque, Heraldo de Puebla, Mundo Ejecutivo, YouTube |
+| Aprobaciones 2026 de cumplimiento social SMETA, Walmart, C&A y FAMA | Certificaciones (SMETA y Walmart nuevas), franja superior, texto principal, sección EE. UU. | Publicación de LinkedIn de Grupo Chilian / Federico Chilian |
+| Cadenas de suministro (Walmart, Amazon, Costco, Disney, Carhartt, Nike, adidas) | Sección EE. UU. | Perfil de LinkedIn de Federico Chilian |
+| 8 catálogos PDF por línea (Básica: PLT, MK; Clásica: OPT, BON, KG, YBK; Premium: MYK, AK) | Ficha de cada línea | grupochilian.com.mx/pages/catalogos |
+| Catálogo de campañas políticas (PDF) | Cotizador, al elegir "Campaña política" | Sitio oficial |
+| 7 videos cortos y 6 guías del blog | Sección "Directo de la planta" | YouTube @grupochilian4341, blog oficial |
+| Tinta fotocromática (cambia con el sol) | Técnicas | Video oficial de YouTube |
+| Envíos nacionales e internacionales, lema #échalehuevos | Proceso y pie | Bio de TikTok |
+| LinkedIn, Pinterest, X y tienda en línea | Pie de página | Perfiles oficiales |
+
+**Encontrado pero NO publicado (por confirmar con Chilian):**
+- **ISO 9001:** su página de serigrafía muestra una insignia, pero no hay certificado público. No se agregó.
+- **Showroom en Av. 2 Sur 1914, Puebla:** aparece en su sitio oficial, pero Chilian indicó que el showroom ahora está dentro de la planta. Conviene actualizar su sitio y sus directorios.
+- **Datos de directorios** (Dun & Bradstreet, RocketReach) con fundación 2018 y 9 a 50 empleados: contradicen 1990 y 51–200 de LinkedIn. Se usó 1990.
+- **Teléfono en su sitio oficial** escrito como +51 2226 925404 (código de Perú): debería ser +52.
+- **"Einstein: Abre tu mente"** solo aparece en una nota de prensa; sería ideal una foto de la pieza y del reconocimiento para la sección Historia.
