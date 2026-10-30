@@ -10,6 +10,7 @@
 | `propuesta-v2.html` | Propuesta alternativa con referencias Nike y Apple |
 | `photos/`, `logos/` | Fotos de planta y trabajos; logos como máscaras de color |
 | `favicon.png`, `apple-touch-icon.png` | Ícono de la pestaña y del teléfono |
+| `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
 | `vercel.json` | URLs limpias y caché larga para fotos y logos |
 
 Es un sitio estático: no necesita build. Vercel publica la raíz del repositorio.
@@ -114,3 +115,19 @@ Cambios de la revisión:
 ## Estado
 
 Chilian confirmó todos los datos del sitio: capacidad (20,000 piezas/día, 450,000/mes), auditorías vigentes, 35 años, permiso de logos, showroom dentro de la planta, respuesta en un día hábil y muestra aprobada antes de producir.
+
+## Estampa tu idea · Print your idea
+
+Botón en el hero (y en el menú y el cotizador) que abre un estudio de mockups:
+
+1. El visitante sube su diseño (PNG, JPG, SVG o WebP). Puede quitar el fondo blanco.
+2. Elige prenda (playera, sudadera, polo), vista (frente o espalda) y uno de 8 colores.
+3. Elige posición (frente completo, pecho izquierdo, espalda completa, nuca) y tamaño en centímetros reales.
+4. Puede arrastrar el diseño o moverlo con las flechas del teclado.
+5. "Cotizar con este diseño" lleva prenda, color, posición y medida al cotizador. "Descargar mockup" guarda un PNG.
+
+Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
+
+**Cómo se hicieron las prendas.** Con Canva AI, usando como referencia las fotos de las líneas Básica, Clásica y Premium del catálogo. Se generaron en blanco, se les quitó el fondo en Canva y se exportaron a 1264 × 1264 px. El sitio las recolorea conservando sus pliegues. Diseño de trabajo en Canva: "Blank garment mockup canvas" (páginas 2 a 7).
+
+**Para cambiar algo.** Colores, posiciones y medidas viven en el objeto `STUDIO` de `index.html`. Para usar fotos reales de la planta, reemplaza los archivos de `blanks/` con prendas blancas sobre fondo transparente, del mismo tamaño y encuadre.
