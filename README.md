@@ -1,6 +1,18 @@
 # Chilian — nuevo sitio (rediseño de grupochilian.com.mx)
 
-> **Versión actual: `index.html` (v2, referencias Nike y Apple).** La primera propuesta queda en `index-v1.html`.
+> **Sitio en producción: `index.html` (dirección v1).** La propuesta con referencias Nike/Apple queda en `propuesta-v2.html`.
+
+## Estructura
+
+| Archivo | Qué es |
+| --- | --- |
+| `index.html` | Página de inicio (v1, la dirección elegida) |
+| `propuesta-v2.html` | Propuesta alternativa con referencias Nike y Apple |
+| `photos/`, `logos/` | Fotos de planta y trabajos; logos como máscaras de color |
+| `favicon.png`, `apple-touch-icon.png` | Ícono de la pestaña y del teléfono |
+| `vercel.json` | URLs limpias y caché larga para fotos y logos |
+
+Es un sitio estático: no necesita build. Vercel publica la raíz del repositorio.
 
 ## v2: qué se tomó de Nike y de Apple
 
@@ -88,7 +100,7 @@ Se cambia en el objeto `TYPES` dentro de `index.html`.
 - Hay permiso para mostrar los logos de marcas y licencias.
 - Ya no hay showroom separado: el showroom está dentro de la planta (Tlacomulco No. 2, Santa Isabel Cholula).
 
-## Dirección elegida: v1 (`index-v1.html`)
+## Dirección elegida: v1 (`index.html`)
 
 Cambios de la revisión:
 - Menos rosa: el magenta queda solo en los botones principales de cotizar, la línea "escala industrial." del hero y el anillo de foco del teclado.
@@ -99,9 +111,6 @@ Cambios de la revisión:
 - La fecha del cotizador ya no acepta días pasados.
 - Pies de foto sin números de tintas inventados; se quitó "P36 / C12" de la foto del hero.
 
-## Por confirmar con Chilian
+## Estado
 
-- Capacidad: el estudio usa 20,000 piezas/día; un banner viejo dice "30,000 prints daily, 10,000 garments a week".
-- Vigencia de las auditorías. ISO 9001 se dejó fuera porque no hay certificado publicado.
-- Promesas de servicio: respuesta a cotizaciones en un día hábil y "nada entra a producción sin muestra aprobada".
-- Contacto directo de Federico Chilian (hoy no se publica).
+Chilian confirmó todos los datos del sitio: capacidad (20,000 piezas/día, 450,000/mes), auditorías vigentes, 35 años, permiso de logos, showroom dentro de la planta, respuesta en un día hábil y muestra aprobada antes de producir.
