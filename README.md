@@ -14,7 +14,9 @@
 | `patterns/play-sport-mc/` | Molde Chilian Sport (PLAY SPORT MCORTA) tallas S–XL en milímetros, trazado de los PDF de CAD |
 | `patterns/playera-dama/` | Molde playera dama (PLAYERA PW DAMA BIE) tallas S–XL |
 | `tools/extract_pattern.py` | Convierte un trazo PDF de CAD en el JSON del molde |
-| `vendor/three-r128.min.js` | three.js r128 (licencia MIT), servido desde el propio sitio |
+| `tools/drape.py` | Cose y simula cada molde sobre un maniquí (hombre o mujer) para el 3D realista |
+| `drape/` | Resultado de la simulación por estilo y talla: prenda drapeada + maniquí |
+| `vendor/three-r128.min.js`, `vendor/three-room-env-r128.js` | three.js r128 y su estudio de reflejos RoomEnvironment (licencia MIT), servidos desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
 | `vercel.json` | URLs limpias y caché larga para fotos y logos |
 
@@ -137,7 +139,7 @@ Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
 
 **Para cambiar algo.** Colores, posiciones y medidas viven en el objeto `STUDIO` de `index.html`. Para usar fotos reales de la planta, reemplaza los archivos de `blanks/` con prendas blancas sobre fondo transparente, del mismo tamaño y encuadre.
 
-## Rutas 2 y 3: molde real y 3D (beta)
+## Rutas 2 y 3: molde real y 3D
 
 **Molde.** Los cuatro PDF de CAD (`PLAY_SPORT_MCORTA_DIEG_S1…XL1.pdf`) se convierten con `tools/extract_pattern.py` en `patterns/play-sport-mc/<talla>.json`: delantero, espalda y dos mangas en milímetros, más su posición en el trazo. Verificación: el aprovechamiento de tela medido coincide con el que reporta CAD con menos de 0.75 % de diferencia (M: 61.01 % medido vs 61.42 %).
 
@@ -156,7 +158,6 @@ Todo corre en el navegador: el archivo del cliente nunca sale de su dispositivo.
 
 **Pendiente.**
 - Moldes de sudadera y polo (PDF de CAD igual que estos) para llevarles el 3D.
-- Cerrar la unión manga–sisa en 3D (hoy se ve una abertura al girar).
 - Resolución final y perfil de color de la impresora de sublimación para el archivo de producción (hoy 100 dpi).
 
 ### Playera dama y cuello de cinta
@@ -194,5 +195,19 @@ El escote se mide sobre la línea de corte (incluye margen de costura), ignorand
 **Render realista.**
 - *Fotos (Canva AI):* el gráfico se dobla con los pliegues de la tela (cada píxel de tinta se desplaza según la pendiente del pliegue), toma la luz y sombra de la prenda y deja ver un grano sutil de algodón. La playera dama ya tiene fotos de frente y espalda generadas con Canva AI (`blanks/dama-*.webp`), con cuello de cinta.
 - *3D:* tono fílmico (ACES), iluminación de estudio de 3 luces, textura de tejido de punto, pliegues suaves que se desvanecen en las costuras, interior de la prenda en tela lisa y sombra de contacto.
+
+### 3D realista en hombre y mujer (simulación de tela)
+
+El 3D ya no dobla las piezas sobre un tubo: **cose el molde real sobre un maniquí y deja caer la tela**, como un programa de confección 3D.
+
+    python3 tools/drape.py play-sport-mc M      # una talla
+    python3 tools/drape.py all                  # los 2 estilos × 4 tallas (≈ 2.5 min por talla)
+
+1. **Maniquí por talla.** Chilian Sport usa un maniquí de hombre; la playera dama, uno de mujer (busto, cintura y cadera). Se escala con el contorno de la prenda: holgura ≈ 9 % en pecho de hombre y ≈ 6–7 % en busto de mujer.
+2. **Costuras desde el contorno CAD.** Se detectan hombro, costado, sisa, copa de manga y costura bajo el brazo; cada par de costuras se reparte en el mismo número de puntos.
+3. **Simulación** (dinámica basada en posiciones): las piezas se envuelven sueltas alrededor del cuerpo, las costuras se cierran poco a poco y después la gravedad asienta la prenda en hombros, busto y espalda, con colisión contra el maniquí. Las arrugas salen de la simulación, no se dibujan.
+4. **Resultado** en `drape/<estilo>-<talla>.json` (posiciones en 0.1 mm, base64). La posición plana de cada punto es su coordenada de textura, así que los gráficos caen exactamente donde el molde dice (mismos centímetros que el estudio y el archivo de producción).
+
+En el navegador: maniquí mate sobre base de acero, sombras suaves (las mangas sobre el torso, los pliegues), reflejos de estudio, tejido de punto, interior en tela lisa y la cinta del cuello a 1 tono con su costura a 11 mm. Si falta el archivo de una talla, el 3D vuelve al modelo anterior.
 
 **Siguiente paso posible: render con IA sobre modelo.** Un botón "Render fotorrealista con IA" que envíe el mockup a un servicio de generación de imágenes y devuelva la prenda puesta en una persona. Requiere elegir proveedor, una llave de API guardada en Vercel y un presupuesto por render.

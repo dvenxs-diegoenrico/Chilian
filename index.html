@@ -2025,7 +2025,7 @@
   function ensure3D() {
     if (st3dReady) return st3dReady;
     const load = (src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.append(s); });
-    st3dReady = load("vendor/three-r128.min.js").then(() => load("studio3d.js"));
+    st3dReady = load("vendor/three-r128.min.js").then(() => load("vendor/three-room-env-r128.js")).then(() => load("studio3d.js"));
     st3dReady.catch(() => { st3dReady = null; });
     return st3dReady;
   }

@@ -7,9 +7,10 @@
 
    One idea runs through everything here: each pattern piece (front,
    back, two sleeves) gets ONE texture drawn in its own millimeters.
-     · The 3D garment uses those textures (each flat piece is bent into
-       place: the body pieces wrap around an oval torso, the sleeves
-       wrap into tubes).
+     · The 3D garment uses those textures. Where tools/drape.py has run
+       (drape/<style>-<size>.json) the pieces are sewn and cloth-simulated
+       on a male or female mannequin; otherwise each flat piece is bent
+       into place (body pieces around an oval torso, sleeves into tubes).
      · The flat "pattern" view shows the same textures laid out.
      · The production file places the same textures on the marker at
        real scale, exactly where the CAD system put each piece.
@@ -32,6 +33,29 @@
       return r.json();
     }).then(addLandmarks);
     return patterns[key];
+  }
+
+  // The draped shirt (tools/drape.py): every piece sewn and simulated on a male or female
+  // mannequin of that size. Absent for a style that has not been draped yet (null).
+  const drapes = {};
+  function loadDrape(style, size) {
+    const key = `${style}-${size}`;
+    if (!(key in drapes)) drapes[key] = fetch(`drape/${key}.json`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!d) return null;
+      const bin = (b64, T) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new T(u.buffer); };
+      for (const p of d.pieces) {
+        p.uv = bin(p.uv, Int16Array); p.pos = bin(p.pos, Int16Array); p.idx = bin(p.idx, Uint16Array);
+        // same winding for every triangle (counter-clockwise on the flat pattern)
+        const u = p.uv, t = p.idx;
+        for (let i = 0; i < t.length; i += 3) {
+          const a = t[i] * 2, b = t[i + 1] * 2, c = t[i + 2] * 2;
+          if ((u[b] - u[a]) * (u[c + 1] - u[a + 1]) - (u[b + 1] - u[a + 1]) * (u[c] - u[a]) < 0) { const k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
+        }
+      }
+      d.body.pos = bin(d.body.pos, Int16Array); d.body.idx = bin(d.body.idx, d.body.wide ? Uint32Array : Uint16Array);
+      return d;
+    }).catch(() => null);
+    return drapes[key];
   }
 
   // Where a horizontal line at height y crosses the piece: [left, right] in mm.
@@ -76,10 +100,20 @@
     c.width = Math.ceil(p.width * TPX); c.height = Math.ceil(p.height * TPX);
     const x = c.getContext("2d");
     x.scale(TPX, TPX);
+    // The draped 3D mesh is cut exactly to the piece: paint past the edge so no texel is empty.
+    if (d.binding) { x.fillStyle = d.color; x.fillRect(0, 0, p.width, p.height); }
     x.save(); x.clip(p.path);
     x.fillStyle = d.color; x.fillRect(0, 0, p.width, p.height);
     if (d.mode === "full" && d.bg) drawFull(x, p, d);
     for (const pr of d.prints || []) drawPlaced(x, p, pr);
+    // On the 3D only: the neck binding, a band of the same fabric and tone sewn over the
+    // neck edge, shows as the stitch line 11 mm in (it covers any print under it).
+    if (d.binding && p.neckPath) {
+      const np = new Path2D(`M${p.neckPath.map(([a, b]) => `${a},${b}`).join("L")}`);
+      x.lineJoin = x.lineCap = "round";
+      x.strokeStyle = "rgba(0,0,0,.16)"; x.lineWidth = BINDING_MM * 2 + 1.2; x.stroke(np);
+      x.strokeStyle = d.color; x.lineWidth = BINDING_MM * 2; x.stroke(np);
+    }
     x.restore();
     return c;
   }
@@ -157,16 +191,25 @@
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.outputEncoding = THREE.sRGBEncoding;
     // Filmic tone mapping keeps whites soft and darks deep, like a studio photo.
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, 1, 10, 10000);
+    // Soft studio reflections (a neutral room, prefiltered) so the cloth and the form read round.
+    if (THREE.RoomEnvironment) {
+      const pm = new THREE.PMREMGenerator(renderer);
+      scene.environment = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture; pm.dispose();
+    }
     // A three-light product setup: soft sky fill, a key from the upper left, a rim from behind.
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6c74, 0.65));
+    // The key casts soft shadows: under the sleeves, in the folds, cloth on the form.
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6c74, scene.environment ? 0.18 : 0.65));
     const key = new THREE.DirectionalLight(0xfff6ec, 1.05); key.position.set(-700, 1100, 1300); scene.add(key);
+    key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0006; key.shadow.normalBias = 1.5; key.shadow.radius = 4;
+    Object.assign(key.shadow.camera, { left: -700, right: 700, top: 800, bottom: -800, near: 100, far: 4500 });
     const fill = new THREE.DirectionalLight(0xe9f0ff, 0.35); fill.position.set(900, 200, 900); scene.add(fill);
     const rim = new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(500, 700, -1400); scene.add(rim);
     const group = new THREE.Group(); scene.add(group);
-    three = { renderer, scene, camera, group, canvas, rotY: -0.35, rotX: 0.06, dist: 2150, meshes: [] };
+    key.target = group; three = { renderer, scene, camera, group, canvas, rotY: -0.35, rotX: 0.06, dist: 2150, meshes: [] };
     wireOrbit(canvas);
     return three;
   }
@@ -284,14 +327,87 @@
   }
 
   // The geometry is built once per pattern; a change of color or design only repaints textures.
+  // Triangles facing out: flip the whole mesh if most normals point toward the axis.
+  function faceOut(g, axisX = () => 0) {
+    g.computeVertexNormals();
+    const P = g.attributes.position.array, N = g.attributes.normal.array; let dot = 0;
+    for (let i = 0; i < P.length; i += 3) dot += (P[i] - axisX(P[i + 1])) * N[i] + P[i + 2] * N[i + 2];
+    if (dot < 0) {
+      const t = g.index.array; for (let i = 0; i < t.length; i += 3) { const k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
+      g.index.needsUpdate = true; g.computeVertexNormals();
+    }
+    return g;
+  }
+
+  // A printed piece: outside with the knit texture, inside plain and a bit darker.
+  function clothMesh(geo, p) {
+    const n = knit().clone(); n.needsUpdate = true;
+    n.repeat.set(p.width / 9, p.height / 9);
+    const mat = new THREE.MeshStandardMaterial({ side: THREE.FrontSide, roughness: 0.94, metalness: 0, alphaTest: 0.5, normalMap: n, normalScale: new THREE.Vector2(0.13, 0.13), envMapIntensity: 0.1 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.piece = p;
+    const inner = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ side: THREE.BackSide, roughness: 1, metalness: 0, alphaTest: 0.5, envMapIntensity: 0.08 }));
+    mesh.userData.inner = inner;
+    mesh.castShadow = mesh.receiveShadow = inner.castShadow = inner.receiveShadow = true;
+    three.group.add(mesh, inner); three.meshes.push(mesh);
+    return mesh;
+  }
+
+  // The draped shirt on its mannequin (tools/drape.py), in millimeters, y = 0 at the neck base.
+  function buildDraped(pat, dr) {
+    const { group } = three, used = new Set(), at = {};
+    for (const p of pat.pieces) {
+      const qi = dr.pieces.findIndex((q, i) => !used.has(i) && q.kind === p.kind && (p.kind !== "sleeve" || q.side === p.side));
+      if (qi < 0) continue;
+      used.add(qi);
+      const q = dr.pieces[qi], P = new Float32Array(q.count * 3), UV = new Float32Array(q.count * 2);
+      for (let i = 0; i < P.length; i++) P[i] = q.pos[i] * dr.scale;
+      for (let i = 0; i < q.count; i++) { UV[2 * i] = (q.uv[2 * i] * dr.scale) / p.width; UV[2 * i + 1] = 1 - (q.uv[2 * i + 1] * dr.scale) / p.height; }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(P, 3)); g.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
+      g.setIndex(new THREE.BufferAttribute(q.idx, 1));
+      const cm = clothMesh(faceOut(g), p);
+      cm.material.alphaTest = 0; cm.userData.inner.material.alphaTest = 0;
+      at[p.kind] = { q, P };
+    }
+    // Neck binding: the folded edge of the same-fabric tape, all the way round (front, then back).
+    if (at.front && at.back && at.front.q.neck.length && at.back.q.neck.length) {
+      const pts = [];
+      for (const k of ["front", "back"]) for (const i of at[k].q.neck) pts.push(new THREE.Vector3(at[k].P[i * 3], at[k].P[i * 3 + 1], at[k].P[i * 3 + 2]));
+      const loop = pts.filter((v, i) => !i || v.distanceTo(pts[i - 1]) > 0.5);
+      const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(loop, true), 220, 2.4, 8, true), new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0, envMapIntensity: 0.1 }));
+      band.castShadow = band.receiveShadow = true;
+      group.add(band); three.bindings.push(band);
+    }
+    // The dress form: matte, warm gray, on a short steel stand.
+    const B = new Float32Array(dr.body.pos.length); let yb = Infinity;
+    for (let i = 0; i < B.length; i++) { B[i] = dr.body.pos[i] * dr.scale; if (i % 3 === 1) yb = Math.min(yb, B[i]); }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(B, 3)); bg.setIndex(new THREE.BufferAttribute(dr.body.idx, 1));
+    const form = new THREE.Mesh(faceOut(bg), new THREE.MeshStandardMaterial({ color: new THREE.Color(0x77706a).convertSRGBToLinear(), roughness: 0.78, metalness: 0, envMapIntensity: 0.15 }));
+    form.castShadow = form.receiveShadow = true;
+    const steel = new THREE.MeshStandardMaterial({ color: 0x2b2b2e, roughness: 0.35, metalness: 0.7, envMapIntensity: 1 });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 220, 24), steel); pole.position.y = yb - 100;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(34, 40, 14, 32), steel); cap.position.y = yb + 2;
+    group.add(form, pole, cap);
+    // Frame the shirt, from the neck to the hem; the stand runs out of the picture.
+    const hem = Math.min(...three.meshes.map((m) => { m.geometry.computeBoundingBox(); return m.geometry.boundingBox.min.y; }));
+    group.position.y = -(105 + hem) / 2;
+    three.home = 2350 * Math.max(1, (105 - hem) / 880);
+  }
+
   async function show3D(canvas, style, size, design) {
     const pat = await loadPattern(style, size), key = `${style}/${size}`;
+    const dr = await loadDrape(style, size);
     if (!three || three.canvas !== canvas) initThree(canvas);
     const { group } = three;
     if (three.key !== key) {
-      // A new pattern: clear everything (outside, inside, binding, shadow) before rebuilding.
+      // A new pattern: clear everything (outside, inside, binding, form, shadow) before rebuilding.
       for (const m of [...group.children]) { group.remove(m); m.geometry.dispose(); if (m.material.map) m.material.map.dispose(); if (m.material.normalMap) m.material.normalMap.dispose(); m.material.dispose(); }
       three.meshes = []; three.bindings = [];
+      if (dr) { buildDraped(pat, dr); three.dist = three.home; three.key = key; }
+    }
+    if (three.key !== key) {
+      three.home = 2150;
       const bend = benders(pat);
       let sleeves = 0;
       for (const p of pat.pieces) {
@@ -317,7 +433,7 @@
       three.key = key;
     }
     for (const m of three.meshes) {
-      const tex = new THREE.CanvasTexture(pieceTexture(m.userData.piece, design));
+      const tex = new THREE.CanvasTexture(pieceTexture(m.userData.piece, { ...design, binding: true }));
       tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
       if (m.material.map) m.material.map.dispose();
       m.material.map = tex; m.material.needsUpdate = true;
@@ -365,7 +481,7 @@
     const up = (e) => { pts.delete(e.pointerId); pinch = 0; };
     canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
     canvas.addEventListener("wheel", (e) => { e.preventDefault(); three.dist = Math.max(1500, Math.min(4200, three.dist * (1 + e.deltaY * 0.001))); requestAnimationFrame(render); }, { passive: false });
-    canvas.addEventListener("dblclick", () => { three.rotY = -0.35; three.rotX = 0.06; three.dist = 2150; render(); });
+    canvas.addEventListener("dblclick", () => { three.rotY = -0.35; three.rotX = 0.06; three.dist = three.home || 2150; render(); });
     canvas.addEventListener("keydown", (e) => {
       const k = { ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0], ArrowUp: [0, -0.1], ArrowDown: [0, 0.1] }[e.key];
       if (!k) return; e.preventDefault(); three.rotY += k[0]; three.rotX = Math.max(-0.6, Math.min(0.6, three.rotX + k[1])); render();
