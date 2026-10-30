@@ -1736,7 +1736,12 @@
     return { x: (p.cx || v.cx) - w / 2 + st.dx, y: p.top + st.dy, w, h, wcm, hcm };
   }
 
-  let stDrawing = 0;
+  // One reusable canvas the size of the print box (not the whole garment), so a
+  // redraw only touches the pixels under the design. Redraws are batched to one
+  // per screen frame, which keeps dragging smooth on phones.
+  const stLayer = document.createElement("canvas"), stLx = stLayer.getContext("2d", { willReadFrequently: true });
+  let stDrawing = 0, stFrame = 0, stDragging = false;
+  function requestDraw() { if (!stFrame) stFrame = requestAnimationFrame(() => { stFrame = 0; drawStudio(); }); }
   async function drawStudio() {
     const ticket = ++stDrawing;
     const blank = await loadBlank(curView().src);
@@ -1745,20 +1750,26 @@
     stCtx.drawImage(tinted(blank, STUDIO.colors[st.color].hex), 0, 0);
     // Print the design into the fabric.
     const r = printRect(), x0 = Math.max(0, Math.floor(r.x)), y0 = Math.max(0, Math.floor(r.y));
-    const x1 = Math.min(SIZE, Math.ceil(r.x + r.w)), y1 = Math.min(SIZE, Math.ceil(r.y + r.h));
-    if (x1 > x0 && y1 > y0) {
-      const layer = document.createElement("canvas"); layer.width = layer.height = SIZE;
-      const lx = layer.getContext("2d", { willReadFrequently: true });
-      lx.drawImage(st.art, r.x, r.y, r.w, r.h);
-      const img = lx.getImageData(x0, y0, x1 - x0, y1 - y0), p = img.data;
-      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-        const i = y * SIZE + x, j = ((y - y0) * (x1 - x0) + (x - x0)) * 4;
+    const x1 = Math.min(SIZE, Math.ceil(r.x + r.w)), y1 = Math.min(SIZE, Math.ceil(r.y + r.h)), w = x1 - x0, h = y1 - y0;
+    if (w > 0 && h > 0) {
+      if (stLayer.width !== w || stLayer.height !== h) { stLayer.width = w; stLayer.height = h; } else stLx.clearRect(0, 0, w, h);
+      stLx.drawImage(st.art, r.x - x0, r.y - y0, r.w, r.h);
+      const img = stLx.getImageData(0, 0, w, h), p = img.data;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = (y + y0) * SIZE + (x + x0), j = (y * w + x) * 4;
         const k = Math.min(1.06, blank.shade[i]);
         p[j] *= k; p[j + 1] *= k; p[j + 2] *= k;
         p[j + 3] = p[j + 3] * (blank.alpha[i] / 255) * 0.97;   // ink sits in the fabric, never outside it
       }
-      lx.clearRect(0, 0, SIZE, SIZE); lx.putImageData(img, x0, y0);
-      stCtx.drawImage(layer, 0, 0);
+      stLx.putImageData(img, 0, 0);
+      stCtx.drawImage(stLayer, x0, y0);
+    }
+    // While dragging, outline the design so it is clear what is moving.
+    if (stDragging) {
+      stCtx.save(); stCtx.setLineDash([14, 10]); stCtx.lineWidth = 3;
+      stCtx.strokeStyle = "rgba(255,255,255,.9)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
+      stCtx.lineDashOffset = 12; stCtx.strokeStyle = "rgba(0,0,0,.55)"; stCtx.strokeRect(r.x, r.y, r.w, r.h);
+      stCtx.restore();
     }
     $("#st-size-label").textContent = `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm`;
   }
@@ -1846,31 +1857,38 @@
     const useFile = (f) => {
       if (!f || !/^image\//.test(f.type)) { $("#st-file-name").textContent = lang === "en" ? "That file is not an image. Use PNG, JPG, SVG or WebP." : "Ese archivo no es una imagen. Usa PNG, JPG, SVG o WebP."; return; }
       const url = URL.createObjectURL(f), img = new Image();
-      img.onload = () => { setSource(img, f.name); renderStudio(); };
+      img.onload = () => { setSource(img, f.name); renderStudio(); URL.revokeObjectURL(url); };
       img.onerror = () => { $("#st-file-name").textContent = lang === "en" ? "We could not open that file. Try a PNG or JPG." : "No pudimos abrir ese archivo. Prueba con PNG o JPG."; };
       img.src = url;
     };
-    file.addEventListener("change", () => useFile(file.files[0]));
+    // Clear the input after reading, so choosing the same file again still reloads it.
+    file.addEventListener("change", () => { useFile(file.files[0]); file.value = ""; });
     ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
     ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
-    drop.addEventListener("drop", (e) => { e.preventDefault(); useFile(e.dataTransfer.files[0]); });
+    drop.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); useFile(e.dataTransfer.files[0]); });
+    // A file dropped anywhere else in the studio is used too, instead of the browser opening it and leaving the site.
+    const studioEl = $("#studio");
+    studioEl.addEventListener("dragover", (e) => e.preventDefault());
+    studioEl.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) useFile(e.dataTransfer.files[0]); });
+    addEventListener("dragover", (e) => { if (studioEl.open) e.preventDefault(); });
+    addEventListener("drop", (e) => { if (studioEl.open) e.preventDefault(); });
     $("#st-knockout").addEventListener("change", (e) => { st.knockout = e.target.checked; if (stSource) { st.art = prepareArt(stSource); drawStudio(); } });
 
     // Drag the design (mouse, finger or pen), limited to ±6 cm sideways and ±10 cm up/down.
     let drag = null;
     const limit = () => ({ x: 6 * curView().pxcm, y: 10 * curView().pxcm });
     const clampMove = () => { const l = limit(); st.dx = Math.max(-l.x, Math.min(l.x, st.dx)); st.dy = Math.max(-l.y, Math.min(l.y, st.dy)); };
-    stCanvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, dx: st.dx, dy: st.dy }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); });
+    stCanvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, dx: st.dx, dy: st.dy }; stCanvas.setPointerCapture(e.pointerId); stCanvas.classList.add("dragging"); stDragging = true; requestDraw(); });
     stCanvas.addEventListener("pointermove", (e) => {
       if (!drag) return;
       const k = SIZE / stCanvas.getBoundingClientRect().width;
-      st.dx = drag.dx + (e.clientX - drag.x) * k; st.dy = drag.dy + (e.clientY - drag.y) * k; clampMove(); drawStudio();
+      st.dx = drag.dx + (e.clientX - drag.x) * k; st.dy = drag.dy + (e.clientY - drag.y) * k; clampMove(); requestDraw();
     });
-    const end = () => { drag = null; stCanvas.classList.remove("dragging"); };
+    const end = () => { drag = null; stCanvas.classList.remove("dragging"); stDragging = false; requestDraw(); };
     stCanvas.addEventListener("pointerup", end); stCanvas.addEventListener("pointercancel", end);
     stCanvas.addEventListener("keydown", (e) => {
       const step = (e.shiftKey ? 2 : 0.5) * curView().pxcm, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
-      if (!m) return; e.preventDefault(); st.dx += m[0]; st.dy += m[1]; clampMove(); drawStudio();
+      if (!m) return; e.preventDefault(); st.dx += m[0]; st.dy += m[1]; clampMove(); requestDraw();
     });
     $("#st-reset").addEventListener("click", () => { st.dx = st.dy = 0; drawStudio(); });
 
