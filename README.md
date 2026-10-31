@@ -298,3 +298,11 @@ Recopilada de su sitio oficial (grupochilian.com.mx), LinkedIn, TikTok, YouTube,
 **Animación de todo lo que se toca:** transición suave de color, fondo, borde y sombra en todos los enlaces y botones; botones y tarjetas se hunden al presionar; los chips se elevan al pasar el cursor; los enlaces de texto dibujan su subrayado; las tarjetas del catálogo entran en escalera.
 
 Para regenerar el catálogo cuando Chilian actualice sus PDF: ver `tools/catalog/README.md`.
+
+## Catálogo y cotizador, juntos
+
+- En la ficha de cada modelo se escriben las **piezas** y el **color**; "Agregar a mi cotización" lo suma (y "Actualizar" lo cambia). Después aparecen "Quitar" e "Ir a cotizar".
+- En el cotizador, paso 02, cada modelo es una fila con foto, piezas y color editables, y se puede abrir de nuevo su ficha. La **cantidad total se calcula sola** (la suma de los modelos) y la prenda se toma de los modelos; "+ Agregar más modelos" regresa al catálogo.
+- Sin modelos, el cotizador funciona como antes y ofrece "Ver modelos de [prenda] en el catálogo", que abre el catálogo ya filtrado por esa prenda.
+- La orden de trabajo muestra cada modelo con sus piezas, y el mensaje de WhatsApp lista cada modelo con modelo, piezas, color y página del catálogo.
+- No se envía la solicitud si algún modelo no tiene piezas. La selección se recuerda en el navegador.

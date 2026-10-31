@@ -763,12 +763,40 @@
   .cv-info .btn { width: 100%; }
   .cv-hint { font: 400 .72rem/1.5 var(--f-mono); color: var(--steel); }
   @media (max-width: 800px) { .cv { grid-template-columns: 1fr; } .cv-media { border-right: 0; border-bottom: 1px solid var(--rule); } .cat-view { width: 100vw; max-height: 100dvh; height: 100dvh; border: 0; } }
+  /* Catalog models inside the quote: one row per model with its pieces and color. */
+  .qp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .qp-row { display: grid; grid-template-columns: 52px minmax(0, 1.5fr) 92px minmax(0, 1fr) 2rem; gap: .6rem; align-items: center; padding: .5rem; border: 1px solid var(--rule); background: var(--card); animation: rise .35s var(--ease-out) both; }
+  .qp-row img { width: 52px; height: 64px; object-fit: contain; background: #fff; }
+  .qp-row .qp-name { all: unset; cursor: pointer; display: grid; gap: .15rem; min-width: 0; }
+  .qp-row .qp-name strong { font: 600 .88rem/1.25 var(--f-body); overflow-wrap: anywhere; }
+  .qp-row .qp-name span { font: 400 .68rem/1.3 var(--f-mono); color: var(--steel); }
+  .qp-row input { width: 100%; padding: .55rem .6rem; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font: 400 .9rem var(--f-body); border-radius: 2px; }
+  .qp-row input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--shade); }
+  .qp-row input[aria-invalid="true"] { border-color: #D2452B; }
+  .qp-row .qp-x { all: unset; cursor: pointer; width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 50%; font: 400 1.1rem/1 var(--f-mono); }
+  @media (hover: hover) { .qp-row .qp-x:hover { background: var(--ink); color: var(--paper); } .qp-row .qp-name:hover strong { color: var(--magenta); } }
+  .qp-head { display: grid; grid-template-columns: 52px minmax(0, 1.5fr) 92px minmax(0, 1fr) 2rem; gap: .6rem; padding: 0 .5rem; font: 500 .62rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--steel); }
+  .qp-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; padding-top: .3rem; }
+  .qp-foot strong { font: 800 1.5rem/1 var(--f-display); }
+  .qp-add, .q-cat-link { all: unset; cursor: pointer; font: 600 .72rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; border-bottom: 1.5px solid currentColor; padding-bottom: 2px; }
+  .q-cat-link { margin-top: .5rem; justify-self: start; color: var(--steel); }
+  @media (hover: hover) { .qp-add:hover, .q-cat-link:hover { color: var(--magenta); } }
+  @media (max-width: 600px) {
+    .qp-head { display: none; }
+    .qp-row { grid-template-columns: 52px minmax(0, 1fr) 2rem; }
+    .qp-row .qp-qty, .qp-row .qp-color { grid-column: 2 / 3; }
+    .qp-row .qp-x { grid-column: 3; grid-row: 1; }
+  }
+  .field input[readonly] { background: var(--shade); cursor: default; }
+  .qp-row .qp-name strong { display: block; }
+  .ticket dd.multi { white-space: pre-line; text-align: right; font-weight: 500; font-size: .8rem; }
+  .cv-order { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: .6rem; }
+  .cv-order label { display: grid; gap: .3rem; font: 500 .64rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .cv-order input { padding: .7rem .8rem; border: 1px solid var(--rule); background: var(--card); color: var(--ink); font: 400 .95rem var(--f-body); border-radius: 2px; text-transform: none; letter-spacing: 0; }
+  .cv-order input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--shade); }
+  .cv-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
   .q-picked { margin-top: 1rem; display: grid; gap: .5rem; }
   .q-picked > span { font: 500 .7rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
-  .q-picked ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
-  .q-picked li { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .4rem .35rem .65rem; border: 1px solid var(--ink); font-size: .82rem; animation: pop .3s var(--ease-out); }
-  .q-picked li button { all: unset; cursor: pointer; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; border-radius: 50%; transition: background-color .2s ease, color .2s ease; }
-  @media (hover: hover) { .q-picked li button:hover { background: var(--ink); color: var(--paper); } }
   /* Info pop-ups without a picture use the whole width. */
   .td.no-media { grid-template-columns: 1fr; }
   .td.no-media .td-media { display: none; }
@@ -1365,7 +1393,15 @@
       <div class="cv-info">
         <h2 id="cv-title">—</h2>
         <table class="spec"><tbody id="cv-spec"></tbody></table>
+        <div class="cv-order">
+          <label><span data-en="Pieces">Piezas</span><input id="cv-qty" type="number" inputmode="numeric" min="1" step="1"></label>
+          <label><span data-en="Color(s)">Color(es)</span><input id="cv-color" type="text" placeholder="Ej. negro y blanco" data-en-ph="E.g. black and white" autocomplete="off"></label>
+        </div>
         <button class="btn btn-accent" type="button" id="cv-pick"></button>
+        <div class="cv-row2" id="cv-picked-actions" hidden>
+          <button class="btn btn-ghost" type="button" id="cv-remove" data-en="Remove">Quitar</button>
+          <button class="btn" type="button" id="cv-go" data-en="Go to quote →">Ir a cotizar →</button>
+        </div>
         <button class="btn" type="button" id="cv-studio" data-en="Put my design on it">Ponle mi diseño</button>
         <a class="btn btn-ghost" id="cv-pdf" target="_blank" rel="noopener"></a>
         <p class="cv-hint" data-en="Tap the photo to zoom. Colors may vary from the printed garment.">Toca la foto para acercar. Los colores pueden variar respecto a la prenda impresa.</p>
@@ -1420,16 +1456,22 @@
           <fieldset class="q-step">
             <legend><span class="n">02</span><span data-en="Garment and quantity">Prenda y cantidad</span></legend>
             <div class="fields">
-              <div class="field">
+              <div class="field" id="q-garment-field">
                 <label for="q-garment" data-en="Garment">Prenda</label>
                 <select id="q-garment"></select>
+                <button class="q-cat-link" type="button" id="q-cat-link"></button>
               </div>
               <div class="field">
                 <label for="q-qty" data-en="Pieces">Piezas</label>
                 <input id="q-qty" type="number" inputmode="numeric" min="1" step="1" value="3000">
                 <div class="qty-quick" id="qty-quick"></div>
               </div>
-              <div class="field full q-picked" id="q-picked" hidden><span data-en="From the catalog">Del catálogo</span><ul></ul>
+              <div class="field full q-picked" id="q-picked" hidden>
+                <span data-en="Models from the catalog">Modelos del catálogo</span>
+                <div class="qp-head" aria-hidden="true"><span></span><span data-en="Model">Modelo</span><span data-en="Pieces">Piezas</span><span data-en="Color(s)">Color(es)</span><span></span></div>
+                <ul class="qp-list" id="qp-list"></ul>
+                <div class="qp-foot"><span><span data-en="Total">Total</span>: <strong id="qp-total">0</strong> <span data-en="pieces">piezas</span></span><button class="qp-add" type="button" id="qp-add" data-en="+ Add more models">+ Agregar más modelos</button></div>
+                <span class="err" id="qp-err"></span>
               </div>
             </div>
           </fieldset>
@@ -1457,6 +1499,7 @@
             <dt data-en="Pieces">Piezas</dt><dd id="t-qty">—</dd>
             <dt data-en="Technique">Técnica</dt><dd id="t-tech">—</dd>
             <dt data-en="Needed by">Para el</dt><dd id="t-date">—</dd>
+            <dt data-en="Models" id="t-models-dt" hidden>Modelos</dt><dd id="t-models" class="multi" hidden>—</dd>
           </dl>
           <div class="advisor">
             <span class="mono" data-en="Goes to">Llega a</span>
@@ -1809,9 +1852,16 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
+  const CAT_LINES = [["all", { es: "Todas las líneas", en: "All lines" }], ["basica", { es: "Básica", en: "Basic" }], ["clasica", { es: "Clásica", en: "Classic" }], ["premium", { es: "Premium", en: "Premium" }]];
+  const CAT_KINDS = [["all", { es: "Todas las prendas", en: "All garments" }], ["playera", { es: "Playeras", en: "T-shirts" }], ["polo", { es: "Polos", en: "Polos" }], ["sudadera", { es: "Sudaderas", en: "Sweatshirts" }],
+    ["camisa", { es: "Camisas", en: "Shirts" }], ["uniforme", { es: "Uniformes", en: "Uniforms" }], ["pantalon", { es: "Pantalones", en: "Pants" }], ["tank", { es: "Tank tops y camisetas", en: "Tanks" }], ["gorra", { es: "Gorras", en: "Caps" }]];
+  const CAT_WHO = [["all", { es: "Para todos", en: "Everyone" }], ["caballero", { es: "Caballero", en: "Men" }], ["dama", { es: "Dama", en: "Women" }], ["nino", { es: "Niños", en: "Kids" }], ["unisex", { es: "Unisex", en: "Unisex" }]];
+  const lineName = (id) => t((CAT_LINES.find(([k]) => k === id) || [, { es: id, en: id }])[1]);
+  const kindName = (id) => t((CAT_KINDS.find(([k]) => k === id) || [, { es: id, en: id }])[1]);
+  const whoNames = (ws) => ws.map((w) => t((CAT_WHO.find(([k]) => k === w) || [, { es: w, en: w }])[1])).join(", ");
   // Catalog state lives up here: the quote form (rendered at start) reads the picked models.
   let CAT = null, catAll = [], catList = [], cvIndex = 0;
-  let picked = (() => { try { return JSON.parse(store.get("chilian-picked") || "[]"); } catch (e) { return []; } })();
+  let picked = (() => { try { return JSON.parse(store.get("chilian-picked") || "[]").map((p) => ({ qty: 600, color: "", kind: "playera", ...p })); } catch (e) { return []; } })();
 
   /* ================================================================
      RENDER the lists that change with the language
@@ -1955,15 +2005,16 @@
   function summary() {
     const { type, techs } = readForm();
     const ty = TYPES.find((x) => x.id === type);
-    const garment = t(GARMENTS[+$("#q-garment").value || 0]);
-    const qty = Math.max(0, parseInt($("#q-qty").value, 10) || 0);
+    // With catalog models picked, the garments and pieces come from them.
+    const garment = picked.length ? [...new Set(picked.map((p) => kindName(p.kind || "playera")))].join(", ") : t(GARMENTS[+$("#q-garment").value || 0]);
+    const qty = picked.length ? picked.reduce((a, p) => a + (p.qty || 0), 0) : Math.max(0, parseInt($("#q-qty").value, 10) || 0);
     const date = $("#q-date").value;
     return {
       ty, garment, qty, date, advisor: TEAM[ty.advisor],
       techs: techs.map(techName),
       name: $("#q-name").value.trim(), company: $("#q-company").value.trim(),
       contact: $("#q-contact").value.trim(), notes: $("#q-notes").value.trim(),
-      picked: picked.map((p) => `${p.title}${p.models.length ? " (" + p.models.join(", ") + ")" : ""} · ${p.cat} p. ${p.page}`)
+      picked: picked.map((p) => `${p.title}${p.models.length ? " (" + p.models.join(", ") + ")" : ""} — ${p.qty ? fmt(p.qty) : "?"} ${lang === "en" ? "pcs" : "pzas"}${p.color ? " · " + p.color : ""} · ${lang === "en" ? "catalog" : "catálogo"} ${p.cat} p. ${p.page}`)
     };
   }
 
@@ -1971,7 +2022,7 @@
     const L = lang === "en"
       ? ["Hi Chilian, I'd like a quote:", "Project", "Garment", "Pieces", "Technique", "Needed by", "Name", "Company", "Contact", "Notes"]
       : ["Hola Chilian, quiero cotizar:", "Proyecto", "Prenda", "Piezas", "Técnica", "Para el", "Nombre", "Empresa", "Contacto", "Notas"];
-    const rows = [[L[1], t(s.ty.label)], [L[2], s.garment], [L[3], s.qty ? fmt(s.qty) : ""], [lang === "en" ? "Catalog models" : "Modelos del catálogo", s.picked.join(" | ")], [L[4], s.techs.join(", ")], [L[5], s.date],
+    const rows = [[L[1], t(s.ty.label)], [L[2], s.garment], [L[3], s.qty ? fmt(s.qty) : ""], [lang === "en" ? "Catalog models" : "Modelos del catálogo", s.picked.length ? s.picked.map((l) => "\n   – " + l).join("") : ""], [L[4], s.techs.join(", ")], [L[5], s.date],
                   [L[6], s.name], [L[7], s.company], [L[8], s.contact], [L[9], s.notes]].filter(([, v]) => v);
     return [L[0], ...rows.map(([k, v]) => `• ${k}: ${v}`)].join("\n");
   }
@@ -1982,6 +2033,8 @@
     $("#t-garment").textContent = s.garment;
     $("#t-qty").textContent = s.qty ? fmt(s.qty) : "—";
     $("#t-tech").textContent = s.techs.length ? s.techs.join(", ") : "—";
+    $("#t-models").hidden = $("#t-models-dt").hidden = !picked.length;
+    $("#t-models").textContent = picked.map((p) => `${p.models[0] || p.title} · ${p.qty ? fmt(p.qty) : "?"}`).join("\n");
     $("#t-date").textContent = s.date ? new Date(s.date + "T12:00").toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { day: "numeric", month: "short", year: "numeric" }) : (lang === "en" ? "Flexible" : "Flexible");
     $("#t-advisor").textContent = s.advisor.name;
     $("#t-advisor-role").textContent = t(s.advisor.role);
@@ -2012,7 +2065,12 @@
     check(name, $("#q-name-err"), !name.value.trim(), lang === "en" ? "Write your name so the advisor knows who to answer." : "Escribe tu nombre para que la asesora sepa a quién responder.");
     const looksOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || v.replace(/\D/g, "").length >= 10;
     check(contact, $("#q-contact-err"), !looksOk, lang === "en" ? "Add an email or a 10-digit phone number." : "Agrega un correo o un teléfono de 10 dígitos.");
-    if (!ok) (name.getAttribute("aria-invalid") === "true" ? name : contact).focus();
+    // Every catalog model needs its pieces.
+    const missing = [...document.querySelectorAll("#qp-list .qp-qty")].filter((i) => !(parseInt(i.value, 10) > 0));
+    document.querySelectorAll("#qp-list .qp-qty").forEach((i) => i.setAttribute("aria-invalid", String(missing.includes(i))));
+    $("#qp-err").textContent = missing.length ? (lang === "en" ? "Write how many pieces of each model." : "Escribe cuántas piezas quieres de cada modelo.") : "";
+    if (missing.length) { if (ok) missing[0].focus(); ok = false; }
+    if (!ok && document.activeElement && !document.activeElement.matches("#qp-list input")) (name.getAttribute("aria-invalid") === "true" ? name : contact).focus();
     return ok;
   }
 
@@ -2178,6 +2236,7 @@
     $("#lang-en").setAttribute("aria-pressed", String(next === "en"));
     renderCerts(); renderTechs(); renderWork(); renderVideos(); renderTeam(); renderQuoteChoices(); updateTicket(); updateCalc();
     if (typeof wireTeamInfo === "function" && document.readyState !== "loading") wireTeamInfo();
+    if (typeof renderPicked === "function" && document.readyState !== "loading") { renderPicked(); updateTicket(); }
     if (catAll.length) renderCatalog();
     if (st.prints.front && st.prints.front.name === "sample") sampleArt().then((img) => { setSource("front", img, "sample"); drawStudio(); });
     if ($("#studio").open) { renderStudio(); drawStudio(); }
@@ -2963,15 +3022,8 @@
   /* ================================================================
      CATALOG: every model page of Chilian's PDF catalogs (catalogo/)
      ================================================================ */
-  const CAT_LINES = [["all", { es: "Todas las líneas", en: "All lines" }], ["basica", { es: "Básica", en: "Basic" }], ["clasica", { es: "Clásica", en: "Classic" }], ["premium", { es: "Premium", en: "Premium" }]];
-  const CAT_KINDS = [["all", { es: "Todas las prendas", en: "All garments" }], ["playera", { es: "Playeras", en: "T-shirts" }], ["polo", { es: "Polos", en: "Polos" }], ["sudadera", { es: "Sudaderas", en: "Sweatshirts" }],
-    ["camisa", { es: "Camisas", en: "Shirts" }], ["uniforme", { es: "Uniformes", en: "Uniforms" }], ["pantalon", { es: "Pantalones", en: "Pants" }], ["tank", { es: "Tank tops y camisetas", en: "Tanks" }], ["gorra", { es: "Gorras", en: "Caps" }]];
-  const CAT_WHO = [["all", { es: "Para todos", en: "Everyone" }], ["caballero", { es: "Caballero", en: "Men" }], ["dama", { es: "Dama", en: "Women" }], ["nino", { es: "Niños", en: "Kids" }], ["unisex", { es: "Unisex", en: "Unisex" }]];
   const CAT_PDF = Object.fromEntries(Object.values(CATALOGS).flat().map(([code, file]) => [code === "PLT" ? "PLT" : code, CDN + file]));
   const catState = { line: "all", kind: "all", who: "all", q: "", shown: 12 };
-  const lineName = (id) => t((CAT_LINES.find(([k]) => k === id) || [, { es: id, en: id }])[1]);
-  const kindName = (id) => t((CAT_KINDS.find(([k]) => k === id) || [, { es: id, en: id }])[1]);
-  const whoNames = (ws) => ws.map((w) => t((CAT_WHO.find(([k]) => k === w) || [, { es: w, en: w }])[1])).join(", ");
   function loadCatalog() {
     if (!CAT) CAT = fetch("catalogo/catalogo.json").then((r) => r.json()).then((d) => (catAll = d)).catch(() => { CAT = null; return []; });
     return CAT;
@@ -3010,7 +3062,7 @@
   }
   function catCard(e, i) {
     const on = picked.some((p) => p.id === e.id);
-    return el("button", { class: "cat-card" + (on ? " on" : ""), type: "button", style: `--i:${i % 12}`, "aria-label": e.title, onclick: () => openCatItem(catList.indexOf(e)) }, [
+    return el("button", { class: "cat-card" + (on ? " on" : ""), type: "button", style: `--i:${i % 12}`, "aria-label": e.title, "data-id": e.id, onclick: () => openCatItem(catList.indexOf(e)) }, [
       el("span", { class: "ph" }, [el("img", { src: `catalogo/${e.id}-s.webp`, alt: "", loading: "lazy", decoding: "async", width: 420, height: Math.round(420 * e.h / e.w) })]),
       el("span", { class: "info" }, [
         el("span", { class: "badge", text: `${lineName(e.line)}${e.tier ? " " + e.tier : ""} · ${kindName(e.kind)}` }),
@@ -3046,38 +3098,101 @@
     new Image().src = `catalogo/${catList[(cvIndex + 1) % catList.length].id}.webp`;
     if (!$("#cat-view").open) $("#cat-view").showModal();
   }
+  // Pieces a new model starts with: the quote's quantity for the first one, then the last model's.
+  const defaultQty = () => (picked.length ? picked[picked.length - 1].qty : parseInt($("#q-qty").value, 10)) || 600;
   function updatePickButton() {
-    const e = catList[cvIndex], on = picked.some((p) => p.id === e.id);
-    $("#cv-pick").textContent = on ? L("✓ En tu cotización · quitar", "✓ In your quote · remove") : L("Agregar a mi cotización", "Add to my quote");
+    const e = catList[cvIndex], p = picked.find((x) => x.id === e.id);
+    $("#cv-qty").value = p ? p.qty || "" : defaultQty();
+    $("#cv-color").value = p ? p.color || "" : "";
+    $("#cv-pick").textContent = p ? L("Actualizar en mi cotización", "Update in my quote") : L("Agregar a mi cotización", "Add to my quote");
+    $("#cv-picked-actions").hidden = !p;
   }
-  function togglePick(e) {
-    const i = picked.findIndex((p) => p.id === e.id);
-    if (i >= 0) picked.splice(i, 1); else picked.push({ id: e.id, title: e.title, models: e.models, cat: e.cat, page: e.page });
+  function savePicked() {
     store.set("chilian-picked", JSON.stringify(picked));
-    document.querySelectorAll(".cat-card").forEach((c) => { const x = catList.find((y) => y.title === c.getAttribute("aria-label") && c.querySelector("img").src.includes(`/${y.id}-s.`)); if (x) c.classList.toggle("on", picked.some((p) => p.id === x.id)); });
+    document.querySelectorAll(".cat-card").forEach((c) => c.classList.toggle("on", picked.some((p) => p.id === c.dataset.id)));
     const b = $("#cat-picked"); b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
     renderPicked(); updateTicket();
-    toast(i >= 0 ? L("Modelo quitado de tu cotización.", "Model removed from your quote.") : L(`${e.title} agregado a tu cotización.`, `${e.title} added to your quote.`));
+  }
+  // Add a model (or update its pieces and color if it is already in the quote).
+  function addPick(e, qty, color) {
+    let p = picked.find((x) => x.id === e.id), isNew = !p;
+    if (!p) { p = { id: e.id, title: e.title, models: e.models, cat: e.cat, page: e.page, kind: e.kind }; picked.push(p); }
+    p.qty = Math.max(0, parseInt(qty, 10) || 0) || defaultQty(); p.color = (color || "").trim();
+    savePicked();
+    toast(isNew ? L(`${e.title} agregado: ${fmt(p.qty)} piezas.`, `${e.title} added: ${fmt(p.qty)} pieces.`) : L("Modelo actualizado en tu cotización.", "Model updated in your quote."));
+  }
+  function removePick(id) {
+    const i = picked.findIndex((p) => p.id === id); if (i < 0) return;
+    picked.splice(i, 1); savePicked();
+    toast(L("Modelo quitado de tu cotización.", "Model removed from your quote."));
+  }
+  // Open a picked model's page from the quote (the catalog loads if it has not yet).
+  async function openPicked(id) {
+    await loadCatalog();
+    const e = catAll.find((x) => x.id === id); if (!e) return;
+    if (!catList.includes(e)) catList = picked.map((p) => catAll.find((x) => x.id === p.id)).filter(Boolean);
+    openCatItem(catList.indexOf(e));
+  }
+  const GARMENT_KIND = ["playera", "polo", "sudadera", "camisa", "gorra", null, null, null];
+  function showCatalog(kind) {
+    if (kind) { catState.kind = kind; catState.line = "all"; catState.who = "all"; catState.q = ""; $("#cat-q").value = ""; catState.shown = 12; }
+    renderCatalog();
+    $("#catalogo").scrollIntoView({ behavior: smooth() });
   }
   function renderPicked() {
     $("#cat-picked b").textContent = picked.length;
-    const box = $("#q-picked"), ul = box.querySelector("ul"); ul.textContent = "";
-    box.hidden = !picked.length;
-    for (const p of picked) ul.append(el("li", {}, [`${p.title}${p.models.length ? " · " + p.models[0] : ""}`, el("button", { type: "button", "aria-label": L("Quitar", "Remove"), text: "×", onclick: () => { const e = catAll.find((x) => x.id === p.id) || p; togglePick(e); renderCatalog(); } })]));
+    const box = $("#q-picked"), ul = $("#qp-list"), on = picked.length > 0;
+    box.hidden = !on;
+    // With models picked, the catalog decides the garments and the pieces add up by themselves.
+    $("#q-garment-field").hidden = on;
+    const qty = $("#q-qty"); qty.readOnly = on; $("#qty-quick").hidden = on;
+    if (on) qty.value = picked.reduce((a, p) => a + (p.qty || 0), 0);
+    $("#qp-total").textContent = fmt(picked.reduce((a, p) => a + (p.qty || 0), 0));
+    // the rows are rebuilt only when the list changes, so typing keeps its focus
+    const ids = picked.map((p) => p.id).join();
+    if (ul.dataset.ids !== ids || ul.dataset.lang !== lang) {
+      ul.dataset.ids = ids; ul.dataset.lang = lang; ul.textContent = "";
+      for (const p of picked) {
+        const q = el("input", { class: "qp-qty", type: "number", inputmode: "numeric", min: "1", step: "1", value: p.qty || "", "aria-label": L(`Piezas de ${p.title}`, `Pieces of ${p.title}`) });
+        const c = el("input", { class: "qp-color", type: "text", value: p.color || "", placeholder: L("Color(es)", "Color(s)"), "aria-label": L(`Color de ${p.title}`, `Color of ${p.title}`) });
+        q.addEventListener("input", () => { p.qty = Math.max(0, parseInt(q.value, 10) || 0); q.setAttribute("aria-invalid", "false"); store.set("chilian-picked", JSON.stringify(picked)); renderPicked(); updateTicket(); });
+        c.addEventListener("input", () => { p.color = c.value; store.set("chilian-picked", JSON.stringify(picked)); updateTicket(); });
+        ul.append(el("li", { class: "qp-row" }, [
+          el("img", { src: `catalogo/${p.id}-s.webp`, alt: "", loading: "lazy" }),
+          el("button", { class: "qp-name", type: "button", onclick: () => openPicked(p.id) }, [el("strong", { text: p.title }), el("span", { text: `${p.models.slice(0, 2).join(" · ")}${p.models.length ? " — " : ""}${p.cat} ${L("pág.", "p.")} ${p.page}` })]),
+          q, c,
+          el("button", { class: "qp-x", type: "button", "aria-label": L(`Quitar ${p.title}`, `Remove ${p.title}`), text: "×", onclick: () => removePick(p.id) })
+        ]));
+      }
+    }
+    // Without models: a shortcut to the catalog, filtered by the garment picked here.
+    const kind = GARMENT_KIND[+$("#q-garment").value || 0], link = $("#q-cat-link");
+    link.hidden = !kind;
+    if (kind) link.textContent = L(`Ver modelos de ${kindName(kind).toLowerCase()} en el catálogo →`, `See ${kindName(kind).toLowerCase()} in the catalog →`);
   }
   function initCatalog() {
     const sec = $("#catalogo");
     new IntersectionObserver((en, o) => { if (en[0].isIntersecting) { o.disconnect(); renderCatalog(); } }, { rootMargin: "800px 0px" }).observe(sec);
     let tq; $("#cat-q").addEventListener("input", (e) => { clearTimeout(tq); tq = setTimeout(() => { catState.q = e.target.value; catState.shown = 12; renderCatalog(); }, 160); });
     $("#cat-more").addEventListener("click", () => { catState.shown += 12; renderCatalog(); });
-    $("#cat-picked").addEventListener("click", () => { $("#cotizar").scrollIntoView({ behavior: smooth() }); if (!picked.length) toast(L("Aún no agregas modelos: ábrelos y toca “Agregar a mi cotización”.", "No models yet: open one and tap “Add to my quote”.")); });
+    $("#cat-picked").addEventListener("click", () => {
+      if (!picked.length) { toast(L("Aún no agregas modelos: abre uno, escribe las piezas y toca “Agregar a mi cotización”.", "No models yet: open one, write the pieces and tap “Add to my quote”.")); return; }
+      $("#cotizar").scrollIntoView({ behavior: smooth() });
+    });
     $("#cv-prev").addEventListener("click", () => openCatItem(cvIndex - 1, -1));
     $("#cv-next").addEventListener("click", () => openCatItem(cvIndex + 1, 1));
     $("#cat-view").addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") openCatItem(cvIndex - 1, -1); if (e.key === "ArrowRight") openCatItem(cvIndex + 1, 1); });
     let sx = null; const media = $("#cv-media");
     media.addEventListener("pointerdown", (e) => { sx = e.clientX; });
     media.addEventListener("pointerup", (e) => { if (sx === null || media.querySelector(".zoomed")) { sx = null; return; } const d = e.clientX - sx; sx = null; if (Math.abs(d) > 60) openCatItem(cvIndex + (d < 0 ? 1 : -1), d < 0 ? 1 : -1); });
-    $("#cv-pick").addEventListener("click", () => { togglePick(catList[cvIndex]); updatePickButton(); });
+    $("#cv-pick").addEventListener("click", () => { addPick(catList[cvIndex], $("#cv-qty").value, $("#cv-color").value); updatePickButton(); });
+    $("#cv-qty").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cv-pick").click(); });
+    $("#cv-color").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cv-pick").click(); });
+    $("#cv-remove").addEventListener("click", () => { removePick(catList[cvIndex].id); updatePickButton(); });
+    $("#cv-go").addEventListener("click", () => { closeDialog($("#cat-view")); $("#cotizar").scrollIntoView({ behavior: smooth() }); });
+    $("#qp-add").addEventListener("click", () => showCatalog());
+    $("#q-cat-link").addEventListener("click", () => showCatalog(GARMENT_KIND[+$("#q-garment").value || 0]));
+    $("#q-garment").addEventListener("change", renderPicked);
     $("#cv-studio").addEventListener("click", async () => {
       const e = catList[cvIndex];
       closeDialog($("#cat-view"));
