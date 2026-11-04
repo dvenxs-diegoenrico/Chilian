@@ -29,7 +29,7 @@
     { id: "embarcada", name: "Embarcada" }, { id: "entregada", name: "Entregada" }
   ];
   const STATIONS = [
-    { id: "pantallas", name: "Cuarto de pantallas" }, { id: "impresion", name: "Impresión (pulpo)" }, { id: "calidad", name: "Calidad" },
+    { id: "pantallas", name: "Cuarto de pantallas" }, { id: "impresion", name: "Impresión (pulpo, DTG o bordado)" }, { id: "calidad", name: "Calidad" },
     { id: "empaque", name: "Empaque" }, { id: "embarcada", name: "Embarque" }, { id: "entregada", name: "Entregado al cliente" }
   ];
   const MERMA_CAUSAS = ["Pelusa", "Registro", "Tensión de malla", "Curado", "Prenda defectuosa", "Tinta / color", "Manejo", "Otra"];
@@ -82,12 +82,17 @@
       { id: "p1", nombre: "Roq Oval Run XL+", paletas: 36, colores: 12 }, { id: "p2", nombre: "M&R VictoryOne Plus", paletas: 28, colores: 12 },
       { id: "p3", nombre: "Roq ECO XL", paletas: 18, colores: 14 }, { id: "p4", nombre: "Roq ECO", paletas: 16, colores: 14 },
       { id: "p5", nombre: "Roq You XL (1)", paletas: 14, colores: 12 }, { id: "p6", nombre: "Roq You XL (2)", paletas: 14, colores: 12 },
-      { id: "p7", nombre: "M&R Sportsman EX", paletas: 14, colores: 12 }, { id: "p8", nombre: "M&R Gauntlet R/S", paletas: 10, colores: 5 }
+      { id: "p7", nombre: "M&R Sportsman EX", paletas: 14, colores: 12 }, { id: "p8", nombre: "M&R Gauntlet R/S", paletas: 10, colores: 5 },
+      { id: "d1", nombre: "DTG 1", tipo: "dtg", cabezas: 1 }, { id: "d2", nombre: "DTG 2", tipo: "dtg", cabezas: 1 },
+      { id: "b1", nombre: "Bordadora 6 cabezas", tipo: "bordado", cabezas: 6 }
     ],
     turno: { horas: 9, turnos: 1, uso: 85, dias: [1, 2, 3, 4, 5] },
     tarifas: {
       descVol: [[1, 0], [100, 0], [500, 3], [1000, 5], [5000, 8], [20000, 10]], expressPct: 30, factor: 1.4, margenPrenda: 20, margenEstampado: 30,
-      ajusteTabla: 0, tablaTintas: null, costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15
+      ajusteTabla: 0, tablaTintas: null, costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15,
+      // DTG (one garment at a time) and embroidery (one cycle = one garment per head)
+      minDTG: 3, minDTGOscura: 4.5, setupDTG: 5, rpmBordado: 750, efBordado: 75, minAro: 1.5, setupBordado: 15,
+      ejemploDB: true, costoMilPuntadas: 3, costoPonchado: 450, margenBordado: 40, dtgCostos: { 100: 28, 300: 48, 600: 75, 1200: 115 }, dtgOscura: 18, margenDTG: 40
     }
   };
 
@@ -171,7 +176,7 @@
   const mergeSettings = (st) => {
     const d = structuredClone(DEFAULT_SETTINGS);
     if (!st) return d;
-    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, pulpos: st.pulpos?.length ? st.pulpos : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
+    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, pulpos: st.pulpos?.length ? [...st.pulpos, ...d.pulpos.filter((m) => m.tipo && !st.pulpos.some((x) => x.id === m.id || (x.tipo || "serigrafia") === m.tipo))] : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
   };
   // Save with a check: if someone saved this record meanwhile, keep theirs and say so.
   async function save(col, doc, { quiet } = {}) {
@@ -201,13 +206,31 @@
 
   /* ---------------- calculations ---------------- */
   const T = () => S.settings.tarifas;
-  // Press minutes of a line: screens to set up per color, a transition, and the run.
-  function calcLinea(l) {
-    const t = T(), pzs = +l.piezas || 0, ubic = (l.ubicaciones || []).filter((u) => +u.colores > 0);
-    return { minutos: ubic.reduce((a, u) => a + (+u.colores) * t.minPantalla + t.transicion + (pzs / t.impHora) * 60, 0) };
+  const TECS = { serigrafia: "Serigrafía", dtg: "DTG", bordado: "Bordado" };
+  const machineType = (m) => m.tipo || "serigrafia";
+  const machinesOf = (tec) => S.settings.pulpos.filter((m) => machineType(m) === tec);
+  const machineName = (id) => S.settings.pulpos.find((m) => m.id === id)?.nombre || id;
+  const machineInfo = (m) => machineType(m) === "dtg" ? "DTG · 1 pieza a la vez" : machineType(m) === "bordado" ? `Bordado · ${m.cabezas || 6} cabezas` : `${m.paletas} paletas · ${m.colores} colores`;
+  // Machine minutes of a line, per technique:
+  //   screen printing: screens to set up per color, a transition, and the run;
+  //   DTG: a setup and each garment printed one at a time (dark garments take pretreatment);
+  //   embroidery: a setup and one cycle per round of heads (stitches ÷ speed, plus hooping).
+  function lineMinutes(l) {
+    const t = T(), pzs = +l.piezas || 0, out = { serigrafia: 0, dtg: 0, bordado: 0 };
+    const heads = Math.max(1, ...machinesOf("bordado").map((m) => +m.cabezas || 6));
+    for (const u of l.ubicaciones || []) {
+      const tec = u.tecnica || "serigrafia";
+      if (tec === "dtg") out.dtg += t.setupDTG + pzs * (u.oscura ? t.minDTGOscura : t.minDTG);
+      else if (tec === "bordado") out.bordado += t.setupBordado + Math.ceil(pzs / heads) * ((+u.puntadas || 8000) / (t.rpmBordado * (t.efBordado / 100)) + t.minAro);
+      else if (+u.colores > 0) out.serigrafia += (+u.colores) * t.minPantalla + t.transicion + (pzs / t.impHora) * 60;
+    }
+    return out;
   }
+  function calcLinea(l) { const m = lineMinutes(l); return { minutos: m.serigrafia + m.dtg + m.bordado, porTec: m }; }
+  const otMinutesBy = (ot) => (ot.lineas || []).reduce((a, l) => { const m = lineMinutes(l); for (const k in m) a[k] += m[k]; return a; }, { serigrafia: 0, dtg: 0, bordado: 0 });
+  const ubText = (u) => `${u.nombre}: ${TECS[u.tecnica || "serigrafia"]}${(u.tecnica || "serigrafia") === "bordado" ? " · " + fmtN(+u.puntadas || 0) + " puntadas" : (u.tecnica || "serigrafia") === "dtg" ? (u.oscura ? " · prenda oscura" : "") : " · " + (+u.colores ? u.colores + " col." : "colores por definir")}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`;
   function calcCot(q) { const c = CZ.calc(q); return { total: c.total, sub: c.base0, piezas: c.pcs, margen: c.margen }; }
-  const otMinutes = (ot) => (ot.lineas || []).reduce((a, l) => a + calcLinea(l).minutos, 0);
+  const otMinutes = (ot) => { const m = otMinutesBy(ot); return m.serigrafia + m.dtg + m.bordado; };
   const dayCapacity = () => S.settings.turno.horas * 60 * S.settings.turno.turnos * (S.settings.turno.uso / 100);
   const scoreOf = (o) => SCORE.reduce((a, s) => a + (o.score?.[s.id] ? s.pts : 0), 0);
   const oppValue = (o) => +o.valor || 0;
@@ -219,13 +242,26 @@
     return out;
   };
   // Which press fits a job: enough color heads for its biggest location, more pallets for longer runs.
-  function suggestPress(ot) {
-    const maxCol = Math.max(0, ...(ot.lineas || []).flatMap((l) => (l.ubicaciones || []).map((u) => +u.colores || 0)));
+  function suggestPress(ot, tec = "serigrafia") {
+    const ms = machinesOf(tec); if (!ms.length) return null;
+    if (tec !== "serigrafia") {   // the least loaded of its kind over the next two weeks
+      const days = workDays(10), load = (m) => days.reduce((a, d) => a + loadOn(m.id, d, ot.id).reduce((x, y) => x + y.min, 0), 0);
+      return [...ms].sort((a, b) => load(a) - load(b))[0];
+    }
+    const maxCol = Math.max(0, ...(ot.lineas || []).flatMap((l) => (l.ubicaciones || []).filter((u) => (u.tecnica || "serigrafia") === "serigrafia").map((u) => +u.colores || 0)));
     const pzs = (ot.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
-    const fits = S.settings.pulpos.filter((p) => p.colores >= maxCol);
-    if (!fits.length) return S.settings.pulpos[0];
+    const fits = ms.filter((p) => p.colores >= maxCol);
+    if (!fits.length) return ms[0];
     const want = pzs >= 5000 ? 28 : pzs >= 1500 ? 16 : 10;
     return fits.sort((a, b) => Math.abs(a.paletas - want) - Math.abs(b.paletas - want))[0];
+  }
+  // Techniques of an OT that still need a machine and a day.
+  const tecOfEntry = (p) => p.tecnica || machineType(S.settings.pulpos.find((m) => m.id === p.pulpo) || {});
+  function pendingTecs(ot) {
+    const m = otMinutesBy(ot), done = new Set((ot.programacion || []).map(tecOfEntry));
+    const need = Object.keys(m).filter((k) => m[k] > 0);
+    if (!need.length) return (ot.programacion || []).length ? [] : ["serigrafia"];
+    return need.filter((k) => !done.has(k));
   }
   function loadOn(pulpo, fecha, exceptOt) {
     return list("ots").filter((o) => o.id !== exceptOt && !["entregada", "embarcada"].includes(o.etapa))
@@ -336,7 +372,7 @@
       h("div", { class: "cols" },
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Carga de planta, 10 días hábiles" }), h("a", { class: "link small", href: "#programacion" }, "Programación →")),
-            h("p", { class: "hint", text: `Capacidad diaria: ${fmtN(cap)} min de pulpo (${S.settings.pulpos.length} pulpos × ${S.settings.turno.horas} h × ${S.settings.turno.turnos} turno(s) × ${S.settings.turno.uso} % de uso).` }),
+            h("p", { class: "hint", text: `Capacidad diaria: ${fmtN(cap)} min de máquina (${machinesOf("serigrafia").length} pulpos, ${machinesOf("dtg").length} DTG y ${machinesOf("bordado").length} bordadora; ${S.settings.turno.horas} h × ${S.settings.turno.turnos} turno(s) × ${S.settings.turno.uso} % de uso).` }),
             h("div", { class: "grid", style: "gap:.35rem" }, days.map((d, i) => {
               const pct = cap ? loadByDay[i] / cap : 0;
               return h("div", { class: "row", style: "gap:.6rem;flex-wrap:nowrap" }, h("span", { class: "num small", style: "width:6.5rem", text: new Date(d + "T12:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }) }),
@@ -520,7 +556,7 @@
         }
         if (s.preOtId) continue;
         const est = s.estudio || {}, piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : est.piezas || s.piezas || 0;
-        const ubic = (est.secciones || []).map((x) => ({ nombre: x.seccion + (x.lugar ? " (" + x.lugar + ")" : ""), colores: 0, tintas: "", medida: x.medida, archivo: x.archivo }));
+        const ubic = (est.secciones || []).map((x) => ({ nombre: x.seccion + (x.lugar ? " (" + x.lugar + ")" : ""), tecnica: ["dtg", "bordado"].includes(est.tecnica) ? est.tecnica : "serigrafia", colores: 0, puntadas: est.tecnica === "bordado" ? 8000 : undefined, tintas: "", medida: x.medida, archivo: x.archivo }));
         const lineas = s.modelos?.length
           ? s.modelos.map((m) => ({ id: rid(), descripcion: m.titulo, modelo: (m.modelos || []).join(", "), color: m.color || est.color || "", piezas: m.piezas || 0, catId: m.id, ubicaciones: ubic.map((u) => ({ ...u })), tallas: Object.fromEntries(SIZES.map((z) => [z, 0])) }))
           : [{ id: rid(), descripcion: est.prenda || s.prenda || "Prenda", modelo: "", color: est.color || "", piezas, ubicaciones: ubic, tallas: Object.fromEntries(SIZES.map((z) => [z, 0])) }];
@@ -882,6 +918,7 @@
   /* ---------------- quotes (the quoter itself lives in cotizador.js) ---------------- */
   const CZ = window.makeCotizador({
     h, settings: () => S.settings, list, byId, cuentaName, me: () => S.name, isPhone, waLink, copy, toast,
+    lineMinutes, machinesOf, dayCapacity: () => dayCapacity(), TECS,
     save: (col, doc, o) => save(col, doc, o), rerender: () => rerender(),
     onSent: (q) => markSent(q), onAccept: (q) => acceptQuote(q), onDuplicate: (q) => duplicateQuote(q), onDelete: (q) => deleteQuote(q)
   });
@@ -979,7 +1016,7 @@
   /* ---------------- work orders ---------------- */
   const otPill = (e) => h("span", { class: "pill " + ({ entregada: "p-ok", embarcada: "p-ok", impresion: "p-acc", calidad: "p-info", empaque: "p-info", aprobacion: "p-warn", arte: "p-warn" }[e] || "p-mut"), text: stageName(OT_STAGES, e) });
   function otTable(ots) {
-    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Pulpo", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
+    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Máquinas", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
       h("tbody", {}, ots.sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9")).map((o) => h("tr", { class: "click", onclick: () => go("ot/" + o.id) },
         h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa)),
         h("td", {}, h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[o.arte?.estado] || "p-mut"), text: o.arte?.estado || "pendiente" })),
@@ -1048,7 +1085,7 @@
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Partidas y tallas" }), saveLines),
             ...ot.lineas.map((l) => h("div", { class: "lineitem" },
               h("div", { class: "row between" }, h("b", { text: `${l.descripcion}${l.modelo ? " · " + l.modelo : ""}${l.color ? " · " + l.color : ""}` }), h("span", { class: "num", text: fmtN(l.piezas) + " pzas" })),
-              h("div", { class: "small muted", text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${+u.colores ? u.colores + " col." : "colores por definir"}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`).join(" · ") }),
+              h("div", { class: "small muted", text: (l.ubicaciones || []).map(ubText).join(" · ") }),
               h("div", { class: "grid", style: `grid-template-columns:repeat(${SIZES.length},minmax(0,1fr));gap:.35rem` }, SIZES.map((sz) => h("label", { class: "f" }, h("span", { text: sz }), h("input", { class: "i", type: "number", min: "0", step: "1", value: l.tallas?.[sz] || "", oninput: (e) => { (l.tallas ||= {})[sz] = +e.target.value || 0; mark(); sumNote.textContent = tallaNote(l); } })))),
               ((sumNote) => sumNote)(h("p", { class: "small", text: tallaNote(l) }))))),
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Arte y aprobación del cliente" }), h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[ot.arte?.estado] || "p-mut"), text: ot.arte?.estado || "pendiente" })),
@@ -1076,7 +1113,7 @@
           h("div", { class: "card" }, h("h2", { text: "Fechas y prioridad" }),
             h("div", { class: "grid g2" }, inputField("Compromiso de entrega", ot.fechaCompromiso, "date", (v) => persist({ fechaCompromiso: v }, "Fecha guardada.")),
               selectField("Prioridad", ot.prioridad || "normal", [["normal", "Normal"], ["alta", "Alta"], ["urgente", "Urgente"]], (v) => persist({ prioridad: v }, "Prioridad guardada."))),
-            h("p", { class: "small muted", text: `${fmtN(piezas)} piezas · ${fmtN(minutos)} min estimados de pulpo` })),
+            h("p", { class: "small muted", text: `${fmtN(piezas)} piezas · ${fmtN(minutos)} min estimados de máquina` })),
           ot.previa ? null : h("div", { class: "card" }, h("h2", { text: "Programación" }), scheduleForm(ot, minutos, persist)),
           ot.previa ? null : h("div", { class: "card" }, h("h2", { text: "Embarque" }), shipForm(ot, persist, contact, linkSeg)),
           h("div", { class: "card" }, h("h2", { text: "Seguimiento del cliente" }), h("p", { class: "small", text: "El cliente ve la etapa de su pedido y la guía de envío en este enlace." }), h("div", { class: "copybox", text: linkSeg }),
@@ -1091,18 +1128,34 @@
       h("input", { class: "i", name: "nota", placeholder: "Nota (opcional)" }), h("button", { class: "btn sm full", type: "submit" }, "Registrar merma"));
   }
   function scheduleForm(ot, minutos, persist) {
-    const sug = suggestPress(ot), cur = ot.programacion?.[0];
-    const sel = h("select", { class: "i" }, S.settings.pulpos.map((p) => h("option", { value: p.id, text: `${p.nombre} · ${p.paletas}p/${p.colores}c`, selected: (cur?.pulpo || sug?.id) === p.id })));
-    const date = h("input", { class: "i", type: "date", value: cur?.fecha || workDays(3).pop() });
-    const mins = h("input", { class: "i", type: "number", min: "1", value: Math.round(cur?.minutos || minutos) });
-    const info = h("p", { class: "small muted" });
-    const paint = () => { const used = loadOn(sel.value, date.value, ot.id).reduce((a, x) => a + x.min, 0), cap = dayCapacity(); info.textContent = `Ese día el pulpo ya tiene ${fmtN(used)} de ${fmtN(cap)} min; con esta OT quedaría al ${fmtN(((used + (+mins.value || 0)) / cap) * 100)} %.`; };
-    [sel, date, mins].forEach((x) => x.addEventListener("input", paint)); paint();
-    return h("div", { class: "grid", style: "gap:.5rem" },
-      h("p", { class: "hint", text: `Sugerido: ${sug?.nombre || "—"} (colores y tiraje).` }),
-      h("label", { class: "f" }, h("span", { text: "Pulpo" }), sel), h("div", { class: "grid g2" }, h("label", { class: "f" }, h("span", { text: "Día" }), date), h("label", { class: "f" }, h("span", { text: "Minutos" }), mins)), info,
-      h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", onclick: () => persist({ ...(["arte", "aprobacion", "compra", "pantallas"].includes(ot.etapa) && ot.arte?.estado === "aprobada" ? setStage(ot, "programada", `Programada en ${S.settings.pulpos.find((p) => p.id === sel.value)?.nombre}`) : {}), programacion: [{ pulpo: sel.value, fecha: date.value, minutos: +mins.value || Math.round(minutos) }] }, "Programación guardada.") }, cur ? "Reprogramar" : "Programar"),
-        cur ? h("button", { class: "btn sm ghost", type: "button", onclick: () => persist({ programacion: [] }, "Programación quitada.") }, "Quitar") : null));
+    const by = otMinutesBy(ot), tecs = Object.keys(by).filter((k) => by[k] > 0);
+    if (!tecs.length) tecs.push("serigrafia");
+    const cap = dayCapacity();
+    const rows = tecs.map((tec) => {
+      const cur = (ot.programacion || []).filter((p) => tecOfEntry(p) === tec), sug = suggestPress(ot, tec), ms = machinesOf(tec);
+      if (!ms.length) return { tec, el: h("p", { class: "small due-late", text: `No hay máquinas de ${TECS[tec]} en Ajustes.` }), entries: () => [] };
+      const sel = h("select", { class: "i" }, ms.map((m) => h("option", { value: m.id, text: `${m.nombre} · ${machineInfo(m)}`, selected: (cur[0]?.pulpo || sug?.id) === m.id })));
+      const date = h("input", { class: "i", type: "date", value: cur[0]?.fecha || workDays(3).pop() });
+      const total = Math.round(by[tec] || minutos);
+      const mins = h("input", { class: "i", type: "number", min: "1", value: Math.round(cur.reduce((a, x) => a + (+x.minutos || 0), 0) || total) });
+      const split = tec === "dtg" && ms.length > 1 ? h("input", { type: "checkbox", checked: cur.length > 1 }) : null;
+      const info = h("p", { class: "small muted" });
+      const paint = () => {
+        const used = loadOn(sel.value, date.value, ot.id).reduce((a, x) => a + x.min, 0), m = (+mins.value || 0) / (split?.checked ? ms.length : 1);
+        info.textContent = `${TECS[tec]}: ${fmtN(total)} min estimados (${fmtN(total / cap, 1)} días de máquina). Ese día ${machineName(sel.value)} ya tiene ${fmtN(used)} de ${fmtN(cap)} min; con esta OT quedaría al ${fmtN(((used + m) / cap) * 100)} %.`;
+      };
+      [sel, date, mins, split].filter(Boolean).forEach((x) => x.addEventListener("input", paint)); paint();
+      return { tec, el: h("div", { class: "grid", style: "gap:.4rem;border-top:1px solid var(--rule);padding-top:.5rem" },
+        h("b", { class: "small", text: TECS[tec] + (sug ? ` · sugerido: ${sug.nombre}` : "") }),
+        h("label", { class: "f" }, h("span", { text: "Máquina" }), sel),
+        h("div", { class: "grid g2" }, h("label", { class: "f" }, h("span", { text: "Día" }), date), h("label", { class: "f" }, h("span", { text: "Minutos" }), mins)),
+        split ? h("label", { class: "row small", style: "gap:.4rem" }, split, `Repartir entre las ${ms.length} DTG (mitad en cada una)`) : null, info),
+        entries: () => split?.checked ? ms.map((m) => ({ pulpo: m.id, fecha: date.value, minutos: Math.round((+mins.value || total) / ms.length), tecnica: tec })) : [{ pulpo: sel.value, fecha: date.value, minutos: +mins.value || total, tecnica: tec }] };
+    });
+    const has = (ot.programacion || []).length;
+    return h("div", { class: "grid", style: "gap:.5rem" }, ...rows.map((r) => r.el),
+      h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", onclick: () => persist({ ...(["arte", "aprobacion", "compra", "pantallas"].includes(ot.etapa) && ot.arte?.estado === "aprobada" ? setStage(ot, "programada", "Programada: " + rows.map((r) => TECS[r.tec]).join(", ")) : {}), programacion: rows.flatMap((r) => r.entries()) }, "Programación guardada.") }, has ? "Reprogramar" : "Programar"),
+        has ? h("button", { class: "btn sm ghost", type: "button", onclick: () => persist({ programacion: [] }, "Programación quitada.") }, "Quitar") : null));
   }
   function shipForm(ot, persist, contact, linkSeg) {
     const e = ot.embarque || {};
@@ -1131,7 +1184,7 @@
         h("div", { style: "width:70mm", html: code128svg(ot.id) })),
       h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", "Ubicaciones y tintas", ...SIZES, "Total"].map((x) => h("th", { text: x })))),
         h("tbody", {}, ot.lineas.map((l) => h("tr", {}, h("td", {}, h("b", { text: l.descripcion }), l.modelo ? " · " + l.modelo : "", l.color ? h("div", { text: l.color }) : null),
-          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${+u.colores ? u.colores + " col." : "colores por definir"}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
+          h("td", { text: (l.ubicaciones || []).map(ubText).join("; ") }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
       h("table", { style: "margin-top:10pt" }, h("thead", {}, h("tr", {}, ["Estación", "Inicio", "Fin", "Firma", "Notas"].map((x) => h("th", { text: x })))), h("tbody", {}, STATIONS.slice(0, 5).map((s) => h("tr", { style: "height:22pt" }, h("td", { text: s.name }), h("td"), h("td"), h("td"), h("td")))))));
     setTimeout(() => print(), 50);
   }
@@ -1147,7 +1200,7 @@
   /* ---------------- press schedule ---------------- */
   function viewSchedule() {
     const days = workDays(viewSchedule.n || 10, viewSchedule.from || localDate()), cap = dayCapacity();
-    const queue = list("ots").filter((o) => !o.previa && !(o.programacion || []).length && !["embarcada", "entregada", "impresion", "calidad", "empaque"].includes(o.etapa)).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
+    const queue = list("ots").filter((o) => !o.previa && pendingTecs(o).length && !["embarcada", "entregada", "impresion", "calidad", "empaque"].includes(o.etapa)).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
     const dragJob = (el, otId) => { el.draggable = true; el.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", otId)); };
     const cell = (p, d) => {
       const jobs = loadOn(p.id, d), used = jobs.reduce((a, x) => a + x.min, 0), pct = cap ? used / cap : 0;
@@ -1159,24 +1212,28 @@
       slot.addEventListener("drop", async (e) => {
         e.preventDefault(); slot.classList.remove("drop");
         const id = e.dataTransfer.getData("text/plain"); if (!byId("ots", id)) return;
-        const ot = await fresh("ots", id);
-        const min = ot.programacion?.[0]?.minutos || Math.round(otMinutes(ot));
+        const ot = await fresh("ots", id), tec = machineType(p), by = otMinutesBy(ot);
+        const anyTec = by.serigrafia + by.dtg + by.bordado > 0;
+        if (anyTec && !(by[tec] > 0)) return toast(`${ot.id} no lleva ${TECS[tec]}. Lleva: ${Object.keys(by).filter((k) => by[k] > 0).map((k) => TECS[k]).join(", ")}.`, true);
+        const min = Math.round(by[tec] || (ot.programacion || []).find((x) => tecOfEntry(x) === tec)?.minutos || 60);
         const staged = ["arte", "aprobacion", "compra", "pantallas"].includes(ot.etapa) && ot.arte?.estado === "aprobada" ? setStage(ot, "programada", `Programada en ${p.nombre}`) : ot;
-        await save("ots", { ...staged, programacion: [{ pulpo: p.id, fecha: d, minutos: min }] }, { quiet: true });
+        await save("ots", { ...staged, programacion: [...(ot.programacion || []).filter((x) => tecOfEntry(x) !== tec), { pulpo: p.id, fecha: d, minutos: min, tecnica: tec }] }, { quiet: true });
         toast(`${ot.id} → ${p.nombre}, ${fmtDate(d)}.`); rerender();
       });
       return h("td", {}, slot);
     };
     return h("div", {},
-      top(`Capacidad por pulpo y día: ${fmtN(cap)} min`, "Programación",
+      top(`Capacidad por máquina y día: ${fmtN(cap)} min · pulpos, DTG y bordado`, "Programación",
         h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = addDays(days[0], -7); rerender(); } }, "← Semana"),
         h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = localDate(); rerender(); } }, "Hoy"),
         h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = addDays(days[0], 7); rerender(); } }, "Semana →")),
       h("div", { class: "cols", style: "grid-template-columns:minmax(0,1fr) 260px" },
-        h("div", { class: "sched" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Pulpo" }), days.map((d) => { const dt = new Date(d + "T12:00"); return h("th", { class: d === localDate() ? "today" : "" }, dt.toLocaleDateString("es-MX", { weekday: "short" }), h("br"), h("b", { class: "num", text: dt.toLocaleDateString("es-MX", { day: "numeric", month: "short" }) })); }))),
-          h("tbody", {}, S.settings.pulpos.map((p) => h("tr", {}, h("td", {}, h("b", { class: "small", text: p.nombre }), h("div", { class: "num small muted", text: `${p.paletas} paletas · ${p.colores} colores` })), days.map((d) => cell(p, d))))))),
-        h("div", { class: "card" }, h("h2", { text: `Por programar (${queue.length})` }), h("p", { class: "hint", text: "Arrastra cada OT a un pulpo y día. Rojo: después del compromiso de entrega." }),
-          queue.length ? h("div", { class: "queue" }, queue.map((o) => { const j = h("div", { class: "job" + (o.arte?.estado === "aprobada" ? "" : " late"), onclick: () => go("ot/" + o.id) }, h("b", { text: o.id }), h("div", { text: o.clienteNombre }), h("div", { class: "muted", text: `${fmtN(otMinutes(o))} min · ${fmtDate(o.fechaCompromiso)} · arte ${o.arte?.estado || "pendiente"}` })); dragJob(j, o.id); return j; }))
+        h("div", { class: "sched" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Máquina" }), days.map((d) => { const dt = new Date(d + "T12:00"); return h("th", { class: d === localDate() ? "today" : "" }, dt.toLocaleDateString("es-MX", { weekday: "short" }), h("br"), h("b", { class: "num", text: dt.toLocaleDateString("es-MX", { day: "numeric", month: "short" }) })); }))),
+          h("tbody", {}, Object.keys(TECS).filter((tec) => machinesOf(tec).length).flatMap((tec) => [
+            h("tr", {}, h("td", { colspan: String(days.length + 1), class: "label grp", style: "background:var(--shade);padding:.35rem .5rem", text: tec === "serigrafia" ? "Serigrafía · pulpos automáticos" : tec === "dtg" ? "DTG · impresión directa, pieza por pieza" : "Bordado" })),
+            ...machinesOf(tec).map((p) => h("tr", {}, h("td", {}, h("b", { class: "small", text: p.nombre }), h("div", { class: "num small muted", text: machineInfo(p) })), days.map((d) => cell(p, d))))])))),
+        h("div", { class: "card" }, h("h2", { text: `Por programar (${queue.length})` }), h("p", { class: "hint", text: "Arrastra cada OT a una máquina y día; cada técnica de la OT se programa en su máquina (pulpo, DTG o bordadora). Rojo: arte sin aprobar o después del compromiso." }),
+          queue.length ? h("div", { class: "queue" }, queue.map((o) => { const j = h("div", { class: "job" + (o.arte?.estado === "aprobada" ? "" : " late"), onclick: () => go("ot/" + o.id) }, h("b", { text: o.id }), h("div", { text: o.clienteNombre }), h("div", { class: "muted", text: `Falta: ${pendingTecs(o).map((k) => TECS[k] + " " + fmtN(otMinutesBy(o)[k]) + " min").join(" · ")} · ${fmtDate(o.fechaCompromiso)} · arte ${o.arte?.estado || "pendiente"}` })); dragJob(j, o.id); return j; }))
             : h("p", { class: "muted small", text: "Todas las OT activas están programadas." }))));
   }
 
@@ -1458,10 +1515,29 @@
               num(st.turno, "horas", "Horas por turno"), num(st.turno, "turnos", "Turnos", "1"), num(st.turno, "uso", "Tiempo disponible usado (%)")),
             h("div", { class: "chips" }, ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((d, i) => h("button", { type: "button", class: "chip" + (st.turno.dias.includes(i) ? " on" : ""), onclick: (e) => { st.turno.dias = st.turno.dias.includes(i) ? st.turno.dias.filter((x) => x !== i) : [...st.turno.dias, i].sort(); e.target.classList.toggle("on"); } }, d))))),
         h("div", { class: "grid" },
-          h("div", { class: "card" }, h("h2", { text: "Pulpos" }), h("div", { class: "grid", style: "gap:.4rem" }, st.pulpos.map((p, i) => h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) 70px 70px 2rem;gap:.35rem;align-items:end" },
-            h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } })), num(p, "paletas", "Paletas", "1"), num(p, "colores", "Colores", "1"),
-            h("button", { class: "x", type: "button", "aria-label": "Quitar pulpo", onclick: (e) => { st.pulpos.splice(i, 1); e.target.closest(".grid").remove(); } }, "×")))),
-            h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.pulpos.push({ id: "p" + rid(), nombre: "Pulpo nuevo", paletas: 12, colores: 8 }); saveAll(); } }, "+ Pulpo")),
+          h("div", { class: "card" }, h("h2", { text: "Máquinas" }), h("p", { class: "hint", text: "Pulpos de serigrafía, impresoras DTG y bordadoras. Cada una tiene su fila en Programación." }),
+            ((box) => { const paint = () => box.replaceChildren(...st.pulpos.map((p, i) => { const tec = machineType(p);
+              return h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) 112px 64px 64px 2rem;gap:.35rem;align-items:end" },
+                h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } })),
+                h("label", { class: "f" }, h("span", { text: "Tipo" }), h("select", { class: "i", onchange: (e) => { p.tipo = e.target.value; if (p.tipo !== "serigrafia" && !p.cabezas) p.cabezas = p.tipo === "bordado" ? 6 : 1; paint(); } }, Object.entries(TECS).map(([v, t]) => h("option", { value: v, text: t, selected: tec === v })))),
+                tec === "serigrafia" ? num(p, "paletas", "Paletas", "1") : num(p, "cabezas", tec === "dtg" ? "Piezas" : "Cabezas", "1"),
+                tec === "serigrafia" ? num(p, "colores", "Colores", "1") : h("span"),
+                h("button", { class: "x", type: "button", "aria-label": "Quitar máquina", onclick: () => { st.pulpos.splice(i, 1); paint(); } }, "×")); }),
+              h("div", { class: "row" },
+                h("button", { class: "btn sm ghost", type: "button", onclick: () => { st.pulpos.push({ id: "p" + rid(), nombre: "Pulpo nuevo", tipo: "serigrafia", paletas: 12, colores: 8 }); paint(); } }, "+ Pulpo"),
+                h("button", { class: "btn sm ghost", type: "button", onclick: () => { st.pulpos.push({ id: "d" + rid(), nombre: "DTG nueva", tipo: "dtg", cabezas: 1 }); paint(); } }, "+ DTG"),
+                h("button", { class: "btn sm ghost", type: "button", onclick: () => { st.pulpos.push({ id: "b" + rid(), nombre: "Bordadora nueva", tipo: "bordado", cabezas: 6 }); paint(); } }, "+ Bordadora")));
+              paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
+          h("div", { class: "card" }, h("h2", { text: "DTG y bordado" }),
+            h("p", { class: "hint", text: "Tiempos para programar y costos para cotizar. Los costos iniciales son ejemplos: cámbialos por los de Chilian." }),
+            h("div", { class: "label", text: "DTG" }),
+            h("div", { class: "grid g3" }, num(st.tarifas, "minDTG", "Min por pieza (prenda clara)"), num(st.tarifas, "minDTGOscura", "Min por pieza (oscura, con pretratado)"), num(st.tarifas, "setupDTG", "Min de preparación"),
+              ...[100, 300, 600, 1200].map((k) => h("label", { class: "f" }, h("span", { text: `Costo ${({ 100: "escudo", 300: "media carta", 600: "carta", 1200: "doble carta" })[k]} (MXN)` }), h("input", { class: "i", type: "number", step: "any", value: (st.tarifas.dtgCostos || {})[k], oninput: (e) => { st.tarifas.dtgCostos = { ...(st.tarifas.dtgCostos || {}), [k]: +e.target.value }; } }))),
+              num(st.tarifas, "dtgOscura", "Extra prenda oscura (MXN)"), num(st.tarifas, "margenDTG", "Margen DTG (%)")),
+            h("div", { class: "label", text: "Bordado" }),
+            h("div", { class: "grid g3" }, num(st.tarifas, "rpmBordado", "Puntadas por minuto"), num(st.tarifas, "efBordado", "Eficiencia (%)"), num(st.tarifas, "minAro", "Min por ciclo (enmarcar y cambiar)"),
+              num(st.tarifas, "setupBordado", "Min de preparación"), num(st.tarifas, "costoMilPuntadas", "Costo por 1,000 puntadas (MXN)"), num(st.tarifas, "costoPonchado", "Ponchado (MXN por diseño)"), num(st.tarifas, "margenBordado", "Margen bordado (%)")),
+            h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !st.tarifas.ejemploDB, onchange: (e) => { st.tarifas.ejemploDB = !e.target.checked; } }), "Estos costos ya son los reales de Chilian")),
           instagramCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));

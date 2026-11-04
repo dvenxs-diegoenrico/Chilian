@@ -29,7 +29,7 @@ export async function POST(req) {
       herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
       mockup: s(d.mockup, 600), especifica: modelos.length > 0,
       estudio: d.estudio && typeof d.estudio === "object" ? {
-        prenda: s(d.estudio.prenda, 60), color: s(d.estudio.color, 40), modo: d.estudio.modo === "full" ? "full" : "place", piezas: Math.max(0, parseInt(d.estudio.piezas, 10) || 0),
+        prenda: s(d.estudio.prenda, 60), color: s(d.estudio.color, 40), tecnica: ["serigrafia", "dtg", "bordado", "sublimacion"].includes(d.estudio.tecnica) ? d.estudio.tecnica : "serigrafia", modo: d.estudio.modo === "full" ? "full" : "place", piezas: Math.max(0, parseInt(d.estudio.piezas, 10) || 0),
         secciones: Array.isArray(d.estudio.secciones) ? d.estudio.secciones.slice(0, 12).map((x) => ({ seccion: s(x.seccion, 40), lugar: s(x.lugar, 40), medida: s(x.medida, 40), archivo: s(x.archivo, 120) })) : []
       } : null,
       recibida: new Date().toISOString()

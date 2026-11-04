@@ -154,7 +154,10 @@
       return Object.assign({
         id: rid(), key, concepto: key === "libre" ? "" : it.name, desc: it.desc || "", piezas: String(q), precio: s ? String(s.p) : "", manual: false,
         costo: c ? String(c) : "", factor: String(T().factor || 1.4), color: "", ubicaciones: [], catId: it.catId || "",
-        nopcs: !!it.nopcs, nodisc: !!it.nodisc, noexp: !!it.noexp, fromCalc: false
+        nopcs: !!it.nopcs, nodisc: !!it.nodisc, noexp: !!it.noexp, fromCalc: false,
+        ...(key === "srv-dtg" ? { ubicaciones: [{ nombre: "Frente", tecnica: "dtg", colores: 0, tintas: "" }] }
+          : key === "srv-bordado" || key === "srv-bordado3d" ? { ubicaciones: [{ nombre: "Pecho izquierdo", tecnica: "bordado", puntadas: 8000, colores: 0, tintas: "" }] }
+          : key === "srv-seri-pos" ? { ubicaciones: [{ nombre: "Frente", tecnica: "serigrafia", colores: 1, tintas: "" }] } : {})
       }, extra);
     }
 
@@ -522,12 +525,23 @@
         const factIn = h("input", { class: "i num", inputmode: "decimal", value: l.factor, oninput: (e) => { l.factor = e.target.value; touch(); } });
         // Production: print locations and colors, for press minutes and the work order.
         const ubBox = h("div", { class: "cz-ubs" });
+        const ubSum = () => (l.ubicaciones || []).length ? l.ubicaciones.map((u) => `${u.nombre} ${({ dtg: "DTG", bordado: "bordado " + Math.round((+u.puntadas || 0) / 1000) + "k" })[u.tecnica] || (u.colores || 0) + "c"}`).join(", ") : "sin ubicaciones";
+        const ubTitle = h("summary");
         const paintUb = () => {
-          ubBox.replaceChildren(...(l.ubicaciones || []).map((u, ui) => h("div", { class: "cz-ub" },
-            h("select", { class: "i", "aria-label": "Ubicación", onchange: (e) => { u.nombre = e.target.value; touch(); } }, UB_NAMES.concat(UB_NAMES.includes(u.nombre) ? [] : [u.nombre]).map((x) => h("option", { value: x, text: x, selected: x === u.nombre }))),
-            h("input", { class: "i num", type: "number", min: "0", max: "14", value: u.colores, "aria-label": "Colores", oninput: (e) => { u.colores = +e.target.value || 0; touch(); } }),
-            h("button", { type: "button", class: "x", "aria-label": "Quitar ubicación", onclick: () => { l.ubicaciones.splice(ui, 1); paintUb(); touch(); } }, "×"))),
-          h("button", { type: "button", class: "btn sm ghost", onclick: () => { (l.ubicaciones ||= []).push({ nombre: "Frente", colores: 1, tintas: "" }); paintUb(); touch(); } }, "+ Ubicación"));
+          const m = X.lineMinutes ? X.lineMinutes(l) : null, cap = X.dayCapacity ? X.dayCapacity() : 0;
+          ubTitle.textContent = `Impresión para planta (${ubSum()})`;
+          ubBox.replaceChildren(...(l.ubicaciones || []).map((u, ui) => {
+            const tec = u.tecnica || "serigrafia";
+            return h("div", { class: "cz-ub", style: "grid-template-columns:minmax(0,1fr) 110px 96px 2.2rem" },
+              h("select", { class: "i", "aria-label": "Ubicación", onchange: (e) => { u.nombre = e.target.value; paintUb(); touch(); } }, UB_NAMES.concat(UB_NAMES.includes(u.nombre) ? [] : [u.nombre]).map((x) => h("option", { value: x, text: x, selected: x === u.nombre }))),
+              h("select", { class: "i", "aria-label": "Técnica", onchange: (e) => { u.tecnica = e.target.value; if (u.tecnica === "bordado" && !u.puntadas) u.puntadas = 8000; paintUb(); touch(); } }, [["serigrafia", "Serigrafía"], ["dtg", "DTG"], ["bordado", "Bordado"]].map(([v, t]) => h("option", { value: v, text: t, selected: tec === v }))),
+              tec === "bordado" ? h("input", { class: "i num", type: "number", min: "500", step: "500", value: u.puntadas, "aria-label": "Puntadas", title: "Puntadas", oninput: (e) => { u.puntadas = +e.target.value || 0; touch(); } })
+                : tec === "dtg" ? h("label", { class: "cz-check", style: "font-size:.78rem" }, h("input", { type: "checkbox", checked: !!u.oscura, onchange: (e) => { u.oscura = e.target.checked; paintUb(); touch(); } }), h("span", { text: "Oscura" }))
+                  : h("input", { class: "i num", type: "number", min: "0", max: "14", value: u.colores, "aria-label": "Colores", title: "Colores", oninput: (e) => { u.colores = +e.target.value || 0; touch(); } }),
+              h("button", { type: "button", class: "x", "aria-label": "Quitar ubicación", onclick: () => { l.ubicaciones.splice(ui, 1); paintUb(); touch(); } }, "×"));
+          }),
+          h("button", { type: "button", class: "btn sm ghost", onclick: () => { (l.ubicaciones ||= []).push({ nombre: "Frente", tecnica: "serigrafia", colores: 1, tintas: "" }); paintUb(); touch(); } }, "+ Ubicación"),
+          m && cap ? h("p", { class: "hint", text: Object.entries(m).filter(([, v]) => v > 0).map(([k, v]) => `${({ serigrafia: "Pulpo", dtg: "DTG", bordado: "Bordadora" })[k]}: ${Math.round(v)} min (${(v / cap / Math.max(1, X.machinesOf(k).length)).toFixed(1)} días con ${X.machinesOf(k).length} máquina${X.machinesOf(k).length === 1 ? "" : "s"})`).join(" · ") || "Agrega colores, puntadas o DTG para calcular el tiempo de máquina." }) : null);
         };
         paintUb(); paintRefs(); paintM();
         return h("div", { class: "cz-line" },
@@ -542,8 +556,8 @@
           h("details", { class: "cz-cost full" }, h("summary", { text: "Costeo interno (no sale en la hoja)" }),
             h("div", { class: "crow" }, field("Costo por pieza", costIn), field("Factor", factIn), marginOut,
               h("button", { type: "button", class: "btn sm", onclick: () => { if (n(l.costo) > 0) { l.precio = String(r2(n(l.costo) * (n(l.factor) || 1.4))); l.manual = true; priceIn.value = l.precio; paintRefs(); paintM(); refresh(); } } }, "Usar costo × factor"))),
-          !l.nopcs ? h("details", { class: "cz-cost full", open: (l.ubicaciones || []).length ? null : null }, h("summary", { text: `Impresión para planta (${(l.ubicaciones || []).length ? l.ubicaciones.map((u) => u.nombre + " " + u.colores + "c").join(", ") : "sin ubicaciones"})` }),
-            h("p", { class: "hint", text: "Ubicaciones y colores: calculan los minutos de pulpo y pasan a la orden de trabajo. No salen en la hoja." }), ubBox) : null);
+          !l.nopcs ? h("details", { class: "cz-cost full", open: (l.ubicaciones || []).length ? null : null }, ubTitle,
+            h("p", { class: "hint", text: "Ubicación, técnica y colores o puntadas: calculan el tiempo de pulpo, DTG o bordadora y pasan a la orden de trabajo. No salen en la hoja." }), ubBox) : null);
       }
       const gLines = h("section", { class: "cz-group" }, h("h2", { text: "Conceptos" }),
         h("div", { class: "cz-freqbox" }, h("div", { class: "cz-freqhead" }, h("span", { text: "Productos frecuentes" }), h("span", { class: "hint", text: H.length ? `Aprendido de ${new Set(H.map((x) => x.fo)).size} cotizaciones del equipo` : "Se ajustan solos con cada cotización guardada" })), freqBox),
@@ -551,7 +565,8 @@
         h("p", { class: "hint", text: "Cada producto trae los precios que el equipo ya cotizó. Al escribir la cantidad se sugiere el de volumen más cercano; toca una referencia para usarla o escribe tu precio." }),
         linesBox,
         h("div", { class: "row" }, check("Las líneas son opciones a elegir (no se suman)", () => q.opciones, (v) => { q.opciones = v; paintLines(); }),
-          h("button", { type: "button", class: "btn sm ghost", onclick: () => document.getElementById("cz-tq").scrollIntoView({ behavior: "smooth", block: "start" }) }, "Cotizador por tintas ↓")));
+          h("button", { type: "button", class: "btn sm ghost", onclick: () => document.getElementById("cz-tq").scrollIntoView({ behavior: "smooth", block: "start" }) }, "Cotizador por tintas ↓"),
+          h("button", { type: "button", class: "btn sm ghost", onclick: () => document.getElementById("cz-db").scrollIntoView({ behavior: "smooth", block: "start" }) }, "Bordado y DTG ↓")));
 
       /* --- discounts, IVA, payment, delivery, conditions --- */
       const gDisc = h("section", { class: "cz-group" }, h("h2", { text: "Descuentos y cargos" }),
@@ -627,7 +642,7 @@
               const line = mkLine(g ? g.key : "srv-serigrafia", c.qty, {
                 concepto: g ? `${g.name.split(" · ")[0]} con serigrafía en ${nm}` : "Estampado serigrafía · " + nm, desc, precio: String(c.sale), manual: true, fromCalc: true,
                 costo: String(r2(c.cost)), factor: String(r2(c.cost ? c.sale / c.cost : 1.4)), catId: g ? g.catId : "",
-                ubicaciones: c.rows.map((x) => ({ nombre: UB_NAMES.includes(x.p.name) ? x.p.name : x.p.name === "Cuello / etiqueta" ? "Nuca" : "Otra", colores: INK_MAX[x.p.ink] + (TQ.prenda === "color" ? 1 : 0), tintas: "" }))
+                ubicaciones: c.rows.map((x) => ({ nombre: UB_NAMES.includes(x.p.name) ? x.p.name : x.p.name === "Cuello / etiqueta" ? "Nuca" : "Otra", tecnica: "serigrafia", colores: INK_MAX[x.p.ink] + (TQ.prenda === "color" ? 1 : 0), tintas: "" }))
               });
               q.lineas.push(line);
               if (TQ.screens) q.lineas.push(mkLine("srv-pantalla", c.screens, { precio: String(n(T().costoPantalla)), manual: true, desc: `Grabado de ${c.screens} pantallas, pago único.` }));
@@ -665,7 +680,77 @@
       ];
       const byIdFresh = () => X.byId("cotizaciones", q.id) || toDoc(q);
 
-      paintFreq(); fillAdd(); paintLines(); paintTQ();
+      /* --- embroidery and DTG calculator --- */
+      const DBK = "chilian-os-bordado-dtg-v1";
+      let DB = (() => { try { const v = JSON.parse(localStorage.getItem(DBK) || "null"); if (v && v.pos) return v; } catch {} return null; })()
+        || { tec: "bordado", qty: "100", garment: "", gcost: "", mkG: String(T().margenPrenda ?? 20), ponchado: true, oscura: false, pos: [{ name: "Pecho izquierdo", puntadas: 8000, size: 300 }] };
+      const saveDB = () => { try { localStorage.setItem(DBK, JSON.stringify(DB)); } catch {} };
+      const dbBox = h("section", { class: "cz-tq", id: "cz-db" });
+      const DTG_SIZES = [[100, "Escudo"], [300, "Media carta"], [600, "Carta"], [1200, "Doble carta"]];
+      function dbCalc() {
+        const t = T(), qty = Math.max(1, n(DB.qty)), bord = DB.tec === "bordado";
+        const rows = DB.pos.map((p) => {
+          const cost = bord ? (n(p.puntadas) / 1000) * n(t.costoMilPuntadas) : n((t.dtgCostos || {})[p.size]) + (DB.oscura ? n(t.dtgOscura) : 0);
+          return { p, cost, sale: cost * (1 + n(bord ? t.margenBordado : t.margenDTG) / 100) };
+        });
+        const g = BYKEY[DB.garment], gcost = g ? n(DB.gcost) : 0;
+        const sale = r2(rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(DB.mkG) / 100));
+        const line = { piezas: qty, ubicaciones: DB.pos.map((p) => bord ? { nombre: p.name, tecnica: "bordado", puntadas: n(p.puntadas), colores: 0 } : { nombre: p.name, tecnica: "dtg", oscura: !!DB.oscura, colores: 0 }) };
+        const mins = X.lineMinutes ? X.lineMinutes(line)[DB.tec] : 0, machines = X.machinesOf ? X.machinesOf(DB.tec).length : 1, cap = X.dayCapacity ? X.dayCapacity() : 459;
+        return { qty, bord, rows, g, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
+      }
+      function paintDB() {
+        saveDB();
+        const c = dbCalc(), t = T();
+        const res = h("div", { class: "cz-tq-res", "aria-live": "polite" },
+          h("div", { class: "cz-big" }, h("div", {}, h("div", { class: "k", text: "Precio de venta por pieza" }), h("div", { class: "v", text: money(c.sale) })),
+            h("div", {}, h("div", { class: "k", text: `Tiempo de ${c.bord ? "bordadora" : "DTG"}` }), h("div", { class: "v", text: `${c.days.toFixed(1)} días` }))),
+          h("p", { class: "hint", text: c.bord
+            ? `${Math.round(c.mins)} min en ${c.machines} bordadora(s): ${Math.ceil(c.qty / Math.max(1, ...((X.machinesOf && X.machinesOf("bordado")) || [{ cabezas: 6 }]).map((m) => +m.cabezas || 6)))} ciclos a ${t.rpmBordado} puntadas/min, ${t.efBordado} % de eficiencia.`
+            : `${Math.round(c.mins)} min repartidos en ${c.machines} DTG (una pieza a la vez, ${DB.oscura ? t.minDTGOscura + " min con pretratado" : t.minDTG + " min"} por pieza y posición). Sin pantallas: conviene desde 1 pieza y en tirajes cortos a todo color.` }),
+          h("table", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "r", text: "Costo" }), h("th", { class: "r", text: "Venta" })),
+            c.rows.map((x) => h("tr", {}, h("td", { text: c.bord ? `${x.p.name} · ${int(x.p.puntadas)} puntadas` : `${x.p.name} · ${(DTG_SIZES.find((z) => z[0] === +x.p.size) || [0, ""])[1]}${DB.oscura ? " · oscura" : ""}` }), h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.sale) }))),
+            c.g ? h("tr", {}, h("td", { text: "Prenda: " + c.g.name.split(" · ")[0] }), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(DB.mkG) / 100)) })) : null,
+            h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
+          t.ejemploDB !== false ? h("p", { class: "hint warn", text: "Costos de ejemplo: ajústalos en Ajustes → DTG y bordado." }) : null,
+          c.bord ? h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: !!DB.ponchado, onchange: (e) => { DB.ponchado = e.target.checked; saveDB(); } }), h("span", { text: `Agregar ponchado (${DB.pos.length} diseño(s) × ${money(n(t.costoPonchado))})` })) : null,
+          h("button", { type: "button", class: "btn accent", style: "width:100%", onclick: () => {
+            const names = DB.pos.map((p) => p.name.toLowerCase()), nm = names.length > 1 ? names.slice(0, -1).join(", ") + " y " + names[names.length - 1] : names[0], tecN = c.bord ? "bordado" : "DTG";
+            const desc = c.bord ? DB.pos.map((p) => `${p.name}: ${int(p.puntadas)} puntadas`).join(" · ") + ". Bordado en máquina de 6 cabezas." : DB.pos.map((p) => `${p.name}: ${(DTG_SIZES.find((z) => z[0] === +p.size) || [0, ""])[1].toLowerCase()}`).join(" · ") + `. Impresión DTG a todo color${DB.oscura ? " sobre prenda oscura (con pretratado)" : ""}.`;
+            q.lineas.push(mkLine(c.g ? c.g.key : c.bord ? "srv-bordado" : "srv-dtg", c.qty, { concepto: c.g ? `${c.g.name.split(" · ")[0]} con ${tecN} en ${nm}` : `${c.bord ? "Bordado" : "Impresión DTG"} · ${nm}`, desc: desc + (c.g ? " " + c.g.desc : ""),
+              precio: String(c.sale), manual: true, fromCalc: true, costo: String(r2(c.cost)), factor: String(r2(c.cost ? c.sale / c.cost : 1.4)), catId: c.g ? c.g.catId : "", ubicaciones: c.line.ubicaciones }));
+            if (c.bord && DB.ponchado) q.lineas.push(mkLine("srv-ponchado", DB.pos.length, { precio: String(n(t.costoPonchado)), manual: true }));
+            paintLines(); refresh(); X.toast(`Agregado: ${int(c.qty)} pz a ${money(c.sale)} por pieza.`); linesBox.scrollIntoView({ behavior: "smooth", block: "end" });
+          } }, "Agregar a la cotización"));
+        const gSel = h("select", { class: "i", onchange: (e) => { DB.garment = e.target.value; const it = BYKEY[DB.garment]; DB.gcost = it ? String(lastCost(it) || "") : ""; paintDB(); } },
+          h("option", { value: "", text: "Ninguna (servicio sobre prenda del cliente)", selected: !DB.garment }),
+          ["g-basica", "g-clasica", "g-premium"].map((cc) => h("optgroup", { label: catOf[cc][1] }, (GARMENTS || []).filter((g) => g.cat === cc).map((g) => h("option", { value: g.key, text: g.name, selected: DB.garment === g.key })))));
+        const dbIn = (key, attrs = {}) => h("input", { class: "i num", inputmode: "decimal", value: DB[key], ...attrs, oninput: (e) => { DB[key] = e.target.value; paintDB.soon(); } });
+        dbBox.replaceChildren(
+          h("div", { class: "cz-tq-head" }, h("div", {}, h("h2", { text: "Cotizador de bordado y DTG" }),
+            h("p", { class: "hint", text: "Bordadora de 6 cabezas (6 prendas por ciclo) y 2 impresoras DTG (una pieza a la vez). Calcula el precio y cuántos días de máquina ocupa el pedido." })),
+            h("div", { class: "cz-seg", role: "group", "aria-label": "Técnica" }, [["bordado", "Bordado"], ["dtg", "DTG"]].map(([v, tt]) => h("button", { type: "button", "aria-pressed": String(DB.tec === v), onclick: () => { DB.tec = v; DB.pos = v === "bordado" ? [{ name: "Pecho izquierdo", puntadas: 8000, size: 300 }] : [{ name: "Frente", puntadas: 8000, size: 600 }]; paintDB(); } }, tt)))),
+          h("div", { class: "cz-tq-grid" },
+            h("div", { class: "cz-tq-form" },
+              h("div", { class: "cz-fields three" }, field("Piezas", dbIn("qty", { inputmode: "numeric" })), field("Margen prenda (%)", dbIn("mkG")),
+                DB.tec === "dtg" ? h("label", { class: "cz-check", style: "align-self:end" }, h("input", { type: "checkbox", checked: !!DB.oscura, onchange: (e) => { DB.oscura = e.target.checked; paintDB(); } }), h("span", { text: "Prenda oscura (pretratado)" })) : h("span")),
+              h("div", { class: "cz-fields" }, field("Prenda del catálogo (opcional)", gSel, "full"), DB.garment ? field("Costo de la prenda por pieza (MXN)", dbIn("gcost")) : null),
+              ...DB.pos.map((p, i) => h("div", { class: "pos" },
+                h("div", { class: "pos-top" }, h("label", { class: "cz-f" }, h("span", { text: "Posición " + (i + 1) }), h("select", { class: "i", onchange: (e) => { p.name = e.target.value; paintDB(); } }, POSN.map((x) => h("option", { value: x, text: x, selected: x === p.name })))),
+                  h("button", { type: "button", class: "x", disabled: DB.pos.length < 2, "aria-label": "Quitar posición", onclick: () => { DB.pos.splice(i, 1); paintDB(); } }, "×")),
+                DB.tec === "bordado"
+                  ? h("div", { class: "grid", style: "gap:.35rem" }, h("div", { class: "sub-k", text: "Puntadas" }),
+                    h("div", { class: "inks" }, [3000, 6000, 8000, 12000, 20000].map((v) => h("button", { type: "button", "aria-pressed": String(+p.puntadas === v), onclick: () => { p.puntadas = v; paintDB(); } }, int(v)))),
+                    h("input", { class: "i num", type: "number", min: "500", step: "500", value: p.puntadas, "aria-label": "Puntadas", oninput: (e) => { p.puntadas = +e.target.value || 0; paintDB.soon(); } }),
+                    h("p", { class: "note", text: "Referencia: logo de pecho 5,000–9,000 · gorra 6,000–10,000 · espalda grande 20,000–40,000." }))
+                  : h("div", { class: "grid", style: "gap:.35rem" }, h("div", { class: "sub-k", text: "Tamaño" }),
+                    h("div", { class: "sizes" }, DTG_SIZES.map(([v, tt]) => h("button", { type: "button", "aria-pressed": String(+p.size === v), onclick: () => { p.size = v; paintDB(); } }, `${tt} · ${int(v)} cm²`)))))),
+              h("button", { type: "button", class: "btn ghost", onclick: () => { const used = DB.pos.map((x) => x.name); DB.pos.push({ name: POSN.find((x) => !used.includes(x)) || "Otra", puntadas: 6000, size: 300 }); paintDB(); } }, "+ Posición")),
+            res));
+      }
+      paintDB.soon = () => { clearTimeout(paintDB.t); paintDB.t = setTimeout(() => { const a = document.activeElement, ix = a && [...dbBox.querySelectorAll("input")].indexOf(a); paintDB(); if (ix >= 0) { const nIn = dbBox.querySelectorAll("input")[ix]; if (nIn) { nIn.focus(); try { nIn.setSelectionRange(nIn.value.length, nIn.value.length); } catch {} } } }, 400); };
+
+      paintFreq(); fillAdd(); paintLines(); paintTQ(); paintDB();
       sheetBox.replaceChildren(sheet(q)); refresh(); dirty = false; status.textContent = "Todo guardado"; clearTimeout(timer);
 
       return h("div", { class: "cz" },
@@ -677,7 +762,7 @@
               h("button", { class: "btn ghost", type: "button", onclick: async () => { await flush(); await X.onDuplicate(byIdFresh()); } }, "Duplicar cotización"),
               h("button", { class: "btn danger", type: "button", onclick: async () => { clearTimeout(timer); dirty = false; await X.onDelete(q); } }, "Borrar cotización"))),
           h("div", { class: "cz-sheet-wrap" }, h("p", { class: "cz-sheet-label" }, "Así sale la hoja para el cliente ", internal), sheetBox)),
-        tqBox);
+        tqBox, dbBox);
     }
 
     async function newDoc({ oportunidadId = "", cuentaId = "", cliente = "", solicitud = null } = {}) {

@@ -10,7 +10,7 @@
 <meta property="og:description" content="Serigrafía industrial certificada en Puebla, México. Hasta 20,000 piezas al día.">
 <meta property="og:image" content="https://chilian.vercel.app/photos/prensa-pantalla-magenta.jpg">
 <title>Chilian Screen Printing · Serigrafía industrial en Puebla</title>
-<meta name="description" content="Chilian: serigrafía industrial certificada en Puebla, México. Hasta 20,000 piezas al día, 8 pulpos automáticos Roq y M&R, auditorías Disney FAMA, WRAP, VF y C&A.">
+<meta name="description" content="Chilian: serigrafía industrial certificada en Puebla, México. Hasta 20,000 piezas al día, 8 pulpos automáticos Roq y M&R, 2 impresoras DTG y bordadora de 6 cabezas, auditorías Disney FAMA, WRAP, VF y C&A.">
 <!--
   CHILIAN — sitio B2B (rediseño de grupochilian.com.mx)
   =====================================================
@@ -1169,7 +1169,7 @@
             <div><strong>20,000</strong><span data-en="printed pieces a day">piezas estampadas al día</span></div>
             <div><strong>450,000</strong><span data-en="pieces a month at full capacity">piezas al mes a capacidad máxima</span></div>
           </div>
-          <p class="lead" data-en="Five Roq and three M&amp;R automatic presses, two industrial belt dryers and a team trained in continuous improvement. Cutting, sewing, embroidery, dyeing and printing under one roof.">Cinco pulpos Roq y tres M&amp;R automáticos, dos hornos de secado industriales y un equipo formado en mejora continua. Corte, costura, bordado, teñido y estampado bajo un mismo techo.</p>
+          <p class="lead" data-en="Five Roq and three M&amp;R automatic presses, two DTG printers, a 6-head embroidery machine, two industrial belt dryers and a team trained in continuous improvement. Cutting, sewing, embroidery, dyeing and printing under one roof.">Cinco pulpos Roq y tres M&amp;R automáticos, dos impresoras DTG, una bordadora de 6 cabezas, dos hornos de secado industriales y un equipo formado en mejora continua. Corte, costura, bordado, teñido y estampado bajo un mismo techo.</p>
           <div class="hero-actions" style="margin-top:2rem">
             <a class="btn" href="#cotizar" data-type="marca" data-en="Book capacity">Reservar capacidad</a>
             <a class="btn btn-ghost" href="https://www.youtube.com/@grupochilian4341" target="_blank" rel="noopener" data-en="Plant video ↗">Video de la planta ↗</a>
@@ -1189,6 +1189,15 @@
               <tr><td>Gauntlet R/S</td><td><span class="brand-pill">M&amp;R</span></td><td class="num">10</td><td class="num">5</td></tr>
             </tbody>
             <tfoot><tr><td colspan="4" data-en="+ 2 industrial belt dryers · P = pallets, C = colors">+ 2 hornos de banda industriales · P = paletas, C = colores</td></tr></tfoot>
+          </table>
+          <table class="presses digital" style="margin-top:1.6rem">
+            <caption data-en="Digital printing and embroidery">Impresión digital y bordado</caption>
+            <thead><tr><th data-en="Machine">Máquina</th><th data-en="Technique">Técnica</th><th class="num" data-en="At a time">A la vez</th><th class="num" data-en="Units">Equipos</th></tr></thead>
+            <tbody>
+              <tr data-machine="dtg"><td data-en="DTG printer">Impresora DTG</td><td><span class="brand-pill">DTG</span></td><td class="num" data-en="1 pc">1 pz</td><td class="num">2</td></tr>
+              <tr data-machine="bordado"><td data-en="6-head embroidery machine">Bordadora de 6 cabezas</td><td><span class="brand-pill" data-en="EMBROIDERY">BORDADO</span></td><td class="num" data-en="6 pcs">6 pzs</td><td class="num">1</td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="4" data-en="DTG: full color from 1 piece, no screens · Embroidery: 6 garments per cycle">DTG: a todo color desde 1 pieza, sin pantallas · Bordado: 6 prendas por ciclo</td></tr></tfoot>
           </table>
         </div>
       </div>
@@ -1661,6 +1670,8 @@
       <fieldset class="st-step"><legend data-en="Garment">Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
       <fieldset class="st-step" id="st-step-mode"><legend data-en="Print type">Tipo de impresión</legend><div class="chips" id="st-modes"></div>
         <span class="st-color-name" id="st-mode-note"></span></fieldset>
+      <fieldset class="st-step" id="st-step-tec"><legend data-en="Technique">Técnica</legend><div class="chips" id="st-tecs"></div>
+        <span class="st-color-name" id="st-tec-note"></span></fieldset>
       <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
       <div class="st-step st-design">
         <span data-en="Your design · one graphic per section">Tu diseño · un gráfico por sección</span>
@@ -1771,8 +1782,11 @@
     { id: "fullprint", img: "tecnica-full-print.jpg", name: { es: "Full print", en: "Full print" }, tag: { es: "Sublimado de costura a costura", en: "Seam-to-seam sublimation" },
       text: { es: "La prenda se imprime completa, sin límite de colores. Es la base de Chilian Sport.", en: "The whole garment is printed with unlimited colors. It is the base of Chilian Sport." },
       use: { es: "Deportes, carreras, campañas", en: "Sports, races, campaigns" }, fabric: { es: "Poliéster", en: "Polyester" } },
+    { id: "dtg", sw: "#2E7DD7", name: { es: "DTG digital", en: "DTG digital" }, tag: { es: "Desde 1 pieza", en: "From 1 piece" },
+      text: { es: "Impresión directa a la prenda a todo color, sin pantallas: fotos, degradados y un diseño distinto en cada pieza. Dos impresoras DTG en planta.", en: "Direct-to-garment printing in full color with no screens: photos, gradients and a different design on every piece. Two DTG printers in the plant." },
+      use: { es: "Muestras, tirajes cortos, personalización", en: "Samples, short runs, personalization" }, fabric: { es: "Algodón 100% (oscuras con pretratado)", en: "100% cotton (dark garments pretreated)" } },
     { id: "embroidery", img: "bordado.jpg", name: { es: "Bordado y 3D", en: "Embroidery & 3D" }, tag: { es: "Textura que dura", en: "Lasting texture" },
-      text: { es: "Logos en hilo, planos o con relieve 3D, y parches. Lo más resistente para uniforme.", en: "Thread logos, flat or 3D puff, and patches. The most durable choice for uniforms." },
+      text: { es: "Logos en hilo, planos o con relieve 3D, y parches, en bordadora de 6 cabezas: 6 prendas por ciclo. Lo más resistente para uniforme.", en: "Thread logos, flat or 3D puff, and patches, on a 6-head machine: 6 garments per cycle. The most durable choice for uniforms." },
       use: { es: "Uniformes, gorras, moda", en: "Uniforms, caps, fashion" }, fabric: { es: "Casi cualquier tejido", en: "Almost any fabric" } },
     { id: "tiedye", img: "tecnica-tie-dye.jpg", name: { es: "Tie dye y lavados", en: "Tie dye & washes" }, tag: { es: "Cada pieza distinta", en: "Every piece unique" },
       text: { es: "Teñido artesanal, stone wash y enzimáticos para un look de prenda usada o de colección.", en: "Hand dyeing, stone and enzyme washes for a worn-in or collection look." },
@@ -1851,7 +1865,7 @@
     { es: "Camisa de uniforme", en: "Uniform shirt" }, { es: "Gorra", en: "Cap" }, { es: "Tote bag", en: "Tote bag" },
     { es: "Prenda propia (la envío yo)", en: "My own blanks (I ship them)" }, { es: "Prenda completa a la medida", en: "Full custom garment" }
   ];
-  const TECH_CHOICES = ["plastisol", "waterbase", "hd", "puff", "discharge", "fullprint", "embroidery", { id: "unsure", name: { es: "No sé, recomiéndenme", en: "Not sure, advise me" } }];
+  const TECH_CHOICES = ["plastisol", "waterbase", "hd", "puff", "discharge", "fullprint", "dtg", "embroidery", { id: "unsure", name: { es: "No sé, recomiéndenme", en: "Not sure, advise me" } }];
 
   /* Chilian Sport price breaks, as published in the store (MXN). */
   const TIERS = [
@@ -2014,7 +2028,7 @@
       techs.append(el("label", { class: "chip" }, [input, el("span", { text: t(tech.name) })]));
     }
     const quick = $("#qty-quick"); quick.textContent = "";
-    for (const n of [600, 3000, 10000, 50000]) {
+    for (const n of [50, 600, 3000, 10000, 50000]) {
       quick.append(el("button", { type: "button", text: fmt(n), "data-n": n, onclick: () => { $("#q-qty").value = n; updateTicket(); } }));
     }
   }
@@ -2343,38 +2357,45 @@
        2. print the design "into" the fabric: the design is multiplied
           by the same shade, so folds run through the print.
      Coordinates below are in pixels of the 1264×1264 blanks. pxcm is
-     how many pixels make one centimeter on that garment (body width of
-     a size M ≈ 51 cm on tees and polos, 56 cm on hoodies).
+     how many pixels make one centimeter on that garment, measured on the
+     torso against the real chest of a size M (51 cm tee, 47 cm women's
+     tee from its CAD pattern, 52 cm polo, 56 cm hoodie).
+     The photos came out taller than real garments (a tee looked ~95 cm
+     long instead of ~72), so a print looked smaller than its size.
+     fit = [sx, sy]: each photo is redrawn with its real length/width
+     proportion (from the CAD pattern or the garment spec) and enlarged
+     to fill the canvas; positions and pxcm follow, so one centimeter is
+     the same on the width and on the length of the garment.
      ================================================================ */
   const STUDIO = {
     garments: [
       { id: "tee", quote: 0, pattern: "play-sport-mc", name: { es: "Playera", en: "T-shirt" },
         sections: ["front", "back", "nape", "sleeveR", "sleeveL"], views: {
-        front: { src: "blanks/tee-front.webp", cx: 630, pxcm: 11, places: [
+        front: { src: "blanks/tee-front.webp", cx: 630, pxcm: 11.0, fit: [1.153, 0.824], places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 255, sizes: [20, 25, 30], maxH: 36 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 735, top: 262, sizes: [7, 9, 11], maxH: 11 } ] },
-        back: { src: "blanks/tee-back.webp", cx: 630, pxcm: 10.4, places: [
+        back: { src: "blanks/tee-back.webp", cx: 630, pxcm: 10.2, fit: [1.153, 0.796], places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 205, sizes: [25, 30, 35], maxH: 40 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 128, sizes: [6, 8, 10], maxH: 5 } ] } } },
       // Women's t-shirt: photo blanks made with Canva AI, plus its CAD pattern for 3D.
       { id: "dama", quote: 0, pattern: "playera-dama", name: { es: "Playera dama", en: "Women's tee" },
         sections: ["front", "back", "nape", "sleeveR", "sleeveL"], views: {
-        front: { src: "blanks/dama-front.webp", cx: 630, pxcm: 11.5, places: [
+        front: { src: "blanks/dama-front.webp", cx: 630, pxcm: 11.5, fit: [1.324, 0.887], places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 270, sizes: [18, 22, 26], maxH: 32 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 735, top: 275, sizes: [7, 8, 10], maxH: 10 } ] },
-        back: { src: "blanks/dama-back.webp", cx: 630, pxcm: 11.5, places: [
+        back: { src: "blanks/dama-back.webp", cx: 630, pxcm: 11.8, fit: [1.324, 0.914], places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 190, sizes: [22, 26, 30], maxH: 36 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 125, sizes: [6, 8, 10], maxH: 5 } ] } } },
       { id: "hoodie", quote: 2, name: { es: "Sudadera", en: "Hoodie" }, sections: ["front", "back"], views: {
-        front: { src: "blanks/hoodie-front.webp", cx: 632, pxcm: 10.7, places: [
+        front: { src: "blanks/hoodie-front.webp", cx: 632, pxcm: 10.7, fit: [1.299, 1.039], places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 320, sizes: [20, 25, 28], maxH: 38 },
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 770, top: 330, sizes: [7, 9, 10], maxH: 10 } ] },
-        back: { src: "blanks/hoodie-back.webp", cx: 632, pxcm: 10.7, places: [
+        back: { src: "blanks/hoodie-back.webp", cx: 632, pxcm: 10.7, fit: [1.299, 1.039], places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 440, sizes: [25, 30, 35], maxH: 40 } ] } } },
       { id: "polo", quote: 1, name: { es: "Polo", en: "Polo" }, sections: ["front", "back", "nape"], views: {
-        front: { src: "blanks/polo-front.webp", cx: 632, pxcm: 10.9, places: [
+        front: { src: "blanks/polo-front.webp", cx: 632, pxcm: 10.7, fit: [1.237, 0.854], places: [
           { id: "chest", name: { es: "Pecho izquierdo", en: "Left chest" }, cx: 762, top: 300, sizes: [7, 9, 10], maxH: 9 } ] },
-        back: { src: "blanks/polo-back.webp", cx: 628, pxcm: 10.5, places: [
+        back: { src: "blanks/polo-back.webp", cx: 628, pxcm: 10.3, fit: [1.237, 0.841], places: [
           { id: "back", name: { es: "Espalda completa", en: "Full back" }, top: 205, sizes: [25, 30, 33], maxH: 38 },
           { id: "nape", name: { es: "Nuca", en: "Back neck" }, top: 160, sizes: [6, 8, 10], maxH: 5 } ] } } }
     ],
@@ -2409,7 +2430,23 @@
   // side = photo face shown; display = photo mockup, 3D or the flat pattern;
   // mode = placement print (screen printing) or full print (sublimation, patterned garments only);
   // active = the print section being edited; prints[section] = one graphic and its settings.
-  const st = { g: 0, side: "front", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M", color: 0,
+  (() => {
+    const C = 632;
+    for (const g of STUDIO.garments) for (const v of Object.values(g.views)) {
+      const [sx, sy] = v.fit || [1, 1];
+      v.pxcm = +(v.pxcm * sx).toFixed(3); v.cx = C + (v.cx - C) * sx;
+      for (const pl of v.places) { if (pl.cx) pl.cx = C + (pl.cx - C) * sx; pl.top = C + (pl.top - C) * sy; }
+      // the full back starts at least 2 cm under the back-neck print, as it is printed in the plant
+      const nape = v.places.find((pl) => pl.id === "nape"), back = v.places.find((pl) => pl.id === "back");
+      if (nape && back) back.top = Math.max(back.top, nape.top + (nape.maxH + 2) * v.pxcm);
+    }
+  })();
+  const STUDIO_TECS = [
+    { id: "serigrafia", name: { es: "Serigrafía", en: "Screen printing" }, note: { es: "Colores sólidos y muy durables; conviene desde 50 piezas. Hasta 14 tintas.", en: "Solid, very durable colors; best from 50 pieces. Up to 14 inks." }, tech: "plastisol" },
+    { id: "dtg", name: { es: "DTG digital", en: "DTG digital" }, note: { es: "A todo color, sin pantallas y desde 1 pieza: fotos, degradados y diseños distintos por pieza. Mejor en algodón.", en: "Full color, no screens, from 1 piece: photos, gradients and different designs per piece. Best on cotton." }, tech: "dtg" },
+    { id: "bordado", name: { es: "Bordado", en: "Embroidery" }, note: { es: "En hilo, en bordadora de 6 cabezas. Ideal en pecho, manga, nuca y gorra; se recomienda hasta 12 cm en pecho.", en: "In thread, on a 6-head machine. Ideal on chest, sleeve, back neck and caps; up to 12 cm on the chest is recommended." }, tech: "embroidery" }
+  ];
+  const st = { g: 0, side: "front", tec: "serigrafia", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M", color: 0,
                active: "front", prints: {}, cache: {} };
 
   const stCanvas = $("#st-canvas"), stCtx = stCanvas.getContext("2d", { willReadFrequently: true });
@@ -2438,13 +2475,14 @@
   const newPrint = () => ({ art: null, source: null, name: "", knockout: false, place: 0, size: 1, dx: 0, dy: 0, wcm: null, rot: 0, scale: 1, dxmm: 0, dymm: 0 });
 
   // Load a blank once: keep its alpha and its shade map.
-  function loadBlank(src) {
+  function loadBlank(view) {
+    const src = view.src, [fx, fy] = view.fit || [1, 1];
     if (st.cache[src]) return st.cache[src];
     st.cache[src] = new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         const c = document.createElement("canvas"); c.width = c.height = SIZE;
-        const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, SIZE, SIZE);
+        const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, SIZE / 2 - (SIZE / 2) * fx, SIZE / 2 - (SIZE / 2) * fy, SIZE * fx, SIZE * fy);
         const d = x.getImageData(0, 0, SIZE, SIZE).data, n = SIZE * SIZE;
         const lum = new Float32Array(n), alpha = new Uint8ClampedArray(n);
         let sum = 0, count = 0;
@@ -2529,7 +2567,7 @@
     if (st.display !== "photo" || st.mode === "full") return drawPatternViews();
     const ticket = ++stDrawing;
     $("#st-3d").hidden = true; stCanvas.style.visibility = "visible"; $("#st-loading").hidden = true;
-    const blank = await loadBlank(curView().src);
+    const blank = await loadBlank(curView());
     if (ticket !== stDrawing) return;
     stCtx.clearRect(0, 0, SIZE, SIZE);
     stCtx.drawImage(tinted(blank, STUDIO.colors[st.color].hex), 0, 0);
@@ -2716,6 +2754,9 @@
     $("#st-mode-note").textContent = st.mode === "full"
       ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono. Puedes sumar un gráfico por sección encima del fondo.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a same-fabric binding in one tone. You can add one graphic per section over the background.`)
       : L("Un gráfico por sección: frente, espalda, nuca y mangas.", "One graphic per section: front, back, neck and sleeves.");
+    $("#st-step-tec").hidden = st.mode === "full";
+    stChips($("#st-tecs"), "st-t", STUDIO_TECS.map((x) => t(x.name)), (i) => STUDIO_TECS[i].id === st.tec, (i) => { st.tec = STUDIO_TECS[i].id; });
+    $("#st-tec-note").textContent = t(STUDIO_TECS.find((x) => x.id === st.tec).note);
     const editingBg = st.active === "bg" || isPiece(st.active), full = st.mode === "full";
     $("#st-step-place").hidden = editingBg || placesOf(st.active).length < 2;
     $("#st-step-size").hidden = editingBg || full || !(pr && pr.art);
@@ -2745,7 +2786,10 @@
       const places = placesOf(st.active);
       stChips($("#st-places"), "st-p", places.map((p) => t(p.name)), (i) => i === pr.place, (i) => { pr.place = i; pr.dx = pr.dy = 0; });
       const place = places[Math.min(pr.place, places.length - 1)];
-      stChips($("#st-sizes"), "st-s", place.sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === pr.size && !pr.wcm, (i) => { pr.size = i; pr.wcm = null; });
+      const realSize = (i) => { const r = pr.art ? printRect(st.active, { ...pr, size: i, wcm: null }) : null; return r ? `${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm` : `${place.sizes[i]} cm`; };
+      stChips($("#st-sizes"), "st-s", place.sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${realSize(i)}`), (i) => i === pr.size && !pr.wcm, (i) => { pr.size = i; pr.wcm = null; });
+      // a bigger preset that the place's height limit makes identical is not offered twice
+      document.querySelectorAll("#st-sizes input").forEach((inp, i) => { if (i && realSize(i) === realSize(i - 1)) { inp.disabled = true; inp.parentNode.title = L("Altura máxima de esta posición", "Maximum height for this placement"); } });
       if (pr.art && st.mode === "place") {
         const fine = $("#st-fine"), w = printRect(st.active).wcm;
         fine.min = Math.max(3, Math.round(place.sizes[0] * 0.5)); fine.max = Math.round(place.sizes[place.sizes.length - 1] * 1.25); fine.value = w;
@@ -2766,7 +2810,7 @@
   // plant), each design file and where and how big it prints.
   async function studioPack(qty) {
     const used = sectionsNow().filter((id) => st.prints[id] && st.prints[id].art && st.prints[id].name !== "sample");
-    const estudio = { prenda: t(garment().name), color: t(STUDIO.colors[st.color].name), modo: st.mode, piezas: qty,
+    const estudio = { prenda: t(garment().name), color: t(STUDIO.colors[st.color].name), modo: st.mode, piezas: qty, tecnica: st.mode === "full" ? "sublimacion" : st.tec,
       secciones: used.filter((id) => id !== "bg").map((id) => {
         const pr = st.prints[id], places = placesOf(id);
         if (isPiece(id)) return { seccion: t(secDef(id).name), lugar: L("imagen de la pieza", "piece image"), medida: `${Math.round(pr.scale * 100)} %`, archivo: pr.name };
@@ -2807,7 +2851,7 @@
     });
     const head = st.mode === "full"
       ? `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${color}${st.prints.bg && st.prints.bg.art ? ` + ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")}` : ""} · ${L("talla", "size")} ${st.pat}`
-      : `${t(g.name)} ${color}`;
+      : `${t(g.name)} ${color} · ${t(STUDIO_TECS.find((x) => x.id === st.tec).name).toLowerCase()}`;
     return [head, ...parts].join(" · ");
   }
 
@@ -3102,6 +3146,8 @@
       if (st.model) addPick(st.model, qty, t(STUDIO.colors[st.color].name));
       else if (!picked.length) $("#q-qty").value = qty;
       quoteTools.add("estudio");
+      const techBox = $("#tech-" + (st.mode === "full" ? "fullprint" : STUDIO_TECS.find((x) => x.id === st.tec).tech));
+      if (techBox && !techBox.checked) { if (st.tec !== "serigrafia" || st.mode === "full" || !document.querySelector('input[name="tech"]:checked')) techBox.checked = true; }
       const btn = $("#st-quote"); btn.disabled = true;
       try { studioOut = await studioPack(qty); } catch (e) { studioOut = null; }
       btn.disabled = false;
@@ -3460,7 +3506,17 @@
       hint(li, "Ver más +", "More +");
       actAsButton(li, null, () => openInfo({ code: `${L("Paso", "Step")} 0${i + 1} / 05`, title: li.querySelector("h3").textContent, text: STEP_INFO[i][lang], photo: STEP_INFO[i].photo, ctaLabel: L("Empezar mi pedido", "Start my order") }));
     });
-    document.querySelectorAll(".presses tbody tr").forEach((tr) => {
+    document.querySelectorAll(".presses.digital tbody tr").forEach((tr) => {
+      const dtg = tr.dataset.machine === "dtg";
+      actAsButton(tr, tr.cells[0].textContent.trim(), () => openInfo({ code: L("Impresión digital y bordado", "Digital printing and embroidery"), title: tr.cells[0].textContent.trim(),
+        text: dtg ? L("Imprime directo sobre la prenda, pieza por pieza y a todo color, sin pantallas ni mínimos. Ideal para muestras, tirajes cortos, fotos y degradados, y para personalizar nombres o diseños distintos en cada pieza.", "Prints straight onto the garment, one piece at a time and in full color, with no screens or minimums. Ideal for samples, short runs, photos and gradients, and for a different name or design on each piece.")
+          : L("Borda 6 prendas a la vez con el mismo diseño: logos de pecho, gorras, mangas y espaldas. El diseño se digitaliza una vez (ponchado) y se repite igual en cada pieza.", "Embroiders 6 garments at once with the same design: chest logos, caps, sleeves and backs. The design is digitized once and repeats exactly on every piece."),
+        photo: dtg ? "equipo-en-prensa.jpg" : "bordado.jpg",
+        rows: dtg ? [[L("Equipos", "Units"), "2"], [L("A la vez", "At a time"), L("1 pieza por equipo", "1 piece per unit")], [L("Colores", "Colors"), L("Todo color, sin pantallas", "Full color, no screens")], [L("Mejor en", "Best on"), L("Algodón (prendas oscuras con pretratado)", "Cotton (dark garments get pretreatment)")]]
+          : [[L("Cabezas", "Heads"), "6"], [L("A la vez", "At a time"), L("6 prendas por ciclo", "6 garments per cycle")], [L("Precio", "Price"), L("Por puntadas, más el ponchado del diseño", "By stitch count, plus digitizing the design")]],
+        ctaLabel: dtg ? L("Cotizar en DTG", "Quote DTG") : L("Cotizar bordado", "Quote embroidery") }));
+    });
+    document.querySelectorAll(".presses:not(.digital) tbody tr").forEach((tr) => {
       const [name, make, pal, col] = [...tr.cells].map((c) => c.textContent.trim());
       actAsButton(tr, `${make} ${name}`, () => {
         const p = +pal, c = +col;
