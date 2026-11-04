@@ -2153,6 +2153,7 @@
     const s = summary();
     const payload = {
       tipo: s.ty.id, tipoNombre: t(s.ty.label), asesor: s.advisor.name, prenda: s.garment, piezas: s.qty, tecnicas: s.techs, fecha: s.date,
+      whatsapp: { wa: s.advisor.wa, numero: s.advisor.phone, asesor: s.advisor.name },
       nombre: s.name, empresa: s.company, contacto: s.contact, notas: s.notes, idioma: lang, canal,
       modelos: picked.map((p) => ({ id: p.id, titulo: p.title, modelos: p.models, piezas: p.qty || 0, color: p.color || "", catalogo: p.cat, pagina: p.page, tipo: p.kind || "" })),
       pagina: location.href.slice(0, 300), referencia: (ORIGIN.llegada || document.referrer).slice(0, 300), web: ($("#q-web") || {}).value || "",

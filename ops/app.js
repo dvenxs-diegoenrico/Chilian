@@ -87,6 +87,13 @@
       { id: "b1", nombre: "Bordadora 6 cabezas", tipo: "bordado", cabezas: 6 }
     ],
     turno: { horas: 9, turnos: 1, uso: 85, dias: [1, 2, 3, 4, 5] },
+    // Chilian's WhatsApp lines, as published on the site (each advisor's line)
+    whatsapps: [
+      { wa: "522226925404", numero: "222 692 5404", linea: "Carlos Lecona · marcas, OEM y general" },
+      { wa: "525525599348", numero: "55 2559 9348", linea: "Iván Chilian · EE. UU." },
+      { wa: "522201759053", numero: "220 175 9053", linea: "Ventas · uniformes y promocionales (Elizabeth, Martha, Jenny)" },
+      { wa: "522226512650", numero: "222 651 2650", linea: "Itzel González · merch y marketing" }
+    ],
     tarifas: {
       descVol: [[1, 0], [100, 0], [500, 3], [1000, 5], [5000, 8], [20000, 10]], expressPct: 30, factor: 1.4, margenPrenda: 20, margenEstampado: 30,
       ajusteTabla: 0, tablaTintas: null, costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15,
@@ -176,7 +183,7 @@
   const mergeSettings = (st) => {
     const d = structuredClone(DEFAULT_SETTINGS);
     if (!st) return d;
-    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, pulpos: st.pulpos?.length ? [...st.pulpos, ...d.pulpos.filter((m) => m.tipo && !st.pulpos.some((x) => x.id === m.id || (x.tipo || "serigrafia") === m.tipo))] : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
+    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, whatsapps: st.whatsapps?.length ? st.whatsapps : d.whatsapps, pulpos: st.pulpos?.length ? [...st.pulpos, ...d.pulpos.filter((m) => m.tipo && !st.pulpos.some((x) => x.id === m.id || (x.tipo || "serigrafia") === m.tipo))] : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
   };
   // Save with a check: if someone saved this record meanwhile, keep theirs and say so.
   async function save(col, doc, { quiet } = {}) {
@@ -408,12 +415,20 @@
   const CANALES = { whatsapp: "enviada por WhatsApp", copiada: "copiada (WhatsApp o correo)", instagram: "Instagram Direct", manual: "registrada por el equipo", web: "sitio" };
   const HERR = { cotizador: "cotizador", catalogo: "catálogo", estudio: "Estampa tu idea" };
   const specific = (s) => !!(s.modelos && s.modelos.length);
+  const waLine = (wa) => (S.settings.whatsapps || []).find((x) => x.wa === String(wa || "").replace(/\D/g, ""));
+  const fmtWa = (wa) => { const d = String(wa || "").replace(/\D/g, "").replace(/^52/, ""); return d.length === 10 ? (/^(55|33|81)/.test(d) ? `${d.slice(0, 2)} ${d.slice(2, 6)} ${d.slice(6)}` : `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`) : d; };
+  // "WhatsApp 222 692 5404 · Carlos Lecona" — the Chilian phone a request reached
+  // older requests carry only the advisor: the site always sent them to that advisor's line
+  const waOf = (s) => s.whatsapp?.wa ? s.whatsapp : (s.canal === "whatsapp" || s.canal === "copiada") && s.asesor
+    ? ((l) => (l ? { wa: l.wa, numero: l.numero, asesor: s.asesor } : null))((S.settings.whatsapps || []).find((x) => x.linea.toLowerCase().includes(s.asesor.split(" ")[0].toLowerCase()))) : null;
+  const waDest = (s) => { const w = waOf(s); if (!w || !w.wa) return ""; const line = waLine(w.wa); return `${w.numero || fmtWa(w.wa)}${line ? " · " + line.linea : w.asesor ? " · " + w.asesor : ""}`; };
   const fileHref = (p) => `/api/archivo?path=${encodeURIComponent(p)}&s=${encodeURIComponent(S.token)}`;
   function arrivedBy(s) {
     if (s.canal === "instagram") return "Instagram Direct (mensaje directo)";
-    if (s.canal === "manual") return `${fuenteName(s.fuente)} · registrada por ${s.registradaPor || "el equipo"}`;
+    if (s.canal === "manual") return `${fuenteName(s.fuente)}${s.whatsapp?.wa ? " al " + waDest(s) : ""} · registrada por ${s.registradaPor || "el equipo"}`;
     const tools = (s.herramientas && s.herramientas.length ? s.herramientas : ["cotizador"]).map((x) => HERR[x] || x).join(" + ");
-    return `${fuenteName(s.fuente)}${s.campana ? " (" + s.campana + ")" : ""} → sitio web · ${tools} · ${CANALES[s.canal] || s.canal || "sitio"}`;
+    const sent = s.canal === "whatsapp" && waOf(s) ? `enviada por WhatsApp al ${waDest(s)}` : s.canal === "copiada" && waOf(s) ? `copiada (su asesor: WhatsApp ${waDest(s)})` : CANALES[s.canal] || s.canal || "sitio";
+    return `${fuenteName(s.fuente)}${s.campana ? " (" + s.campana + ")" : ""} → sitio web · ${tools} · ${sent}`;
   }
 
   /* ---------------- inbox: requests from the website, Instagram and the team ---------------- */
@@ -421,13 +436,14 @@
     let filter = viewInbox.f || "nueva";
     const src = viewInbox.src || "";
     const all = list("solicitudes").sort((a, b) => (b.ultimoMensaje || b.recibida || b.createdAt || "").localeCompare(a.ultimoMensaje || a.recibida || a.createdAt || ""));
-    const bySrc = all.filter((s) => !src || (src === "especifica" ? specific(s) : src === "general" ? !specific(s) : src === "instagram" ? s.fuente === "instagram" || s.canal === "instagram" : src === "manual" ? s.canal === "manual" : s.canal !== "manual" && s.canal !== "instagram"));
+    const bySrc = all.filter((s) => !src || (src.startsWith("wa:") ? waOf(s)?.wa === src.slice(3) : src === "especifica" ? specific(s) : src === "general" ? !specific(s) : src === "instagram" ? s.fuente === "instagram" || s.canal === "instagram" : src === "manual" ? s.canal === "manual" : s.canal !== "manual" && s.canal !== "instagram"));
     const rows = bySrc.filter((s) => filter === "todas" || s.estado === filter || (filter === "nueva" && s.nuevoMensaje));
     const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${id === "todas" ? bySrc.length : bySrc.filter((s) => s.estado === id || (id === "nueva" && s.nuevoMensaje)).length})`);
     return h("div", {},
       top("Del sitio, de Instagram y del equipo", "Solicitudes",
         h("select", { class: "i", style: "width:auto", "aria-label": "Fuente", onchange: (e) => { viewInbox.src = e.target.value; rerender(); } },
-          [["", "Todas las fuentes"], ["web", "Sitio web"], ["instagram", "Instagram"], ["manual", "Registradas por el equipo"], ["especifica", "Con mercancía específica"], ["general", "Sin mercancía específica"]].map(([v, t]) => h("option", { value: v, text: t, selected: src === v }))),
+          [["", "Todas las fuentes"], ["web", "Sitio web"], ["instagram", "Instagram"], ["manual", "Registradas por el equipo"], ["especifica", "Con mercancía específica"], ["general", "Sin mercancía específica"],
+            ...(S.settings.whatsapps || []).map((w) => ["wa:" + w.wa, `WhatsApp ${w.numero} · ${w.linea.split(" · ")[0]}`])].map(([v, t]) => h("option", { value: v, text: t, selected: src === v }))),
         h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas")),
         h("button", { class: "btn accent", type: "button", onclick: () => manualRequestModal() }, "+ Solicitud")),
       rows.length ? h("div", { class: "grid" }, rows.map((s) => inboxCard(s)))
@@ -445,7 +461,8 @@
       h("div", { class: "row", style: "gap:.4rem" },
         h("span", { class: "pill " + (s.fuente === "instagram" || ig ? "p-acc" : "p-info"), text: fuenteName(ig ? "instagram" : s.fuente) }),
         h("span", { class: "pill " + (specific(s) ? "p-ok" : "p-mut"), text: specific(s) ? `Mercancía específica · ${s.modelos.length} modelo(s)` : "Sin mercancía específica" }),
-        (s.herramientas || []).includes("estudio") ? h("span", { class: "pill p-info", text: "Usó Estampa tu idea" }) : null),
+        (s.herramientas || []).includes("estudio") ? h("span", { class: "pill p-info", text: "Usó Estampa tu idea" }) : null,
+        waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null),
       h("p", { class: "small muted", style: "margin:0" }, h("b", { text: "Llegó por: " }), arrivedBy(s)),
       h("div", { class: "grid g4" },
         h("div", {}, h("div", { class: "label", text: "Contacto" }), h("b", { text: s.nombre }), h("div", { class: "small", text: s.empresa }), h("div", { class: "small mono", text: contact })),
@@ -501,11 +518,13 @@
       const seg = SEGMENTS.find((x) => x.id === fd.tipo);
       const saved = await save("solicitudes", { estado: "nueva", canal: "manual", fuente: fd.fuente, registradaPor: S.name, tipo: fd.tipo, tipoNombre: seg ? seg.name : "", asesor: fd.asesor,
         nombre: fd.nombre.trim(), empresa: fd.empresa.trim(), contacto: fd.contacto.trim(), prenda: fd.prenda.trim(), piezas: modelos.length ? modelos.reduce((a, m) => a + m.piezas, 0) : +fd.piezas || 0,
-        fechaNecesaria: fd.fecha, notas: fd.notas.trim(), modelos, especifica: modelos.length > 0, herramientas: [], recibida: new Date().toISOString() }, { quiet: true });
+        fechaNecesaria: fd.fecha, notas: fd.notas.trim(), modelos, especifica: modelos.length > 0, herramientas: [], recibida: new Date().toISOString(),
+        whatsapp: fd.waLinea ? { wa: fd.waLinea, numero: waLine(fd.waLinea)?.numero || fmtWa(fd.waLinea), asesor: "" } : null }, { quiet: true });
       closeModal(); toast(`Solicitud ${saved.id} registrada.`); await ensurePreQuotes(); rerender();
     } },
       h("label", { class: "f" }, h("span", { text: "Llegó por" }), h("select", { class: "i", name: "fuente" }, [["instagram", "Instagram Direct"], ["facebook", "Facebook / Messenger"], ["whatsapp", "WhatsApp"], ["telefono", "Teléfono"], ["correo", "Correo"], ["visita", "Visita a planta"], ["feria", "Feria o evento"], ["referido", "Referido"], ["distribuidor", "Distribuidor"]].map(([v, t]) => h("option", { value: v, text: t })))),
       h("label", { class: "f" }, h("span", { text: "Tipo de proyecto" }), h("select", { class: "i", name: "tipo" }, SEGMENTS.map((x) => h("option", { value: x.id, text: x.name })))),
+      h("label", { class: "f full" }, h("span", { text: "Si llegó por WhatsApp: ¿a qué número de Chilian?" }), h("select", { class: "i", name: "waLinea" }, h("option", { value: "", text: "— No llegó por WhatsApp —" }), (S.settings.whatsapps || []).map((w) => h("option", { value: w.wa, text: `${w.numero} · ${w.linea}` })))),
       h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", name: "nombre", required: true })),
       h("label", { class: "f" }, h("span", { text: "Empresa o marca" }), h("input", { class: "i", name: "empresa" })),
       h("label", { class: "f" }, h("span", { text: "Contacto (@usuario, WhatsApp o correo)" }), h("input", { class: "i", name: "contacto", required: true })),
@@ -751,7 +770,7 @@
           h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox("¿Borrar esta oportunidad? Sus tareas también se borran."))) return; for (const t of tasks) await remove("tareas", t.id); await remove("oportunidades", o.id); toast("Oportunidad borrada."); go("pipeline"); } }, "Borrar oportunidad")))
     );
   }
-  const requestText = (s) => [`${s.id} · ${fmtDT(s.recibida)}`, `${s.nombre} · ${s.empresa || ""} · ${s.contacto}`, `Prenda: ${s.prenda} · ${fmtN(s.piezas)} pzas`, `Técnicas: ${(s.tecnicas || []).join(", ")}`, ...(s.modelos || []).map((m) => `– ${m.titulo} (${(m.modelos || []).join(", ")}) · ${fmtN(m.piezas)} pzas · ${m.color || ""}`), s.notas || ""].filter(Boolean).join("\n");
+  const requestText = (s) => [`${s.id} · ${fmtDT(s.recibida)}`, waOf(s) ? `Llegó al WhatsApp ${waDest(s)}` : "", `${s.nombre} · ${s.empresa || ""} · ${s.contacto}`, `Prenda: ${s.prenda} · ${fmtN(s.piezas)} pzas`, `Técnicas: ${(s.tecnicas || []).join(", ")}`, ...(s.modelos || []).map((m) => `– ${m.titulo} (${(m.modelos || []).join(", ")}) · ${fmtN(m.piezas)} pzas · ${m.color || ""}`), s.notas || ""].filter(Boolean).join("\n");
   function confirmBox(text) {
     return new Promise((resolve) => {
       let done = false;
@@ -1538,6 +1557,14 @@
             h("div", { class: "grid g3" }, num(st.tarifas, "rpmBordado", "Puntadas por minuto"), num(st.tarifas, "efBordado", "Eficiencia (%)"), num(st.tarifas, "minAro", "Min por ciclo (enmarcar y cambiar)"),
               num(st.tarifas, "setupBordado", "Min de preparación"), num(st.tarifas, "costoMilPuntadas", "Costo por 1,000 puntadas (MXN)"), num(st.tarifas, "costoPonchado", "Ponchado (MXN por diseño)"), num(st.tarifas, "margenBordado", "Margen bordado (%)")),
             h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !st.tarifas.ejemploDB, onchange: (e) => { st.tarifas.ejemploDB = !e.target.checked; } }), "Estos costos ya son los reales de Chilian")),
+          h("div", { class: "card" }, h("h2", { text: "Números de WhatsApp" }),
+            h("p", { class: "hint", text: "Las líneas de Chilian a las que llegan los mensajes del sitio. Cada solicitud muestra a cuál llegó." }),
+            ((box) => { const paint = () => box.replaceChildren(...st.whatsapps.map((w, i) => h("div", { class: "grid", style: "grid-template-columns:150px minmax(0,1fr) 2rem;gap:.35rem;align-items:end" },
+              h("label", { class: "f" }, h("span", { text: "Número (10 dígitos)" }), h("input", { class: "i mono", value: w.numero, oninput: (e) => { const d = e.target.value.replace(/\D/g, "").slice(-10); w.numero = e.target.value; w.wa = d.length === 10 ? "52" + d : w.wa; } })),
+              h("label", { class: "f" }, h("span", { text: "De quién / para qué" }), h("input", { class: "i", value: w.linea, oninput: (e) => { w.linea = e.target.value; } })),
+              h("button", { class: "x", type: "button", "aria-label": "Quitar número", onclick: () => { st.whatsapps.splice(i, 1); paint(); } }, "×"))),
+              h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.whatsapps.push({ wa: "", numero: "", linea: "" }); paint(); } }, "+ Número"));
+              paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
           instagramCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));

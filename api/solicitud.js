@@ -25,6 +25,9 @@ export async function POST(req) {
       notas: s(d.notas, 3000), modelos, idioma: d.idioma === "en" ? "en" : "es",
       canal: s(d.canal, 20) || "web", pagina: s(d.pagina, 300), referencia: s(d.referencia, 300),
       // where the visit came from (Instagram bio, ads, Google…) and what the visitor used on the site
+      // the Chilian WhatsApp the request was sent to (the advisor's line for that project type)
+      whatsapp: d.whatsapp && typeof d.whatsapp === "object" && String(d.whatsapp.wa || "").replace(/\D/g, "").length >= 10
+        ? { wa: String(d.whatsapp.wa).replace(/\D/g, "").slice(0, 15), numero: s(d.whatsapp.numero, 20), asesor: s(d.whatsapp.asesor, 60) } : null,
       fuente: s(d.fuente, 30).toLowerCase() || "directo", medio: s(d.medio, 40), campana: s(d.campana, 60),
       herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
       mockup: s(d.mockup, 600), especifica: modelos.length > 0,
