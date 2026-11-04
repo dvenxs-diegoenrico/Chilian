@@ -235,6 +235,42 @@ for e in cat:
             except Exception: e["colors"] = []
         out.append(e)
 
+# MYK: the product line printed big on each page (Advance, Waffle, Dry Wear…) is part of its name
+MYK_LINES = ["Advance", "Essential", "Waffle", "Dry Wear", "Fusion", "Oversized", "Sustainable ECO", "Hood", "Pro NY", "V Soft", "Fit", "Redondo"]
+for o in out:
+    if o["cat"] == "MYK" and not o.get("_named"):
+        t = subprocess.run(["pdftotext", "-f", str(o["page"]), "-l", str(o["page"]), "-q", FILES["MYK"] + ".pdf", "-"], capture_output=True, text=True).stdout.lower()
+        ln = next((x for x in MYK_LINES if x.lower() in t), None)
+        o["title"] = o["title"][:1].upper() + o["title"][1:].lower()
+        if ln and ln.lower() not in o["title"].lower(): o["title"] += " " + ln
+        o["_named"] = True
+# Same name for different products: add what tells them apart (who, fabric, weight, model)
+WHO_N = {"caballero": "caballero", "dama": "dama", "nino": "niños", "unisex": "unisex"}
+def comp_short(c):
+    mats = re.findall(r"(\d{1,3})\s*%\s*(algod[óo]n|poli[ée]ster|polyester|viscosa|spandex|elastano|ray[óo]n)", c or "", re.I)
+    norm = {"algodon": "algodón", "poliester": "poliéster", "polyester": "poliéster", "rayon": "rayón"}
+    if mats and mats[0][0] == "100": mats = mats[:1]   # a second figure is a color variant (gris jaspe)
+    return " ".join(f"{n}% {norm.get(m.lower().replace('ó','o').replace('é','e'), m.lower())}" for n, m in mats[:2])
+def tag(o, field):
+    if field == "tier": return o.get("tier") or ""
+    if field == "who": return " / ".join(WHO_N.get(x, x) for x in o["who"] if x != "unisex" or len(o["who"]) == 1)
+    if field == "comp": return comp_short(o["comp"])
+    if field == "weight": return f'{o["weight"]} g/m²' if o.get("weight") else ""
+    return "modelo " + o["models"][0] if o["models"] else f'p. {o["page"]}'
+groups = {}
+for o in out: groups.setdefault(o["title"].lower(), []).append(o)
+for t, g in groups.items():
+    if len(g) < 2: continue
+    used = []
+    for field in ("tier", "who", "comp", "weight", "models"):   # add the fewest details that make every name unique
+        if len({" ".join(tag(o, f) for f in used) for o in g}) == len(g): break
+        if len({tag(o, field) for o in g}) > 1: used.append(field)
+    if len({" ".join(tag(o, f) for f in used) for o in g}) < len(g): used.append("models")
+    for o in g:
+        extra = [x for x in (tag(o, f) for f in used) if x and x.lower() not in o["title"].lower()]
+        if extra: o["title"] = o["title"] + " · " + " · ".join(extra)
+for o in out: o.pop("_named", None)
+
 for rid in removed:
     for suf in ("", "-s", "-b"):
         pth = f"{OUT}/{rid}{suf}.webp"

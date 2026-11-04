@@ -1498,7 +1498,7 @@
           <button class="btn btn-ghost" type="button" data-studio data-en="Print your idea →">Estampa tu idea →</button>
         </div>
         <form class="quote-form" id="quote" novalidate>
-          <input type="text" id="q-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+          <input type="text" id="q-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" aria-label="No llenar este campo" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
           <fieldset class="q-step">
             <legend><span class="n">01</span><span data-en="Type of project">Tipo de proyecto</span></legend>
             <div class="chips" id="q-type"></div>
@@ -2073,7 +2073,7 @@
     const { type, techs } = readForm();
     const ty = TYPES.find((x) => x.id === type);
     // With catalog models picked, the garments and pieces come from them.
-    const garment = picked.length ? [...new Set(picked.map((p) => kindName(p.kind || "playera")))].join(", ") : t(GARMENTS[+$("#q-garment").value || 0]);
+    const garment = picked.length ? [...new Set(picked.map((p) => kindName(p.kind || "playera")))].join(", ").replace(/^./, (c) => c.toUpperCase()) : t(GARMENTS[+$("#q-garment").value || 0]);
     const qty = picked.length ? picked.reduce((a, p) => a + (p.qty || 0), 0) : Math.max(0, parseInt($("#q-qty").value, 10) || 0);
     const date = $("#q-date").value;
     return {

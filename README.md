@@ -355,3 +355,11 @@ El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y colo
 - **Catálogo:** `tools/catalog/3_split.py` deja un producto por ficha: las páginas MK (2–6 productos) y YBK (2 por página doble) se recortan por producto a 200 ppp; los uniformes OPT se separan en camisa y pantalón con su estilo. 174 → 244 productos. Cada ficha trae sus colores (192 de 244 los tienen en el PDF como texto), que se muestran en la ficha y se sugieren al escribir el color en el cotizador del sitio y en el del OS.
 - **Gráficos por modelo:** en el cotizador del sitio cada modelo del catálogo tiene «Adjuntar gráfico» (PNG, JPG, WebP, PDF o SVG convertido a PNG; 4 MB, hasta 6). Se suben con la solicitud y en el OS aparecen con su modelo; también generan la OT previa.
 - **Estudio:** el estampado completo existe solo como **Chilian Sport** (playera); en las demás prendas no se ofrece. Las piezas y «Cotizar» quedan fijos al pie del panel y toman la cantidad actual del modelo al abrir el estudio.
+
+### Revisión (5 pasadas)
+
+1. Todo el sitio en computadora y teléfono: errores, recursos y enlaces internos, imágenes, desbordes y cada botón (54) — limpio.
+2. Ventanas y flujos (catálogo, ventanas de información, formulario, calculadora, estudio con descarga, molde y 3D, menú, inglés): títulos de catálogo repetidos (23 nombres en 61 productos) → ahora cada nombre es único (línea MYK, Gold/Platinum, para quién, tela, gramaje o modelo).
+3. OS en todas las secciones y detalles, computadora y teléfono: en teléfono la columna crecía con el tablero de oportunidades → corregido; página 404 con la marca (`404.html`).
+4. Consistencia y accesibilidad: teléfonos, correos y WhatsApp iguales en todo el sitio, sin IDs duplicados, botones con nombre, imágenes con texto alternativo; campo trampa con etiqueta.
+5. Regresión completa (cotizador, equipo, Instagram, OT previa, máquinas, WhatsApp, catálogo y adjuntos): la prenda llegaba en minúsculas al elegir modelos → corregido.
