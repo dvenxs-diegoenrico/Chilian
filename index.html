@@ -461,7 +461,7 @@
   .chip input:focus-visible + span { outline: 2px solid var(--magenta); outline-offset: 2px; }
   @media (hover: hover) { .chip:hover span { border-color: var(--ink); } }
   .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-  .field { display: grid; gap: .4rem; min-width: 0; }
+  .field { display: grid; gap: .4rem; min-width: 0; align-content: start; }
   .field.full { grid-column: 1 / -1; }
   .field label { font: 500 .7rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
   .field input, .field select, .field textarea {
@@ -493,6 +493,115 @@
   .ticket .fine { padding: 0 1.1rem 1.1rem; }
   .copied { color: var(--press); }
   @media (max-width: 900px) { .quote-grid { grid-template-columns: 1fr; } .ticket { position: static; } }
+
+  /* ---------- COTIZA EN UN MINUTO ---------- */
+  .qz-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+  .qz { display: grid; gap: 1.5rem; }
+  .qz-step { border: 0; margin: 0; padding: 0 0 1.5rem; border-bottom: 1px solid var(--rule); min-width: 0; display: grid; gap: .6rem; align-content: start; }
+  fieldset.qz-step > legend { margin-bottom: .7rem; }
+  .qz-label { padding: 0; display: flex; gap: .7rem; align-items: baseline; font: 700 1.05rem/1.2 var(--f-body); }
+  .qz-label .n { font: 500 .7rem var(--f-mono); color: var(--steel); letter-spacing: .1em; }
+  .qz select, .qz-qty input { width: 100%; padding: .85rem .9rem; border: 1px solid var(--rule); border-radius: 2px; background: var(--card); color: var(--ink); font: 500 1.05rem var(--f-body); }
+  .qz select:focus, .qz-qty input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--shade); }
+  .qz-qty { display: flex; align-items: center; gap: .7rem; }
+  .qz-qty input { max-width: 12rem; font: 800 1.6rem/1 var(--f-display); font-variant-numeric: tabular-nums; padding: .6rem .8rem; }
+  .qz-qty span { font: 500 .74rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .qz-qty input[aria-invalid="true"] { border-color: #D2452B; }
+  .qz-range { width: 100%; accent-color: var(--magenta); margin: .2rem 0 0; }
+  .qz-hint { margin: 0; font: 400 .74rem/1.45 var(--f-mono); color: var(--steel); }
+  .qz-hint:empty { display: none; }
+  .qz-hint.warn { color: #D2452B; }
+  .qz-links { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
+  .qz-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
+  .qz-row .qz-step[hidden] { display: none; }
+  .qz-seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--rule); width: max-content; max-width: 100%; }
+  .qz-seg label { position: relative; }
+  .qz-seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .qz-seg span { display: block; min-width: 2.75rem; padding: .6rem .75rem; text-align: center; cursor: pointer; font: 600 .9rem var(--f-mono); border-right: 1px solid var(--rule); background: var(--card); transition: background-color .2s ease, color .2s ease; }
+  .qz-seg label:last-child span { border-right: 0; }
+  .qz-seg input:checked + span { background: var(--ink); color: var(--paper); }
+  .qz-seg input:focus-visible + span { outline: 2px solid var(--magenta); outline-offset: -2px; }
+  .qz-seg input:disabled + span { color: var(--steel); opacity: .45; cursor: not-allowed; }
+  .qz-seg.wide span { font: 500 .88rem var(--f-body); padding: .6rem 1rem; text-align: left; }
+  .qz-seg.wide small { display: block; font: 400 .7rem var(--f-mono); color: inherit; opacity: .75; }
+  @media (hover: hover) { .qz-seg label:hover input:not(:checked):not(:disabled) + span { background: var(--shade); } }
+  .chip input:disabled + span { opacity: .45; cursor: not-allowed; border-style: dashed; }
+  .chip small { font: 400 .68rem var(--f-mono); opacity: .8; }
+  .qz-ticket { position: sticky; top: calc(88px + env(safe-area-inset-top, 0px)); }
+  .qz-sum { margin: 0; padding: 1rem 1.1rem .4rem; font: 700 1.1rem/1.3 var(--f-body); }
+  .qz-break { margin: 0; padding: .3rem 1.1rem .6rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .qz-break dt, .qz-break dd { padding: .45rem 0; border-bottom: 1px dashed var(--rule); font-size: .86rem; }
+  .qz-break dt { color: var(--steel); font: 400 .86rem/1.4 var(--f-body); letter-spacing: 0; text-transform: none; padding-right: 1rem; }
+  .qz-break dd { margin: 0; text-align: right; font: 500 .86rem var(--f-mono); font-variant-numeric: tabular-nums; }
+  .qz-price { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
+  .qz-price > div { background: var(--card); padding: .8rem 1.1rem; display: grid; gap: .15rem; align-content: start; }
+  .qz-price span, .qz-eta span { font: 500 .64rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .qz-price strong { font: 800 clamp(1.6rem, 3vw, 2.1rem)/1 var(--f-display); font-variant-numeric: tabular-nums; }
+  .qz-price strong.tick { animation: pop .3s var(--ease-out); }
+  .qz-price small, .qz-eta small { font: 400 .72rem var(--f-mono); color: var(--steel); }
+  .qz-eta { padding: .8rem 1.1rem; display: grid; gap: .15rem; background: var(--shade); }
+  .qz-eta strong { font: 700 1.05rem var(--f-body); }
+  .qz-eta strong::first-letter { text-transform: uppercase; }
+  .qz-nudge { margin: 0; padding: .7rem 1.1rem; font-size: .88rem; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--magenta) 9%, var(--card)); }
+  .qz-nudge button { all: unset; cursor: pointer; font: 600 .74rem var(--f-mono); text-decoration: underline; text-underline-offset: 3px; margin-left: .3rem; }
+  .qz-err { margin: 0; padding: .7rem 1.1rem; font: 400 .8rem/1.45 var(--f-mono); color: #D2452B; border-bottom: 1px solid var(--rule); }
+  .qz-open { all: unset; cursor: pointer; justify-self: center; display: inline-flex; gap: .45rem; align-items: center; font: 600 .74rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: .3rem .2rem; }
+  .qz-open b, .mq-open b { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 .3rem; border-radius: 999px; background: var(--magenta); color: var(--on-accent); font: 600 .68rem var(--f-mono); }
+  .qz-open:focus-visible, .mq-open:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+  .bump b.mq-count, .mq-count.bump { animation: pop .35s var(--ease-out); }
+  .mq-open { display: inline-flex; align-items: center; gap: .45rem; height: 42px; padding: 0 .7rem; background: none; border: 1px solid var(--rule); color: var(--ink); cursor: pointer; font: 600 .7rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+  .mq-open svg { width: 20px; height: 20px; }
+  @media (hover: hover) { .mq-open:hover { border-color: var(--ink); } }
+  @media (max-width: 1240px) { .mq-open-t { display: none; } }
+  .lang, .mq-open, .menu-btn { flex-shrink: 0; }
+  @media (max-width: 560px) { .site-header .wrap { gap: .6rem; } .mq-open { padding: 0 .5rem; gap: .3rem; } }
+  /* phones: the price rides along at the bottom while you configure */
+  .qz-mbar { display: none; }
+  @media (max-width: 900px) {
+    .qz-grid { grid-template-columns: 1fr; } .qz-ticket { position: static; }
+    .qz-mbar { display: flex; position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 5; align-items: center; gap: .8rem; padding: .6rem .6rem .6rem .9rem; background: var(--ink); color: var(--paper); box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+    .qz-mbar div { display: grid; flex: 1; min-width: 0; }
+    .qz-mbar span { font: 500 .6rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qz-mbar strong { font: 800 1.5rem/1 var(--f-display); font-variant-numeric: tabular-nums; }
+    .qz-mbar button { all: unset; cursor: pointer; padding: .7rem .9rem; background: var(--magenta); color: var(--on-accent); font: 600 .7rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .qz-mbar button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+    html.qz-on .wa-float, html.qz-on .to-top { opacity: 0; pointer-events: none; }
+  }
+  @media (max-width: 560px) { .qz-row { grid-template-columns: 1fr; } .qz-seg.wide { width: 100%; } .qz-seg.wide label { flex: 1; } }
+
+  /* "Mi cotización": a side panel with the list and the request */
+  .mq { width: min(620px, 100vw); height: 100dvh; max-height: 100dvh; margin: 0 0 0 auto; border-left: 1.5px solid var(--ink); overflow: auto; overscroll-behavior: contain; }
+  .mq[open] { animation: mq-in .32s var(--ease-out); }
+  .mq.closing { animation: mq-out .24s ease forwards; }
+  @keyframes mq-in { from { transform: translateX(40px); opacity: 0; } }
+  @keyframes mq-out { to { transform: translateX(40px); opacity: 0; } }
+  .mq-body { padding: clamp(1rem, 3vw, 1.6rem); display: grid; gap: 1.6rem; }
+  .mq-h { margin: 0 0 .8rem; font: 800 1.6rem/1 var(--f-display); text-transform: uppercase; }
+  .mq-empty { margin: 0; padding: 1rem; border: 1px dashed var(--rule); color: var(--steel); font-size: .92rem; }
+  .mq-items { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .mq-items:empty { display: none; }
+  .mq-item { border: 1px solid var(--rule); background: var(--card); padding: .8rem .9rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem .8rem; align-items: start; }
+  .mq-item strong { display: block; font: 600 .96rem/1.3 var(--f-body); }
+  .mq-item .meta { font: 400 .76rem/1.5 var(--f-mono); color: var(--steel); }
+  .mq-item .meta b { color: var(--ink); font-weight: 600; }
+  .mq-item .warn { color: #D2452B; }
+  .mq-item .ctl { display: flex; gap: .5rem; align-items: center; }
+  .mq-item input { width: 6.2rem; padding: .5rem .6rem; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font: 500 .95rem var(--f-mono); }
+  .mq-item input:focus { outline: none; border-color: var(--ink); }
+  .mq-item .src { font: 500 .62rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--magenta); }
+  .mq-x { all: unset; cursor: pointer; font: 500 .72rem var(--f-mono); text-decoration: underline; text-underline-offset: 3px; color: var(--steel); }
+  .mq-x:hover, .mq-x:focus-visible { color: var(--ink); }
+  .mq .q-picked { margin-top: .9rem; }
+  .mq-total { margin-top: .9rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .9rem; padding: .8rem .9rem; background: var(--ink); color: var(--paper); }
+  .mq-total span { font: 500 .66rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+  .mq-total strong { font: 800 1.7rem/1 var(--f-display); font-variant-numeric: tabular-nums; }
+  .mq-total small { font: 400 .72rem var(--f-mono); opacity: .75; }
+  .mq-more { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: .9rem; }
+  .mq .quote-form { gap: 1.2rem; }
+  .mq .q-step { padding-bottom: 1.2rem; }
+  .mq-ticket { position: static; }
+  .mq-ticket .ticket-actions .q-cat-link { justify-self: center; }
+  @media (max-width: 600px) { .mq { border-left: 0; } .mq-item { grid-template-columns: 1fr; } }
 
   /* ---------- TEAM ---------- */
   .team { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
@@ -1052,6 +1161,7 @@
       <button type="button" id="lang-es" aria-pressed="true">ES</button>
       <button type="button" id="lang-en" aria-pressed="false">EN</button>
     </div>
+    <button class="mq-open" type="button" data-mq aria-label="Mi cotización" data-en-label="My quote"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="mq-open-t" data-en="My quote">Mi cotización</span><b class="mq-count">0</b></button>
     <a class="btn btn-accent" href="#cotizar" data-en="Get a quote">Cotizar proyecto</a>
     <button class="menu-btn" type="button" id="menu-open" aria-label="Menú" aria-haspopup="dialog">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" stroke-width="1.8"/></svg>
@@ -1486,82 +1596,70 @@
     <div class="wrap">
       <div class="section-head">
         <div>
-          <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span data-en="Quote · reply within one business day">Cotización · respuesta en un día hábil</span></p>
-          <h2 class="h2" id="quote-title" data-en="Tell us about your run.">Cuéntanos de tu tiraje.</h2>
+          <p class="kicker"><svg aria-hidden="true"><use href="#reg"/></svg><span data-en="Instant quote · reference prices">Cotizador · precios de referencia</span></p>
+          <h2 class="h2" id="quote-title" data-en="Quote in a minute.">Cotiza en un minuto.</h2>
         </div>
-        <p class="lead" data-en="Fill in what you know. Your request goes by WhatsApp straight to the advisor for your type of project.">Llena lo que sepas. Tu solicitud llega por WhatsApp directo a la asesora de tu tipo de proyecto.</p>
+        <p class="lead" data-en="Choose product, pieces and technique: you see the price per piece, the delivery date and how much it drops with volume. Add it to your quote and send it with your details.">Elige producto, piezas y técnica: ves el precio por pieza, la fecha de entrega y cuánto baja con volumen. Agrégalo a tu cotización y envíala con tus datos.</p>
       </div>
 
-      <div class="quote-grid">
-        <div class="studio-hint">
-          <p data-en="<strong>Already have a design?</strong> See it on a tee, hoodie or polo before you quote."><strong>¿Ya tienes diseño?</strong> Míralo en playera, sudadera o polo antes de cotizar.</p>
-          <button class="btn btn-ghost" type="button" data-studio data-en="Print your idea →">Estampa tu idea →</button>
-        </div>
-        <form class="quote-form" id="quote" novalidate>
-          <input type="text" id="q-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" aria-label="No llenar este campo" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
-          <fieldset class="q-step">
-            <legend><span class="n">01</span><span data-en="Type of project">Tipo de proyecto</span></legend>
-            <div class="chips" id="q-type"></div>
+      <div class="qz-grid">
+        <form class="qz" id="qz" novalidate>
+          <div class="qz-step">
+            <label class="qz-label" for="qz-prod"><span class="n">01</span><span data-en="Product">Producto</span></label>
+            <select id="qz-prod"></select>
+            <div class="qz-links"><button class="q-cat-link" type="button" id="qz-cat"></button><button class="q-cat-link" type="button" data-studio data-en="Already have a design? Print your idea →">¿Ya tienes diseño? Estampa tu idea →</button></div>
+          </div>
+          <div class="qz-step">
+            <label class="qz-label" for="qz-qty"><span class="n">02</span><span data-en="Quantity">Cantidad</span></label>
+            <div class="qz-qty"><input id="qz-qty" type="number" inputmode="numeric" min="1" step="1" value="500"><span data-en="pieces">piezas</span></div>
+            <div class="qty-quick" id="qz-quick"></div>
+            <input class="qz-range" type="range" id="qz-range" min="0" max="1000" step="1" aria-label="Cantidad" data-en-label="Quantity">
+            <p class="qz-hint" id="qz-min"></p>
+          </div>
+          <fieldset class="qz-step">
+            <legend class="qz-label"><span class="n">03</span><span data-en="Technique">Técnica</span></legend>
+            <div class="chips" id="qz-tec"></div>
+            <p class="qz-hint" id="qz-tec-note"></p>
           </fieldset>
-          <fieldset class="q-step">
-            <legend><span class="n">02</span><span data-en="Garment and quantity">Prenda y cantidad</span></legend>
-            <div class="fields">
-              <div class="field" id="q-garment-field">
-                <label for="q-garment" data-en="Garment">Prenda</label>
-                <select id="q-garment"></select>
-                <button class="q-cat-link" type="button" id="q-cat-link"></button>
-              </div>
-              <div class="field">
-                <label for="q-qty" data-en="Pieces">Piezas</label>
-                <input id="q-qty" type="number" inputmode="numeric" min="1" step="1" value="3000">
-                <div class="qty-quick" id="qty-quick"></div>
-              </div>
-              <div class="field full q-picked" id="q-picked" hidden>
-                <span data-en="Models from the catalog">Modelos del catálogo</span>
-                <div class="qp-head" aria-hidden="true"><span></span><span data-en="Model">Modelo</span><span data-en="Pieces">Piezas</span><span data-en="Color(s)">Color(es)</span><span></span></div>
-                <ul class="qp-list" id="qp-list"></ul>
-                <div class="qp-foot"><span><span data-en="Total">Total</span>: <strong id="qp-total">0</strong> <span data-en="pieces">piezas</span></span><button class="qp-add" type="button" id="qp-add" data-en="+ Add more models">+ Agregar más modelos</button></div>
-                <span class="err" id="qp-err"></span>
-              </div>
-            </div>
+          <div class="qz-row">
+            <fieldset class="qz-step" id="qz-inks-step">
+              <legend class="qz-label"><span class="n">04</span><span data-en="Ink colors">Colores de tinta</span></legend>
+              <div class="qz-seg" id="qz-inks"></div>
+            </fieldset>
+            <fieldset class="qz-step" id="qz-emb-step" hidden>
+              <legend class="qz-label"><span class="n">04</span><span data-en="Embroidery size">Tamaño del bordado</span></legend>
+              <div class="qz-seg" id="qz-emb"></div>
+            </fieldset>
+            <fieldset class="qz-step" id="qz-locs-step">
+              <legend class="qz-label"><span class="n">05</span><span data-en="Print locations">Ubicaciones</span></legend>
+              <div class="qz-seg" id="qz-locs"></div>
+              <p class="qz-hint" data-en="For example: front, back, sleeve and back neck.">Por ejemplo: frente, espalda, manga y nuca.</p>
+            </fieldset>
+          </div>
+          <fieldset class="qz-step">
+            <legend class="qz-label"><span class="n">06</span><span data-en="Delivery">Entrega</span></legend>
+            <div class="qz-seg wide" id="qz-del"></div>
           </fieldset>
-          <fieldset class="q-step">
-            <legend><span class="n">03</span><span data-en="Technique (choose any)">Técnica (elige las que quieras)</span></legend>
-            <div class="chips" id="q-tech"></div>
-          </fieldset>
-          <fieldset class="q-step">
-            <legend><span class="n">04</span><span data-en="Your details">Tus datos</span></legend>
-            <div class="fields">
-              <div class="field"><label for="q-name" data-en="Name">Nombre</label><input id="q-name" autocomplete="name" placeholder="Ana López" data-en-ph="Jane Smith"><span class="err" id="q-name-err"></span></div>
-              <div class="field"><label for="q-company" data-en="Company or brand">Empresa o marca</label><input id="q-company" autocomplete="organization" placeholder="Tu marca" data-en-ph="Your brand"></div>
-              <div class="field"><label for="q-contact" data-en="Email or WhatsApp">Correo o WhatsApp</label><input id="q-contact" autocomplete="email" placeholder="ana@marca.com" data-en-ph="jane@brand.com"><span class="err" id="q-contact-err"></span></div>
-              <div class="field"><label for="q-date" data-en="Date you need it">Fecha en que lo necesitas</label><input id="q-date" type="date"></div>
-              <div class="field full"><label for="q-notes" data-en="Anything else (colors, sizes, artwork)">Algo más (colores, tallas, arte)</label><textarea id="q-notes" placeholder="Ej. 3 tintas al frente, 1 en espalda. Tallas CH a EG." data-en-ph="E.g. 3 colors front, 1 back. Sizes S to XL."></textarea></div>
-            </div>
-          </fieldset>
+          <div class="qz-mbar" id="qz-mbar"><div><span id="qz-mbar-t"></span><strong id="qz-mbar-n">—</strong></div><button type="button" id="qz-mbar-go" data-en="See order ↓">Ver orden ↓</button></div>
         </form>
 
-        <aside class="ticket" aria-labelledby="ticket-title">
-          <div class="ticket-head"><span id="ticket-title" data-en="Work order">Orden de trabajo</span><span id="ticket-no">OT-0000</span></div>
-          <dl>
-            <dt data-en="Project">Proyecto</dt><dd id="t-type">—</dd>
-            <dt data-en="Garment">Prenda</dt><dd id="t-garment">—</dd>
-            <dt data-en="Pieces">Piezas</dt><dd id="t-qty">—</dd>
-            <dt data-en="Technique">Técnica</dt><dd id="t-tech">—</dd>
-            <dt data-en="Needed by">Para el</dt><dd id="t-date">—</dd>
-            <dt data-en="Models" id="t-models-dt" hidden>Modelos</dt><dd id="t-models" class="multi" hidden>—</dd>
-          </dl>
-          <div class="advisor">
-            <span class="mono" data-en="Goes to">Llega a</span>
-            <strong id="t-advisor">—</strong>
-            <span id="t-advisor-role"></span>
-            <span id="t-advisor-contact"></span>
+        <aside class="ticket qz-ticket" aria-labelledby="qz-ticket-title">
+          <div class="ticket-head"><span id="qz-ticket-title" data-en="Estimated order">Orden estimada</span><span id="qz-no">COT-0000</span></div>
+          <p class="qz-sum" id="qz-sum" aria-live="polite"></p>
+          <dl class="qz-break" id="qz-break"></dl>
+          <div class="qz-price">
+            <div><span data-en="Price per piece">Precio por pieza</span><strong id="qz-unit">—</strong></div>
+            <div><span data-en="Estimated total">Total estimado</span><strong id="qz-total">—</strong><small id="qz-iva" data-en="plus VAT">más IVA</small></div>
           </div>
+          <div class="qz-eta"><span data-en="Estimated delivery">Entrega estimada</span><strong id="qz-date">—</strong><small id="qz-days"></small></div>
+          <p class="qz-nudge" id="qz-nudge" hidden></p>
+          <p class="qz-err" id="qz-err" role="alert" hidden></p>
           <div class="ticket-actions">
-            <a class="btn btn-accent" id="send-wa" href="#" target="_blank" rel="noopener"><svg width="18" height="18" aria-hidden="true"><use href="#wa"/></svg><span data-en="Send by WhatsApp">Enviar por WhatsApp</span></a>
-            <button class="btn btn-ghost" type="button" id="copy-brief" data-en="Copy request">Copiar solicitud</button>
+            <button class="btn btn-accent" type="button" id="qz-add"><span data-en="Add to my quote">Agregar a mi cotización</span> <span class="arrow" aria-hidden="true">+</span></button>
+            <a class="btn btn-ghost" id="qz-wa" href="#" target="_blank" rel="noopener"><svg width="18" height="18" aria-hidden="true"><use href="#wa"/></svg><span data-en="Send by WhatsApp">Enviar por WhatsApp</span></a>
+            <button class="qz-open" type="button" data-mq><span data-en="See my quote">Ver mi cotización</span> <b class="mq-count">0</b></button>
           </div>
-          <p class="fine" id="ticket-note" aria-live="polite" data-en="WhatsApp opens with your request written. Attach your artwork there.">WhatsApp se abre con tu solicitud escrita. Adjunta ahí tu arte.</p>
+          <p class="fine" id="qz-fine"></p>
         </aside>
       </div>
     </div>
@@ -1626,6 +1724,88 @@
 <button class="to-top" type="button" id="to-top" aria-label="Volver arriba" data-en-label="Back to top" tabindex="-1" aria-hidden="true">↑</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- ============ POP-UPS ============ -->
+<dialog class="mq" id="mq" aria-labelledby="mq-title">
+  <div class="bar"><span id="mq-title"><span data-en="My quote">Mi cotización</span> · <span class="mq-count">0</span></span><button class="x" type="button" data-close aria-label="Cerrar" data-en-label="Close">×</button></div>
+  <div class="mq-body">
+    <section class="mq-list" aria-labelledby="mq-list-title">
+      <h3 class="mq-h" id="mq-list-title" data-en="What you are quoting">Lo que vas a cotizar</h3>
+      <p class="mq-empty" id="mq-empty" data-en="Nothing here yet. Set up a product in “Quote in a minute” or pick models from the catalog.">Aún no hay nada. Arma un producto en “Cotiza en un minuto” o elige modelos del catálogo.</p>
+      <ul class="mq-items" id="mq-items"></ul>
+      <div class="field full q-picked" id="q-picked" hidden>
+                <span data-en="Models from the catalog">Modelos del catálogo</span>
+                <div class="qp-head" aria-hidden="true"><span></span><span data-en="Model">Modelo</span><span data-en="Pieces">Piezas</span><span data-en="Color(s)">Color(es)</span><span></span></div>
+                <ul class="qp-list" id="qp-list"></ul>
+                <div class="qp-foot"><span><span data-en="Total">Total</span>: <strong id="qp-total">0</strong> <span data-en="pieces">piezas</span></span><button class="qp-add" type="button" id="qp-add" data-en="+ Add more models">+ Agregar más modelos</button></div>
+                <span class="err" id="qp-err"></span>
+              </div>
+      <div class="mq-total" id="mq-total" hidden><span data-en="Estimated total">Total estimado</span><strong id="mq-total-n">—</strong><small data-en="plus VAT · reference prices">más IVA · precios de referencia</small></div>
+      <div class="mq-more"><button class="q-cat-link" type="button" id="mq-more-qz" data-en="+ Quote another product">+ Cotizar otro producto</button><button class="q-cat-link" type="button" id="mq-more-cat" data-en="+ Pick models from the catalog">+ Elegir modelos del catálogo</button></div>
+    </section>
+    <form class="quote-form" id="quote" novalidate>
+      <h3 class="mq-h" data-en="Send your request">Envía tu solicitud</h3>
+          <input type="text" id="q-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" aria-label="No llenar este campo" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+          <fieldset class="q-step">
+            <legend><span class="n">01</span><span data-en="Type of project (who answers you)">Tipo de proyecto (quién te atiende)</span></legend>
+            <div class="chips" id="q-type"></div>
+          </fieldset>
+          <div id="q-legacy" hidden>
+          <fieldset class="q-step">
+            <legend><span class="n">02</span><span data-en="Garment and quantity">Prenda y cantidad</span></legend>
+            <div class="fields">
+              <div class="field" id="q-garment-field">
+                <label for="q-garment" data-en="Garment">Prenda</label>
+                <select id="q-garment"></select>
+                <button class="q-cat-link" type="button" id="q-cat-link"></button>
+              </div>
+              <div class="field">
+                <label for="q-qty" data-en="Pieces">Piezas</label>
+                <input id="q-qty" type="number" inputmode="numeric" min="1" step="1" value="3000">
+                <div class="qty-quick" id="qty-quick"></div>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="q-step">
+            <legend><span class="n">03</span><span data-en="Technique (choose any)">Técnica (elige las que quieras)</span></legend>
+            <div class="chips" id="q-tech"></div>
+          </fieldset>
+          </div>
+          <fieldset class="q-step">
+            <legend><span class="n">02</span><span data-en="Your details">Tus datos</span></legend>
+            <div class="fields">
+              <div class="field"><label for="q-name" data-en="Name">Nombre</label><input id="q-name" autocomplete="name" placeholder="Ana López" data-en-ph="Jane Smith"><span class="err" id="q-name-err"></span></div>
+              <div class="field"><label for="q-company" data-en="Company or brand">Empresa o marca</label><input id="q-company" autocomplete="organization" placeholder="Tu marca" data-en-ph="Your brand"></div>
+              <div class="field"><label for="q-email" data-en="Email">Correo</label><input id="q-email" type="email" autocomplete="email" placeholder="ana@marca.com" data-en-ph="jane@brand.com"><span class="err" id="q-email-err"></span></div>
+              <div class="field"><label for="q-contact" data-en="WhatsApp">WhatsApp</label><input id="q-contact" type="tel" inputmode="tel" autocomplete="tel" placeholder="222 123 4567" data-en-ph="+1 555 123 4567"><span class="err" id="q-contact-err"></span></div>
+              <div class="field"><label for="q-date" data-en="When do you need it?">¿Para cuándo lo necesitas?</label><input id="q-date" type="date"></div>
+              <div class="field full"><label for="q-notes" data-en="Comments (colors, sizes, artwork)">Comentarios (colores, tallas, arte)</label><textarea id="q-notes" placeholder="Ej. 3 tintas al frente, 1 en espalda. Tallas CH a EG." data-en-ph="E.g. 3 colors front, 1 back. Sizes S to XL."></textarea></div>
+            </div>
+          </fieldset>
+        </form>
+    <aside class="ticket mq-ticket" aria-labelledby="ticket-title">
+      <div class="ticket-head"><span id="ticket-title" data-en="Your request">Tu solicitud</span><span id="ticket-no">OT-0000</span></div>
+      <dl hidden>
+        <dt data-en="Project">Proyecto</dt><dd id="t-type">—</dd>
+        <dt data-en="Garment">Prenda</dt><dd id="t-garment">—</dd>
+        <dt data-en="Pieces">Piezas</dt><dd id="t-qty">—</dd>
+        <dt data-en="Technique">Técnica</dt><dd id="t-tech">—</dd>
+        <dt data-en="Needed by">Para el</dt><dd id="t-date">—</dd>
+        <dt data-en="Models" id="t-models-dt" hidden>Modelos</dt><dd id="t-models" class="multi" hidden>—</dd>
+      </dl>
+      <div class="advisor">
+        <span class="mono" data-en="Goes to">Llega a</span>
+        <strong id="t-advisor">—</strong>
+        <span id="t-advisor-role"></span>
+        <span id="t-advisor-contact"></span>
+      </div>
+      <div class="ticket-actions">
+        <button class="btn btn-accent" type="button" id="mq-send"><span data-en="Send quote request">Enviar solicitud de cotización</span> <span class="arrow" aria-hidden="true">→</span></button>
+        <a class="btn btn-ghost" id="send-wa" href="#" target="_blank" rel="noopener"><svg width="18" height="18" aria-hidden="true"><use href="#wa"/></svg><span data-en="Send by WhatsApp">Enviar por WhatsApp</span></a>
+        <button class="q-cat-link" type="button" id="copy-brief" data-en="Copy request">Copiar solicitud</button>
+      </div>
+      <p class="fine" id="ticket-note" aria-live="polite" data-en="Your advisor replies within one business day with the final price.">Tu asesora te responde en un día hábil con el precio final.</p>
+    </aside>
+  </div>
+</dialog>
 <dialog class="legal-sheet" id="legal" aria-labelledby="legal-title">
   <div class="bar"><span class="legal-tabs"><span data-en="Legal">Legal</span></span><button class="x" type="button" data-close aria-label="Cerrar">×</button></div>
   <div class="legal-body" id="legal-body"></div>
@@ -1929,6 +2109,13 @@
   // Catalog state lives up here: the quote form (rendered at start) reads the picked models.
   let CAT = null, catAll = [], catList = [], cvIndex = 0;
   let picked = (() => { try { return JSON.parse(store.get("chilian-picked") || "[]").map((p) => ({ qty: 600, color: "", kind: "playera", ...p })); } catch (e) { return []; } })();
+  // "Cotiza en un minuto": the configuration on screen and the estimates added to "Mi cotización".
+  // Reference prices come from /api/precios (the team edits them in Chilian OS → Ajustes);
+  // this copy keeps the quote working if that call fails.
+  const PRECIOS_BASE = {"tramos":[50,100,500,2000,10000],"productos":[{"id":"playera","nombre":"Playera de algodón","plural":"playeras de algodón","en":"Cotton T-shirt","pluralEn":"cotton T-shirts","precios":[98,88,76,70,65]},{"id":"sport","nombre":"Playera deportiva Chilian Sport","plural":"playeras Chilian Sport","en":"Chilian Sport performance tee","pluralEn":"Chilian Sport tees","precios":[110,100,92,86,82],"fullprint":true},{"id":"sudadera","nombre":"Sudadera o crewneck","plural":"sudaderas","en":"Hoodie or crewneck","pluralEn":"sweatshirts","precios":[285,265,240,225,212]},{"id":"polo","nombre":"Polo","plural":"polos","en":"Polo","pluralEn":"polos","precios":[195,180,165,155,148]},{"id":"camisa","nombre":"Camisa de uniforme","plural":"camisas de uniforme","en":"Uniform shirt","pluralEn":"uniform shirts","precios":[340,320,300,285,270]},{"id":"gorra","nombre":"Gorra","plural":"gorras","en":"Cap","pluralEn":"caps","precios":[78,70,62,57,53],"nodtg":true},{"id":"bolsa","nombre":"Bolsa de tela","plural":"bolsas de tela","en":"Tote bag","pluralEn":"tote bags","precios":[45,40,34,31,29]},{"id":"propia","nombre":"Mi prenda (la envío yo)","plural":"prendas del cliente","en":"My own garment (I ship it)","pluralEn":"customer garments","precios":[0,0,0,0,0]}],"fullprint":{"tramos":[100,300,1000,3000,10000],"precios":[310.8,199.8,177.6,155.4,133.2]},"tinta":[9,6.5,2.4,1.6,1.2],"baseUbicacion":[3,2,1,0.8,0.6],"pantalla":380,"especiales":{"plastisol":0,"waterbase":0.8,"discharge":1.6,"hd":2.5,"puff":2,"glitter":3,"gitd":3.5},"dtg":[85,75,65,60,58],"bordado":{"chico":[32,28,24,22,20],"mediano":[55,48,42,38,35],"grande":[95,85,75,68,62]},"ponchado":450,"express":18,"diasExpress":3,"dias":{"serigrafia":[[2000,8],[10000,10],[1000000000,15]],"dtg":[[100,4],[500,6],[1000000000,9]],"bordado":[[500,8],[3000,12],[1000000000,18]],"full":[[1000,12],[5000,15],[1000000000,20]]},"minimos":{"serigrafia":50,"dtg":1,"bordado":12,"full":100},"iva":16};
+  let PR = PRECIOS_BASE, PR_EJEMPLO = true;
+  let qz = (() => { try { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar", ...JSON.parse(store.get("chilian-qz") || "{}") }; } catch (e) { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar" }; } })();
+  let cart = (() => { try { return JSON.parse(store.get("chilian-cotizacion") || "[]").filter((c) => c && c.uid); } catch (e) { return []; } })();
 
   /* ================================================================
      RENDER the lists that change with the language
@@ -2058,7 +2245,7 @@
   /* ================================================================
      QUOTE: read the form, fill the work order, build the WhatsApp text
      ================================================================ */
-  let defaults = { type: "marca", techs: ["plastisol"] };
+  let defaults = { type: "marca", techs: [] };
   function readForm() {
     const type = $('input[name="type"]:checked')?.value || defaults.type;
     const techs = [...document.querySelectorAll('input[name="tech"]:checked')].map((i) => i.value);
@@ -2072,15 +2259,20 @@
   function summary() {
     const { type, techs } = readForm();
     const ty = TYPES.find((x) => x.id === type);
-    // With catalog models picked, the garments and pieces come from them.
-    const garment = picked.length ? [...new Set(picked.map((p) => kindName(p.kind || "playera")))].join(", ").replace(/^./, (c) => c.toUpperCase()) : t(GARMENTS[+$("#q-garment").value || 0]);
-    const qty = picked.length ? picked.reduce((a, p) => a + (p.qty || 0), 0) : Math.max(0, parseInt($("#q-qty").value, 10) || 0);
+    // The garments and pieces come from what is in "Mi cotización": estimates and catalog models.
+    // With nothing there yet, from the configurator on screen.
+    const est = cart.map((c) => qzCalc(c));
+    const names = [...picked.map((p) => kindName(p.kind || "playera")), ...est.map((r) => qzProdName(r.prod))];
+    const garment = names.length ? [...new Set(names)].join(", ").replace(/^./, (c) => c.toUpperCase()) : t(GARMENTS[+$("#q-garment").value || 0]);
+    const qty = names.length ? picked.reduce((a, p) => a + (p.qty || 0), 0) + est.reduce((a, r) => a + r.q, 0) : Math.max(0, parseInt($("#q-qty").value, 10) || 0);
     const date = $("#q-date").value;
+    const tecs = [...new Set([...est.map((r) => qzTecName(r.tec)), ...techs.map(techName), ...(names.length || techs.length ? [] : [qzTecName(qzCalc(qz).tec)])])];
+    const email = ($("#q-email") || { value: "" }).value.trim(), phone = $("#q-contact").value.trim();
     return {
-      ty, garment, qty, date, advisor: TEAM[ty.advisor],
-      techs: techs.map(techName),
+      ty, garment, qty, date, advisor: TEAM[ty.advisor], est,
+      techs: tecs, email, phone,
       name: $("#q-name").value.trim(), company: $("#q-company").value.trim(),
-      contact: $("#q-contact").value.trim(), notes: $("#q-notes").value.trim(),
+      contact: [phone, email].filter(Boolean).join(" · "), notes: $("#q-notes").value.trim(),
       picked: picked.map((p) => `${p.title}${p.models.length ? " (" + p.models.join(", ") + ")" : ""} — ${p.qty ? fmt(p.qty) : "?"} ${lang === "en" ? "pcs" : "pzas"}${p.color ? " · " + p.color : ""} · ${lang === "en" ? "catalog" : "catálogo"} ${p.cat} p. ${p.page}`)
     };
   }
@@ -2089,7 +2281,10 @@
     const L = lang === "en"
       ? ["Hi Chilian, I'd like a quote:", "Project", "Garment", "Pieces", "Technique", "Needed by", "Name", "Company", "Contact", "Notes"]
       : ["Hola Chilian, quiero cotizar:", "Proyecto", "Prenda", "Piezas", "Técnica", "Para el", "Nombre", "Empresa", "Contacto", "Notas"];
-    const rows = [[L[1], t(s.ty.label)], [L[2], s.garment], [L[3], s.qty ? fmt(s.qty) : ""], [lang === "en" ? "Catalog models" : "Modelos del catálogo", s.picked.length ? s.picked.map((l) => "\n   – " + l).join("") : ""], [L[4], s.techs.join(", ")], [L[5], s.date],
+    const estTotal = s.est.reduce((a, r) => a + (r.err ? 0 : r.total), 0);
+    const rows = [[L[1], t(s.ty.label)], [L[2], s.garment], [L[3], s.qty ? fmt(s.qty) : ""],
+                  [lang === "en" ? "Online estimate" : "Estimado en línea", s.est.length ? s.est.map((r) => "\n   – " + qzLine(r)).join("") + (estTotal ? `\n   ${lang === "en" ? "Estimated total" : "Total estimado"}: ${money(estTotal)} ${lang === "en" ? "plus VAT" : "más IVA"}` : "") : ""],
+                  [lang === "en" ? "Catalog models" : "Modelos del catálogo", s.picked.length ? s.picked.map((l) => "\n   – " + l).join("") : ""], [L[4], s.techs.join(", ")], [L[5], s.date],
                   [L[6], s.name], [L[7], s.company], [L[8], s.contact], [L[9], s.notes]].filter(([, v]) => v);
     return [L[0], ...rows.map(([k, v]) => `• ${k}: ${v}`)].join("\n");
   }
@@ -2128,16 +2323,18 @@
     const check = (input, box, bad, msg) => {
       input.setAttribute("aria-invalid", bad ? "true" : "false"); box.textContent = bad ? msg : ""; if (bad) ok = false;
     };
-    const name = $("#q-name"), contact = $("#q-contact"), v = contact.value.trim();
+    const name = $("#q-name"), contact = $("#q-contact"), email = $("#q-email"), v = contact.value.trim(), m = email.value.trim();
     check(name, $("#q-name-err"), !name.value.trim(), lang === "en" ? "Write your name so the advisor knows who to answer." : "Escribe tu nombre para que la asesora sepa a quién responder.");
-    const looksOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || v.replace(/\D/g, "").length >= 10;
-    check(contact, $("#q-contact-err"), !looksOk, lang === "en" ? "Add an email or a 10-digit phone number." : "Agrega un correo o un teléfono de 10 dígitos.");
+    const mailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m), phoneOk = v.replace(/\D/g, "").length >= 10;
+    check(email, $("#q-email-err"), !!m && !mailOk, lang === "en" ? "Check the email (name@company.com)." : "Revisa el correo (nombre@empresa.com).");
+    check(contact, $("#q-contact-err"), !!v ? !phoneOk : !mailOk, v ? (lang === "en" ? "Write the 10 digits of your WhatsApp." : "Escribe los 10 dígitos de tu WhatsApp.") : (lang === "en" ? "Add your WhatsApp or an email so we can reply." : "Agrega tu WhatsApp o un correo para responderte."));
     // Every catalog model needs its pieces.
     const missing = [...document.querySelectorAll("#qp-list .qp-qty")].filter((i) => !(parseInt(i.value, 10) > 0));
     document.querySelectorAll("#qp-list .qp-qty").forEach((i) => i.setAttribute("aria-invalid", String(missing.includes(i))));
     $("#qp-err").textContent = missing.length ? (lang === "en" ? "Write how many pieces of each model." : "Escribe cuántas piezas quieres de cada modelo.") : "";
     if (missing.length) { if (ok) missing[0].focus(); ok = false; }
-    if (!ok && document.activeElement && !document.activeElement.matches("#qp-list input")) (name.getAttribute("aria-invalid") === "true" ? name : contact).focus();
+    if (!ok && document.activeElement && !document.activeElement.matches("#qp-list input")) (name.getAttribute("aria-invalid") === "true" ? name : email.getAttribute("aria-invalid") === "true" ? email : contact).focus();
+    if (!ok && !cart.length && !picked.length) toast(lang === "en" ? "Fill in your details to send the request." : "Llena tus datos para enviar la solicitud.");
     return ok;
   }
 
@@ -2183,11 +2380,15 @@
       modelos: picked.map((p) => ({ id: p.id, titulo: p.title, modelos: p.models, piezas: p.qty || 0, color: p.color || "", catalogo: p.cat, pagina: p.page, tipo: p.kind || "" })),
       pagina: location.href.slice(0, 300), referencia: (ORIGIN.llegada || document.referrer).slice(0, 300), web: ($("#q-web") || {}).value || "",
       fuente: ORIGIN.fuente, medio: ORIGIN.medio, campana: ORIGIN.campana,
-      herramientas: ["cotizador", ...(picked.length ? ["catalogo"] : []), ...quoteTools],
+      herramientas: ["cotizador", ...(picked.length ? ["catalogo"] : []), ...(cart.length ? ["estimado"] : []), ...quoteTools],
       mockup: (s.notes.split("\n").find((l) => l.startsWith("Mockup: ")) || "").slice(8),
       estudio: quoteTools.has("estudio") && studioOut ? studioOut.estudio : null,
       adjuntar: picked.some((p) => (pickFiles[p.id] || []).length) || !!(quoteTools.has("estudio") && studioOut && studioOut.files.length),
-      graficos: picked.map((p) => (pickFiles[p.id] || []).map((f) => ({ modelo: p.id, archivo: f.name }))).flat()
+      graficos: picked.map((p) => (pickFiles[p.id] || []).map((f) => ({ modelo: p.id, archivo: f.name }))).flat(),
+      correo: s.email,
+      estimados: s.est.map((r, k) => ({ producto: r.prod.id, nombre: r.prod.nombre, piezas: r.q, tecnica: r.tec.id, tecnicaNombre: qzTecName(r.tec), tintas: r.kind === "serigrafia" ? r.c.inks : 0,
+        ubicaciones: r.kind === "full" ? 0 : r.c.locs, bordado: r.kind === "bordado" ? r.c.emb : "", entrega: r.c.del, unitario: r.err ? 0 : +r.unit.toFixed(2), total: r.err ? 0 : +r.total.toFixed(2),
+        dias: r.days, fechaEstimada: isoDay(r.date), resumen: qzSentence(r), origen: cart[k].origen || "cotizador" }))
     };
     const key = JSON.stringify({ ...payload, canal: "", pagina: "" });
     if (key === filed.key) { if (filed.id) showFolio(filed.id); return; }
@@ -2198,7 +2399,7 @@
   }
   function showFolio(id) {
     const note = $("#ticket-note");
-    note.textContent = lang === "en" ? `Request ${id} received. Your advisor will reply today (business days). Attach your artwork in WhatsApp.` : `Solicitud ${id} recibida. Tu asesora te responde hoy (días hábiles). Adjunta tu arte en WhatsApp.`;
+    note.textContent = lang === "en" ? `Request ${id} received. Your advisor will reply within one business day with the final price.` : `Solicitud ${id} recibida. Tu asesora te responde en un día hábil con el precio final.`;
     note.classList.add("copied");
     $("#ticket-no").textContent = id;
   }
@@ -2206,9 +2407,15 @@
   function wireQuote() {
     const form = $("#quote");
     form.addEventListener("input", updateTicket);
-    form.addEventListener("change", updateTicket);
+    form.addEventListener("change", () => { updateTicket(); renderQz(); });
     form.addEventListener("submit", (e) => e.preventDefault());
     $("#send-wa").addEventListener("click", (e) => { if (!validate()) { e.preventDefault(); return; } fileRequest("whatsapp"); });
+    $("#mq-send").addEventListener("click", () => {
+      if (!validate()) return;
+      if (!cart.length && !picked.length && !$("#q-notes").value.trim()) { toast(L("Agrega al menos un producto o cuéntanos qué necesitas en Comentarios.", "Add at least one product or tell us what you need in Comments.")); $("#q-notes").focus(); return; }
+      fileRequest("formulario");
+      toast(L("Enviando tu solicitud…", "Sending your request…"));
+    });
     $("#copy-brief").addEventListener("click", async () => {
       const text = briefText(summary()), note = $("#ticket-note");
       if (validate()) fileRequest("copiada");
@@ -2222,6 +2429,242 @@
   function pickType(id) {
     const r = $("#type-" + id); if (r) r.checked = true;
     updateTicket(); $("#cotizar").scrollIntoView({ behavior: smooth() });
+  }
+
+  /* ================================================================
+     COTIZA EN UN MINUTO: product, pieces, technique → price, date, nudge
+     ================================================================ */
+  const QZ_TECS = [
+    { id: "plastisol", kind: "serigrafia" }, { id: "waterbase", kind: "serigrafia" }, { id: "discharge", kind: "serigrafia" }, { id: "hd", kind: "serigrafia", name: { es: "HD", en: "HD" } },
+    { id: "puff", kind: "serigrafia" }, { id: "glitter", kind: "serigrafia" }, { id: "gitd", kind: "serigrafia" },
+    { id: "fullprint", kind: "full" }, { id: "dtg", kind: "dtg" }, { id: "embroidery", kind: "bordado", name: { es: "Bordado", en: "Embroidery" } }
+  ];
+  const QZ_KIND = { playera: "playera", sport: "playera", polo: "polo", sudadera: "sudadera", camisa: "camisa", gorra: "gorra" };
+  const QZ_GARMENT = { playera: 0, sport: 0, polo: 1, sudadera: 2, camisa: 3, gorra: 4, bolsa: 5, propia: 6 };
+  const EMB = [["chico", { es: "Chico", en: "Small" }, "≤ 7 cm"], ["mediano", { es: "Mediano", en: "Medium" }, "≤ 12 cm"], ["grande", { es: "Grande", en: "Large" }, "≤ 25 cm"]];
+  const money = (n, d = 2) => "$" + fmt(n, d);
+  const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const qzTecName = (tec) => (tec.name ? t(tec.name) : techName(tec.id));
+  const qzProdName = (p) => (lang === "en" && p.en ? p.en : p.nombre);
+  const qzProdPlural = (p) => (lang === "en" ? p.pluralEn || p.en || p.nombre : p.plural || p.nombre);
+  const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
+  function addBusinessDays(n) { const d = new Date(); d.setHours(12, 0, 0, 0); while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n--; } return d; }
+  // The estimate for one configuration: per-piece rows, unit price, total, business days and limits.
+  function qzCalc(c) {
+    const P = PR, prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
+    const tec = QZ_TECS.find((x) => x.id === c.tec) || QZ_TECS[0], kind = tec.kind;
+    const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos), locs = Math.min(4, Math.max(1, c.locs | 0)), inks = Math.min(6, Math.max(1, c.inks | 0));
+    const rows = [];
+    if (kind === "full") rows.push([L("Playera Chilian Sport, sublimada de costura a costura", "Chilian Sport tee, sublimated seam to seam"), P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0]);
+    else {
+      rows.push([prod.precios[i] ? L("Prenda o artículo", "Garment or item") : L("Prenda (la envías tú)", "Garment (you ship it)"), prod.precios[i] || 0]);
+      if (kind === "serigrafia") {
+        rows.push([L(`Impresión · ${inks} tinta${inks > 1 ? "s" : ""} × ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `Printing · ${inks} ink${inks > 1 ? "s" : ""} × ${locs} location${locs > 1 ? "s" : ""}`), ((P.tinta[i] || 0) * inks + (P.baseUbicacion[i] || 0) + ((P.especiales || {})[tec.id] || 0)) * locs]);
+        rows.push([L(`Pantallas prorrateadas (${inks * locs})`, `Screens, spread over the run (${inks * locs})`), q ? P.pantalla * inks * locs / q : 0]);
+      } else if (kind === "dtg") rows.push([L(`Impresión DTG a todo color × ${locs}`, `Full-color DTG printing × ${locs}`), (P.dtg[i] || 0) * locs]);
+      else {
+        const size = P.bordado[c.emb] ? c.emb : "mediano";
+        rows.push([L(`Bordado ${t(EMB.find((e) => e[0] === size)[1]).toLowerCase()} × ${locs}`, `${t(EMB.find((e) => e[0] === size)[1])} embroidery × ${locs}`), (P.bordado[size][i] || 0) * locs]);
+        rows.push([L("Ponchado prorrateado", "Digitizing, spread over the run"), q ? P.ponchado * locs / q : 0]);
+      }
+    }
+    const base = rows.reduce((a, r) => a + r[1], 0);
+    if (c.del === "express") rows.push([L(`Cargo express (+${P.express}%)`, `Express charge (+${P.express}%)`), base * P.express / 100]);
+    const unit = rows.reduce((a, r) => a + r[1], 0);
+    const table = (P.dias || {})[kind] || [[1e9, 10]];
+    let days = (table.find(([lim]) => q <= lim) || table[table.length - 1])[1];
+    if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
+    const min = (P.minimos || {})[kind] || 1;
+    let err = "";
+    if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport performance tee.");
+    else if (kind === "dtg" && prod.nodtg) err = L(`DTG no se imprime en ${qzProdPlural(prod)}; elige serigrafía o bordado.`, `DTG can't print on ${qzProdPlural(prod)}; pick screen printing or embroidery.`);
+    else if (q < min) err = L(`El mínimo en ${qzTecName(tec).toLowerCase()} es de ${fmt(min)} piezas.`, `The minimum for ${qzTecName(tec).toLowerCase()} is ${fmt(min)} pieces.`);
+    return { c: { ...c, locs, inks }, prod, tec, kind, q, rows, unit, total: unit * q, days, date: addBusinessDays(days), min, err };
+  }
+  function qzSentence(r) {
+    const n = r.c.inks, l = r.c.locs, tn = qzTecName(r.tec).toLowerCase();
+    const how = r.kind === "full" ? L("en full print", "in full print")
+      : r.kind === "serigrafia" ? L(`en ${tn}, ${n} tinta${n > 1 ? "s" : ""} en ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `in ${tn}, ${n} ink${n > 1 ? "s" : ""} in ${l} location${l > 1 ? "s" : ""}`)
+      : r.kind === "dtg" ? L(`en DTG a todo color, ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `in full-color DTG, ${l} location${l > 1 ? "s" : ""}`)
+      : L(`con bordado ${t((EMB.find((e) => e[0] === r.c.emb) || EMB[1])[1]).toLowerCase()}, ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `with ${t((EMB.find((e) => e[0] === r.c.emb) || EMB[1])[1]).toLowerCase()} embroidery, ${l} location${l > 1 ? "s" : ""}`);
+    return `${fmt(r.q)} ${r.q === 1 ? qzProdName(r.prod).toLowerCase() : qzProdPlural(r.prod)} ${how}${r.c.del === "express" ? L(", entrega express", ", express delivery") : ""}`;
+  }
+  const qzWhen = (r) => r.date.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { weekday: "long", day: "numeric", month: "long" });
+  const qzLine = (r) => `${qzSentence(r)}${r.err ? "" : ` — ${money(r.unit)}/${lang === "en" ? "pc" : "pza"} · ${money(r.total)} ${lang === "en" ? "plus VAT" : "más IVA"} · ${lang === "en" ? "approx." : "aprox."} ${r.days} ${lang === "en" ? "business days" : "días hábiles"}`}`;
+  // Where the price drops next: the next price break, if it lowers the price per piece.
+  function qzNudge(r) {
+    if (r.err) return null;
+    const tramos = r.kind === "full" ? PR.fullprint.tramos : PR.tramos, next = tramos.find((x) => x > r.q);
+    if (!next) return null;
+    const n = qzCalc({ ...r.c, qty: next });
+    const off = Math.round((1 - n.unit / r.unit) * 100);
+    return off >= 3 ? { qty: next, unit: n.unit, off } : null;
+  }
+  // The slider is logarithmic: 1 to 20,000 pieces with room for small and big runs.
+  const QZ_MAX = 20000;
+  const sliderToQty = (v) => { const q = Math.pow(QZ_MAX, v / 1000); return q < 100 ? Math.max(1, Math.round(q)) : q < 1000 ? Math.round(q / 10) * 10 : q < 10000 ? Math.round(q / 50) * 50 : Math.round(q / 500) * 500; };
+  const qtyToSlider = (q) => Math.round(Math.log(Math.max(1, Math.min(QZ_MAX, q))) / Math.log(QZ_MAX) * 1000);
+  function qzSave() { store.set("chilian-qz", JSON.stringify(qz)); }
+  function segRow(box, name, items, isOn, onPick, isOff) {
+    box.textContent = "";
+    items.forEach(([val, label, sub], k) => {
+      const input = el("input", { type: "radio", name, value: String(val) });
+      input.checked = isOn(val); if (isOff && isOff(val)) input.disabled = true;
+      input.addEventListener("change", () => onPick(val));
+      box.append(el("label", {}, [input, el("span", {}, sub ? [label, el("small", { text: sub })] : [label])]));
+    });
+  }
+  function renderQz() {
+    const P = PR, prod = P.productos.find((p) => p.id === qz.prod) || P.productos[0];
+    if (prod.id !== qz.prod) qz.prod = prod.id;
+    // product
+    const sel = $("#qz-prod");
+    if (sel.dataset.sig !== lang + P.productos.map((p) => p.id + p.nombre).join()) {
+      sel.dataset.sig = lang + P.productos.map((p) => p.id + p.nombre).join(); sel.textContent = "";
+      for (const p of P.productos) sel.append(el("option", { value: p.id, text: qzProdName(p) }));
+    }
+    sel.value = qz.prod;
+    const kind = QZ_KIND[qz.prod], cat = $("#qz-cat");
+    cat.hidden = !kind; if (kind) cat.textContent = L(`Ver modelos de ${kindName(kind).toLowerCase()} en el catálogo →`, `See ${kindName(kind).toLowerCase()} models in the catalog →`);
+    // technique: full print only on Chilian Sport, no DTG on caps
+    const off = (x) => (x.kind === "full" && !prod.fullprint) || (x.kind === "dtg" && prod.nodtg);
+    if (off(QZ_TECS.find((x) => x.id === qz.tec) || {})) qz.tec = "plastisol";
+    const tb = $("#qz-tec"); tb.textContent = "";
+    for (const x of QZ_TECS) {
+      const input = el("input", { type: "radio", name: "qz-tec", value: x.id });
+      input.checked = x.id === qz.tec; input.disabled = off(x);
+      input.addEventListener("change", () => { qz.tec = x.id; if (x.kind === "full" && qz.qty < PR.minimos.full) qz.qty = PR.minimos.full; qzSave(); renderQz(); });
+      tb.append(el("label", { class: "chip", title: off(x) ? (x.kind === "full" ? L("Solo en Chilian Sport", "Chilian Sport only") : L("No disponible en este producto", "Not available on this product")) : "" },
+        [input, el("span", {}, [qzTecName(x), off(x) ? el("small", { text: x.kind === "full" ? L(" · solo Chilian Sport", " · Chilian Sport only") : L(" · no disponible", " · not available") }) : ""])]));
+    }
+    const r = qzCalc(qz);
+    $("#qz-tec-note").textContent = r.kind === "full" ? L("Sublimado de costura a costura: el precio ya incluye la playera. Desde 100 piezas.", "Seam-to-seam sublimation: the price includes the tee. From 100 pieces.")
+      : r.kind === "dtg" ? L("Impresión digital a todo color, sin pantallas. Ideal para pocas piezas y fotos.", "Full-color digital print, no screens. Great for small runs and photos.")
+      : r.kind === "bordado" ? L("En hilo, en bordadora de 6 cabezas. Incluye el ponchado de tu logo.", "In thread, on our 6-head embroidery machine. Digitizing included.")
+      : (PR.especiales || {})[qz.tec] ? L("Tinta especial: suma un poco por ubicación.", "Special ink: adds a little per location.") : "";
+    // inks / embroidery size / locations
+    $("#qz-inks-step").hidden = r.kind !== "serigrafia";
+    $("#qz-emb-step").hidden = r.kind !== "bordado";
+    $("#qz-locs-step").hidden = r.kind === "full";
+    segRow($("#qz-inks"), "qz-inks", [1, 2, 3, 4, 5, 6].map((n) => [n, String(n)]), (v) => v === r.c.inks, (v) => { qz.inks = v; qzSave(); renderQz(); });
+    segRow($("#qz-emb"), "qz-emb", EMB.map(([id, n, sub]) => [id, t(n), sub]), (v) => v === (qz.emb || "mediano"), (v) => { qz.emb = v; qzSave(); renderQz(); });
+    $("#qz-emb").classList.add("wide");
+    segRow($("#qz-locs"), "qz-locs", [1, 2, 3, 4].map((n) => [n, String(n)]), (v) => v === r.c.locs, (v) => { qz.locs = v; qzSave(); renderQz(); });
+    const dayStd = qzCalc({ ...qz, del: "estandar" }).days, dayExp = qzCalc({ ...qz, del: "express" }).days;
+    segRow($("#qz-del"), "qz-del", [["estandar", L("Estándar", "Standard"), L(`${dayStd} días hábiles`, `${dayStd} business days`)], ["express", "Express", L(`${dayExp} días · +${PR.express}%`, `${dayExp} days · +${PR.express}%`)]], (v) => v === qz.del, (v) => { qz.del = v; qzSave(); renderQz(); });
+    // quantity
+    const qi = $("#qz-qty");
+    if (document.activeElement !== qi) qi.value = qz.qty || "";
+    qi.setAttribute("aria-invalid", String(!!r.err && r.q < r.min));
+    $("#qz-range").value = qtyToSlider(qz.qty || 1);
+    const quick = $("#qz-quick");
+    if (!quick.childElementCount || quick.dataset.lang !== lang) {
+      quick.dataset.lang = lang; quick.textContent = "";
+      for (const n of [100, 500, 2000, 10000]) quick.append(el("button", { type: "button", text: fmt(n), "data-n": n, onclick: () => { qz.qty = n; qzSave(); renderQz(); } }));
+    }
+    quick.querySelectorAll("button").forEach((b) => b.classList.toggle("on", +b.dataset.n === r.q));
+    const mn = $("#qz-min");
+    mn.textContent = r.q < r.min ? r.err : L(`Mínimo ${fmt(r.min)} pieza${r.min > 1 ? "s" : ""} en ${qzTecName(r.tec).toLowerCase()}.`, `Minimum ${fmt(r.min)} piece${r.min > 1 ? "s" : ""} for ${qzTecName(r.tec).toLowerCase()}.`);
+    mn.classList.toggle("warn", r.q < r.min);
+    // the estimated order
+    $("#qz-sum").textContent = qzSentence(r);
+    const br = $("#qz-break"); br.textContent = "";
+    for (const [k, v] of r.rows) br.append(el("dt", { text: k }), el("dd", { text: money(v) }));
+    const unit = $("#qz-unit"), total = $("#qz-total");
+    const u = r.err ? "—" : money(r.unit), tt = r.err ? "—" : money(r.total);
+    if (unit.textContent !== u) { unit.textContent = u; unit.classList.remove("tick"); void unit.offsetWidth; unit.classList.add("tick"); }
+    if (total.textContent !== tt) { total.textContent = tt; total.classList.remove("tick"); void total.offsetWidth; total.classList.add("tick"); }
+    $("#qz-iva").textContent = r.err ? L("más IVA", "plus VAT") : L(`más IVA · ${money(r.total * (1 + PR.iva / 100), 0)} con IVA`, `plus VAT · ${money(r.total * (1 + PR.iva / 100), 0)} with VAT`);
+    $("#qz-date").textContent = qzWhen(r);
+    $("#qz-days").textContent = L(`${r.days} días hábiles a partir de que apruebas el arte`, `${r.days} business days after you approve the artwork`);
+    const nd = qzNudge(r), nb = $("#qz-nudge");
+    nb.hidden = !nd;
+    if (nd) nb.replaceChildren(L(`Con ${fmt(nd.qty)} piezas el precio baja a ${money(nd.unit)} por pieza, ${nd.off}% menos.`, `At ${fmt(nd.qty)} pieces the price drops to ${money(nd.unit)} per piece, ${nd.off}% less.`),
+      el("button", { type: "button", text: L(`Usar ${fmt(nd.qty)}`, `Use ${fmt(nd.qty)}`), onclick: () => { qz.qty = nd.qty; qzSave(); renderQz(); } }));
+    const er = $("#qz-err"); er.hidden = !r.err || r.q < r.min; er.textContent = r.err;
+    $("#qz-add").disabled = !!r.err;
+    $("#qz-mbar-t").textContent = r.err ? L("Revisa la cantidad", "Check the quantity") : L(`Por pieza · total ${money(r.total, 0)} + IVA`, `Per piece · total ${money(r.total, 0)} + VAT`);
+    $("#qz-mbar-n").textContent = r.err ? "—" : money(r.unit);
+    let h = 0; for (const ch of JSON.stringify(r.c)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    $("#qz-no").textContent = "COT-" + String(h % 9000 + 1000);
+    $("#qz-fine").textContent = PR_EJEMPLO ? L("Precios de referencia de ejemplo, antes de IVA. Tu asesora confirma el precio final al revisar tu arte.", "Sample reference prices, before VAT. Your advisor confirms the final price after reviewing your artwork.")
+      : L("Precios de referencia antes de IVA. Tu asesora confirma el precio final al revisar tu arte, tallas y colores de prenda.", "Reference prices before VAT. Your advisor confirms the final price after reviewing your artwork, sizes and garment colors.");
+    // WhatsApp with this estimate, to the advisor of the project type picked
+    const adv = TEAM[(TYPES.find((x) => x.id === readForm().type) || TYPES[0]).advisor];
+    $("#qz-wa").href = `https://wa.me/${adv.wa}?text=${encodeURIComponent(L("Hola Chilian, quiero cotizar:", "Hi Chilian, I'd like a quote:") + "\n• " + qzLine(r) + "\n" + L("(Estimado del sitio, " + $("#qz-no").textContent + ")", "(Website estimate, " + $("#qz-no").textContent + ")"))}`;
+    // the hidden fields of the request follow the configurator (the studio and the catalog read them)
+    if (!picked.length) { $("#q-garment").selectedIndex = QZ_GARMENT[qz.prod] ?? 0; $("#q-qty").value = r.q; }
+  }
+  function wireQz() {
+    $("#qz-prod").addEventListener("change", (e) => { qz.prod = e.target.value; qzSave(); renderQz(); });
+    const qi = $("#qz-qty");
+    qi.addEventListener("input", () => { qz.qty = Math.max(0, parseInt(qi.value, 10) || 0); qzSave(); renderQz(); });
+    qi.addEventListener("blur", () => { if (!qz.qty) { qz.qty = qzCalc(qz).min; qzSave(); renderQz(); } });
+    $("#qz-range").addEventListener("input", (e) => { qz.qty = sliderToQty(+e.target.value); qzSave(); renderQz(); });
+    $("#qz").addEventListener("submit", (e) => e.preventDefault());
+    $("#qz-mbar-go").addEventListener("click", () => $(".qz-ticket").scrollIntoView({ behavior: smooth(), block: "start" }));
+    new IntersectionObserver((en) => document.documentElement.classList.toggle("qz-on", en[0].isIntersecting)).observe($("#qz"));
+    $("#qz-cat").addEventListener("click", () => showCatalog(QZ_KIND[qz.prod]));
+    $("#qz-add").addEventListener("click", () => {
+      const r = qzCalc(qz); if (r.err) return;
+      addEstimate({ ...r.c }, "cotizador");
+      toast(L("Agregado a tu cotización.", "Added to your quote."));
+    });
+    $("#qz-wa").addEventListener("click", (e) => { if (qzCalc(qz).err) e.preventDefault(); });
+    document.querySelectorAll("[data-mq]").forEach((b) => b.addEventListener("click", openMq));
+    $("#mq-more-qz").addEventListener("click", () => { closeDialog($("#mq")); $("#cotizar").scrollIntoView({ behavior: smooth() }); });
+    $("#mq-more-cat").addEventListener("click", () => { closeDialog($("#mq")); showCatalog(QZ_KIND[qz.prod]); });
+    fetch("/api/precios").then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (j && j.precios && Array.isArray(j.precios.productos) && j.precios.productos.length) { PR = j.precios; PR_EJEMPLO = j.ejemplo !== false; renderQz(); renderCart(); updateTicket(); }
+    }).catch(() => {});
+  }
+
+  /* "Mi cotización": the estimates plus the catalog models, then the request */
+  function addEstimate(c, origen) {
+    const same = cart.find((x) => ["prod", "tec", "inks", "locs", "emb", "del"].every((k) => x[k] === c[k]) && x.origen === origen);
+    if (same && origen === "cotizador") same.qty = c.qty;
+    else cart.push({ ...c, origen, uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) });
+    saveCart(true);
+  }
+  function saveCart(bump) {
+    store.set("chilian-cotizacion", JSON.stringify(cart));
+    renderCart(); updateTicket();
+    if (bump) document.querySelectorAll(".mq-count").forEach((b) => { b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump"); });
+  }
+  function updateMqCount() { const n = cart.length + picked.length; document.querySelectorAll(".mq-count").forEach((b) => (b.textContent = n)); }
+  function renderCart() {
+    updateMqCount();
+    const ul = $("#mq-items"), sig = cart.map((c) => c.uid).join() + lang;
+    if (ul.dataset.sig !== sig) {
+      ul.dataset.sig = sig; ul.textContent = "";
+      for (const c of cart) {
+        const qty = el("input", { type: "number", inputmode: "numeric", min: "1", step: "1", value: c.qty, "aria-label": L("Piezas", "Pieces") });
+        qty.addEventListener("input", () => { c.qty = Math.max(0, parseInt(qty.value, 10) || 0); store.set("chilian-cotizacion", JSON.stringify(cart)); paintCart(); updateTicket(); });
+        ul.append(el("li", { class: "mq-item", "data-uid": c.uid }, [
+          el("div", {}, [el("span", { class: "src", text: c.origen === "estudio" ? L("Desde Estampa tu idea", "From Print your idea") : L("Cotiza en un minuto", "Quote in a minute") }), el("strong", { class: "sum" }), el("div", { class: "meta" })]),
+          el("div", { class: "ctl" }, [qty, el("span", { class: "meta", text: L("pzas", "pcs") })]),
+          el("button", { class: "mq-x", type: "button", text: L("Quitar", "Remove"), onclick: () => { cart = cart.filter((x) => x !== c); saveCart(); } })
+        ]));
+      }
+    }
+    paintCart();
+  }
+  function paintCart() {
+    let tot = 0;
+    for (const li of document.querySelectorAll("#mq-items .mq-item")) {
+      const c = cart.find((x) => x.uid === li.dataset.uid); if (!c) continue;
+      const r = qzCalc(c); if (!r.err) tot += r.total;
+      li.querySelector(".sum").textContent = qzSentence(r);
+      const m = li.querySelector(".meta");
+      if (r.err) m.replaceChildren(el("span", { class: "warn", text: r.err }));
+      else m.replaceChildren(el("b", { text: money(r.unit) }), L(" por pieza · ", " per piece · "), el("b", { text: money(r.total) }), L(` más IVA · entrega aprox. ${r.days} días hábiles`, ` plus VAT · approx. ${r.days} business days`));
+    }
+    $("#mq-empty").hidden = cart.length + picked.length > 0;
+    $("#mq-total").hidden = !tot; $("#mq-total-n").textContent = money(tot);
+  }
+  function openMq() {
+    renderCart(); renderPicked(); updateTicket();
+    const d = $("#mq"); if (!d.open) d.showModal();
   }
 
   /* ================================================================
@@ -2276,6 +2719,7 @@
   $("#detail-cta").addEventListener("click", () => {
     if (detailApply) { detailApply(); detailApply = null; updateTicket(); return; }
     if (!lastTech) return;
+    if (QZ_TECS.some((x) => x.id === lastTech)) { qz.tec = lastTech; if (lastTech === "fullprint") qz.prod = "sport"; qzSave(); renderQz(); }
     const box = $("#tech-" + lastTech);
     if (box) box.checked = true;
     else {
@@ -2364,7 +2808,7 @@
     document.querySelectorAll(".reg").forEach((n) => (n.dataset.text = n.textContent));
     $("#lang-es").setAttribute("aria-pressed", String(next === "es"));
     $("#lang-en").setAttribute("aria-pressed", String(next === "en"));
-    renderCerts(); renderTechs(); renderWork(); renderVideos(); renderTeam(); renderQuoteChoices(); updateTicket(); updateCalc();
+    renderCerts(); renderTechs(); renderWork(); renderVideos(); renderTeam(); renderQuoteChoices(); renderQz(); renderCart(); updateTicket(); updateCalc();
     if (typeof wireTeamInfo === "function" && document.readyState !== "loading") wireTeamInfo();
     if (typeof renderPicked === "function" && document.readyState !== "loading") { renderPicked(); updateTicket(); }
     if (catAll.length) renderCatalog();
@@ -3192,9 +3636,15 @@
       updateTicket();
       $("#ticket-note").textContent = studioOut && studioOut.files.length ? L("Tu mockup y tu diseño se envían con la solicitud.", "Your mockup and design are sent with the request.")
         : L("Los datos de tu mockup ya están en la solicitud. Adjunta tus archivos de diseño en WhatsApp.", "Your mockup details are in the request. Attach your design files in WhatsApp.");
+      if (!(st.model && st.mode !== "full")) {
+        const gid = garment().id, placed = Object.keys(st.prints).filter((k) => st.prints[k]).length;
+        addEstimate({ prod: st.mode === "full" ? "sport" : gid === "hoodie" ? "sudadera" : gid === "polo" ? "polo" : "playera", qty,
+          tec: st.mode === "full" ? "fullprint" : st.tec === "dtg" ? "dtg" : st.tec === "bordado" ? "embroidery" : "plastisol",
+          inks: 1, locs: Math.min(4, Math.max(1, placed)), emb: "mediano", del: "estandar" }, "estudio");
+      }
       closeDialog($("#studio"));
-      $("#cotizar").scrollIntoView({ behavior: smooth() });
-      toast(L("Tu mockup ya está en la solicitud de cotización.", "Your mockup is now in the quote request."));
+      openMq();
+      toast(L("Tu mockup ya está en tu cotización.", "Your mockup is now in your quote."));
     });
   }
 
@@ -3207,6 +3657,7 @@
   { const d = new Date(); $("#q-date").min = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
   $("#sport-qty").addEventListener("input", updateCalc);
   wireQuote();
+  wireQz();
   // English for visitors whose browser is in English (US buyers), unless they chose.
   const saved = store.get("chilian-lang");
   setLang(saved || ((navigator.language || "es").toLowerCase().startsWith("en") ? "en" : "es"));
@@ -3479,6 +3930,8 @@
   }
   function renderPicked() {
     $("#cat-picked b").textContent = picked.length;
+    updateMqCount();
+    if ($("#mq-empty")) $("#mq-empty").hidden = cart.length + picked.length > 0;
     const box = $("#q-picked"), ul = $("#qp-list"), on = picked.length > 0;
     box.hidden = !on;
     // With models picked, the catalog decides the garments and the pieces add up by themselves.
@@ -3517,7 +3970,7 @@
     $("#cat-more").addEventListener("click", () => { catState.shown += 12; renderCatalog(); });
     $("#cat-picked").addEventListener("click", () => {
       if (!picked.length) { toast(L("Aún no agregas modelos: abre uno, escribe las piezas y toca “Agregar a mi cotización”.", "No models yet: open one, write the pieces and tap “Add to my quote”.")); return; }
-      $("#cotizar").scrollIntoView({ behavior: smooth() });
+      openMq();
     });
     $("#cv-prev").addEventListener("click", () => openCatItem(cvIndex - 1, -1));
     $("#cv-next").addEventListener("click", () => openCatItem(cvIndex + 1, 1));
@@ -3529,8 +3982,8 @@
     $("#cv-qty").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cv-pick").click(); });
     $("#cv-color").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cv-pick").click(); });
     $("#cv-remove").addEventListener("click", () => { removePick(catList[cvIndex].id); updatePickButton(); });
-    $("#cv-go").addEventListener("click", () => { closeDialog($("#cat-view")); $("#cotizar").scrollIntoView({ behavior: smooth() }); });
-    $("#qp-add").addEventListener("click", () => showCatalog());
+    $("#cv-go").addEventListener("click", () => { closeDialog($("#cat-view")); openMq(); });
+    $("#qp-add").addEventListener("click", () => { closeDialog($("#mq")); showCatalog(); });
     $("#q-cat-link").addEventListener("click", () => showCatalog(GARMENT_KIND[+$("#q-garment").value || 0]));
     $("#q-garment").addEventListener("change", renderPicked);
     $("#cv-studio").addEventListener("click", async () => {

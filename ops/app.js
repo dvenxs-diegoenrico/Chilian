@@ -470,9 +470,12 @@
         h("div", {}, h("div", { class: "label", text: "Piezas" }), h("b", { class: "num", text: piezas ? fmtN(piezas) : "—" })),
         h("div", {}, h("div", { class: "label", text: "Para el" }), h("div", { text: s.fechaNecesaria ? fmtDate(s.fechaNecesaria) : "Flexible" }), h("div", { class: "small muted", text: s.asesor ? "Asesora: " + s.asesor : "" }))),
       s.modelos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Mercancía que pidió (catálogo)" }), h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.modelos.map((m) => h("li", { text: `${m.titulo}${m.modelos?.length ? " (" + m.modelos.join(", ") + ")" : ""} — ${fmtN(m.piezas)} pzas${m.color ? " · " + m.color : ""}${m.catalogo ? " · " + m.catalogo + " p. " + m.pagina : ""}` })))) : null,
+      s.estimados?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Lo que cotizó en el sitio (Cotiza en un minuto, precios de referencia)" }),
+        h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.estimados.map((e) => h("li", {}, e.resumen || `${fmtN(e.piezas)} × ${e.nombre}`, e.unitario ? h("span", { class: "muted" }, ` — ${money(e.unitario)}/pza · ${money(e.total)} + IVA · ${e.dias} días hábiles${e.origen === "estudio" ? " · desde Estampa tu idea" : ""}`) : null)))) : null,
+      s.correo && s.correo !== s.contacto ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Correo: " }), h("a", { href: "mailto:" + s.correo, text: s.correo })) : null,
       pre ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" },
         h("span", { class: "small" }, h("b", { text: "Pre-cotización " + pre.id }), preC.total > 0 ? ` · ${money(preC.total)} estimado con precios anteriores` : " · lista para poner precios"),
-        h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
+        h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) || s.estimados?.length ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
       s.mockup ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Mockup: " }), s.mockup) : null,
       (s.adjuntos || []).length ? h("div", { class: "grid", style: "gap:.4rem" },
         h("div", { class: "thumbs" }, s.adjuntos.map((a) => h("a", { href: fileHref(a.path), target: "_blank", rel: "noopener" },
@@ -547,7 +550,7 @@
     if (preBusy || !S.token) return; preBusy = true;
     let made = 0;
     try {
-      const todo = list("solicitudes").filter((s) => specific(s) && !s.preCotizacionId && s.estado !== "descartada");
+      const todo = list("solicitudes").filter((s) => (specific(s) || s.estimados?.length) && !s.preCotizacionId && s.estado !== "descartada");
       for (const s of todo) {
         const doc = await CZ.newDoc({ cliente: s.cuentaId ? "" : s.empresa || s.nombre, cuentaId: s.cuentaId || "", oportunidadId: s.oportunidadId || "", solicitud: s });
         Object.assign(doc, { estado: "pre", solicitudId: s.id });
@@ -772,7 +775,7 @@
           h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox("¿Borrar esta oportunidad? Sus tareas también se borran."))) return; for (const t of tasks) await remove("tareas", t.id); await remove("oportunidades", o.id); toast("Oportunidad borrada."); go("pipeline"); } }, "Borrar oportunidad")))
     );
   }
-  const requestText = (s) => [`${s.id} · ${fmtDT(s.recibida)}`, waOf(s) ? `Llegó al WhatsApp ${waDest(s)}` : "", `${s.nombre} · ${s.empresa || ""} · ${s.contacto}`, `Prenda: ${s.prenda} · ${fmtN(s.piezas)} pzas`, `Técnicas: ${(s.tecnicas || []).join(", ")}`, ...(s.modelos || []).map((m) => `– ${m.titulo} (${(m.modelos || []).join(", ")}) · ${fmtN(m.piezas)} pzas · ${m.color || ""}`), s.notas || ""].filter(Boolean).join("\n");
+  const requestText = (s) => [`${s.id} · ${fmtDT(s.recibida)}`, waOf(s) ? `Llegó al WhatsApp ${waDest(s)}` : "", `${s.nombre} · ${s.empresa || ""} · ${s.contacto}${s.correo && s.correo !== s.contacto ? " · " + s.correo : ""}`, `Prenda: ${s.prenda} · ${fmtN(s.piezas)} pzas`, `Técnicas: ${(s.tecnicas || []).join(", ")}`, ...(s.estimados || []).map((e) => `– Estimado del sitio: ${e.resumen}${e.unitario ? ` · ${money(e.unitario)}/pza` : ""}`), ...(s.modelos || []).map((m) => `– ${m.titulo} (${(m.modelos || []).join(", ")}) · ${fmtN(m.piezas)} pzas · ${m.color || ""}`), s.notas || ""].filter(Boolean).join("\n");
   function confirmBox(text) {
     return new Promise((resolve) => {
       let done = false;
@@ -1482,6 +1485,55 @@
       })));
   }
 
+  // The prices the website's "Cotiza en un minuto" shows (sale prices before VAT, per piece).
+  // Saved apart from the rest of the settings (ajustes/precios-web) because the site reads them publicly.
+  function webPricesCard() {
+    const box = h("div", { class: "grid", style: "gap:.6rem" }, h("p", { class: "small muted", text: "Cargando…" }));
+    (async () => {
+      let base;
+      try { base = (await (await fetch("/api/precios", { cache: "no-store" })).json()).precios; } catch { box.replaceChildren(h("p", { class: "small", text: "No se pudieron cargar los precios del sitio." })); return; }
+      const doc = byId("ajustes", "precios-web");
+      const P = structuredClone(base), ej = { v: doc ? doc.ejemplo !== false : true };
+      const n = (arr, i, w = "5.2rem") => h("input", { class: "i num", type: "number", step: "any", min: "0", style: `width:${w}`, value: arr[i], oninput: (e) => { arr[i] = +e.target.value; } });
+      const rowOf = (label, arr) => h("tr", {}, h("td", { text: label }), ...arr.map((_, i) => h("td", {}, n(arr, i))));
+      const head = (tramos) => h("tr", {}, h("th", { text: "Piezas desde →" }), ...tramos.map((_, i) => h("th", {}, n(tramos, i, "5.2rem"))));
+      const one = (obj, key, label) => h("label", { class: "f" }, h("span", { text: label }), h("input", { class: "i", type: "number", step: "any", min: "0", value: obj[key], oninput: (e) => { obj[key] = +e.target.value; } }));
+      const prodRows = h("tbody");
+      const paintProds = () => prodRows.replaceChildren(...P.productos.map((p, k) => h("tr", {},
+        h("td", {}, h("input", { class: "i", style: "min-width:11rem", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } }),
+          h("div", { class: "row small", style: "gap:.5rem;margin-top:.2rem" },
+            h("input", { class: "i", style: "width:10rem", placeholder: "Plural (ej. playeras)", value: p.plural || "", oninput: (e) => { p.plural = e.target.value; } }),
+            h("button", { class: "x", type: "button", "aria-label": "Quitar producto", onclick: () => { if (confirm(`¿Quitar ${p.nombre} del cotizador del sitio?`)) { P.productos.splice(k, 1); paintProds(); } } }, "×"))),
+        ...p.precios.map((_, i) => h("td", {}, n(p.precios, i))))));
+      paintProds();
+      box.replaceChildren(
+        h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !ej.v, onchange: (e) => { ej.v = !e.target.checked; } }), "Estos precios ya están revisados (el sitio deja de decir “precios de ejemplo”)"),
+        h("div", { class: "label", text: "Prenda o artículo, por pieza" }),
+        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, head(P.tramos)), prodRows)),
+        h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { P.productos.push({ id: "p" + Date.now().toString(36), nombre: "Nuevo producto", plural: "", precios: P.tramos.map(() => 0) }); paintProds(); } }, "+ Producto"),
+        h("div", { class: "label", text: "Impresión, por pieza (mismas escalas)" }),
+        h("div", { class: "tbl" }, h("table", {}, h("tbody", {},
+          rowOf("Serigrafía: por tinta y ubicación", P.tinta), rowOf("Serigrafía: base por ubicación", P.baseUbicacion), rowOf("DTG: por ubicación", P.dtg),
+          rowOf("Bordado chico (≤ 7 cm)", P.bordado.chico), rowOf("Bordado mediano (≤ 12 cm)", P.bordado.mediano), rowOf("Bordado grande (≤ 25 cm)", P.bordado.grande)))),
+        h("div", { class: "label", text: "Chilian Sport full print (prenda + sublimación, por pieza)" }),
+        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, head(P.fullprint.tramos)), h("tbody", {}, rowOf("Precio por pieza", P.fullprint.precios)))),
+        h("div", { class: "label", text: "Extra por ubicación en tintas especiales" }),
+        h("div", { class: "grid g3" }, ...Object.keys(P.especiales).map((k) => one(P.especiales, k, ({ plastisol: "Plastisol", waterbase: "Base agua", discharge: "Discharge", hd: "HD", puff: "Puff", glitter: "Glitter", gitd: "Brilla en la oscuridad" })[k] || k))),
+        h("div", { class: "label", text: "Cargos, mínimos y tiempos" }),
+        h("div", { class: "grid g3" }, one(P, "pantalla", "Pantalla (MXN, se prorratea)"), one(P, "ponchado", "Ponchado (MXN por ubicación)"), one(P, "express", "Cargo express (%)"),
+          one(P, "diasExpress", "Días que ahorra express"), one(P, "iva", "IVA (%)"),
+          one(P.minimos, "serigrafia", "Mínimo serigrafía (pzas)"), one(P.minimos, "dtg", "Mínimo DTG (pzas)"), one(P.minimos, "bordado", "Mínimo bordado (pzas)"), one(P.minimos, "full", "Mínimo full print (pzas)")),
+        h("p", { class: "hint", text: "Los días hábiles por volumen (serigrafía 8/10/15, DTG 4/6/9, bordado 8/12/18, full print 12/15/20) se ajustan en el código si cambian." }),
+        h("div", { class: "row" },
+          h("button", { class: "btn accent", type: "button", onclick: async () => {
+            for (const p of P.productos) p.id = p.id || "p" + Date.now().toString(36);
+            await save("ajustes", { ...(byId("ajustes", "precios-web") || {}), id: "precios-web", precios: P, ejemplo: ej.v }); toast("Precios del sitio guardados. El sitio los muestra en unos minutos.");
+          } }, "Guardar precios del sitio"),
+          h("a", { class: "btn sm ghost", href: "/#cotizar", target: "_blank", rel: "noopener" }, "Ver el cotizador del sitio ↗")));
+    })();
+    return h("div", { class: "card" }, h("h2", { text: "Precios del cotizador web" }),
+      h("p", { class: "hint", text: "Lo que ve el cliente en “Cotiza en un minuto”: precio de venta antes de IVA, por pieza, según piezas. Son de referencia: la cotización formal se hace aquí en el OS." }), box);
+  }
   function instagramCard() {
     const status = h("div", { class: "grid", style: "gap:.35rem" }, h("p", { class: "muted small", text: "Revisando la conexión…" }));
     const link = (medium) => `${location.origin}/?utm_source=instagram&utm_medium=${medium}#cotizar`;
@@ -1568,6 +1620,7 @@
               h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.whatsapps.push({ wa: "", numero: "", linea: "" }); paint(); } }, "+ Número"));
               paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
           instagramCard(),
+          webPricesCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));
   }

@@ -31,6 +31,13 @@ export async function POST(req) {
       fuente: s(d.fuente, 30).toLowerCase() || "directo", medio: s(d.medio, 40), campana: s(d.campana, 60),
       herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
       mockup: s(d.mockup, 600), especifica: modelos.length > 0,
+      // configurations priced on the website ("Cotiza en un minuto"): what the customer saw
+      estimados: Array.isArray(d.estimados) ? d.estimados.slice(0, 20).map((x) => ({
+        producto: s(x.producto, 30), nombre: s(x.nombre, 80), piezas: Math.max(0, parseInt(x.piezas, 10) || 0), tecnica: s(x.tecnica, 20), tecnicaNombre: s(x.tecnicaNombre, 40),
+        tintas: Math.max(0, parseInt(x.tintas, 10) || 0), ubicaciones: Math.max(0, parseInt(x.ubicaciones, 10) || 0), bordado: s(x.bordado, 12), entrega: x.entrega === "express" ? "express" : "estandar",
+        unitario: Math.max(0, +x.unitario || 0), total: Math.max(0, +x.total || 0), dias: Math.max(0, parseInt(x.dias, 10) || 0), fechaEstimada: s(x.fechaEstimada, 10), resumen: s(x.resumen, 160), origen: s(x.origen, 20)
+      })) : [],
+      correo: s(d.correo, 120),
       graficos: Array.isArray(d.graficos) ? d.graficos.slice(0, 12).map((g) => ({ modelo: s(g.modelo, 40), archivo: s(g.archivo, 120) })) : [],
       estudio: d.estudio && typeof d.estudio === "object" ? {
         prenda: s(d.estudio.prenda, 60), color: s(d.estudio.color, 40), tecnica: ["serigrafia", "dtg", "bordado", "sublimacion"].includes(d.estudio.tecnica) ? d.estudio.tecnica : "serigrafia", modo: d.estudio.modo === "full" ? "full" : "place", piezas: Math.max(0, parseInt(d.estudio.piezas, 10) || 0),

@@ -363,3 +363,13 @@ El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y colo
 3. OS en todas las secciones y detalles, computadora y teléfono: en teléfono la columna crecía con el tablero de oportunidades → corregido; página 404 con la marca (`404.html`).
 4. Consistencia y accesibilidad: teléfonos, correos y WhatsApp iguales en todo el sitio, sin IDs duplicados, botones con nombre, imágenes con texto alternativo; campo trampa con etiqueta.
 5. Regresión completa (cotizador, equipo, Instagram, OT previa, máquinas, WhatsApp, catálogo y adjuntos): la prenda llegaba en minúsculas al elegir modelos → corregido.
+
+## Cotiza en un minuto (cotizador del sitio)
+
+La sección `#cotizar` funciona como un configurador con precio en vivo:
+
+- **Configurador:** producto, cantidad (campo, atajos 100 / 500 / 2,000 / 10,000 y deslizador), técnica, colores de tinta (1–6), tamaño de bordado, ubicaciones (1–4) y entrega (estándar o express). El full print solo se ofrece en la playera Chilian Sport y DTG no se ofrece en gorras. Cada técnica tiene su mínimo (serigrafía 50, DTG 1, bordado 12, full print 100).
+- **Orden estimada:** una frase con lo que se cotiza, el desglose por pieza (prenda, impresión, pantallas o ponchado prorrateados, cargo express), el precio por pieza, el total antes y con IVA, la fecha de entrega en días hábiles y cuánto baja el precio en la siguiente escala, con un botón para usarla. En teléfono, una barra fija abajo muestra el precio mientras se configura.
+- **Mi cotización:** un panel lateral (botón en el encabezado, con contador) junta los estimados, lo que llega de Estampa tu idea y los modelos del catálogo con sus gráficos. Ahí se editan las piezas, se quita lo que sobra, se ve el total y se envía la solicitud (nombre, empresa, correo, WhatsApp, fecha y comentarios), por el sitio o por WhatsApp a la asesora del tipo de proyecto.
+- **Precios:** `/api/precios` (público) devuelve los precios de venta de referencia; se editan en **Chilian OS → Ajustes → Precios del cotizador web**. Los valores que trae son **de ejemplo** y el sitio lo dice hasta que se marquen como revisados.
+- **En el OS:** la solicitud muestra lo que el cliente cotizó y su correo, y se crea una pre-cotización con un renglón por estimado al precio que vio el cliente, con sus ubicaciones y técnica.

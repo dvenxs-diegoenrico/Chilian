@@ -771,7 +771,15 @@
       H = history("");
       const lineas = [];
       if (solicitud && solicitud.modelos && solicitud.modelos.length) for (const m of solicitud.modelos) lineas.push(mkLine(BYKEY["cat:" + m.id] ? "cat:" + m.id : "libre", m.piezas || 0, { color: m.color || "", ...(BYKEY["cat:" + m.id] ? {} : { concepto: m.titulo }) }));
-      else if (solicitud) lineas.push(mkLine("libre", solicitud.piezas || 0, { concepto: solicitud.prenda || "Playera" }));
+      // what the customer priced in the website's "Cotiza en un minuto": one line each, at the price they saw
+      if (solicitud && solicitud.estimados && solicitud.estimados.length) for (const e of solicitud.estimados) {
+        const tec = e.tecnica === "dtg" ? "dtg" : e.tecnica === "embroidery" ? "bordado" : e.tecnica === "fullprint" ? "" : "serigrafia";
+        const names = ["Frente", "Espalda", "Manga", "Nuca"];
+        lineas.push(mkLine("libre", e.piezas || 0, { concepto: `${e.nombre} · ${e.tecnicaNombre}${e.entrega === "express" ? " · express" : ""}`, desc: `Estimado del sitio: ${e.resumen}`,
+          ...(e.unitario ? { precio: String(e.unitario), manual: true } : {}),
+          ubicaciones: tec ? Array.from({ length: Math.max(1, e.ubicaciones || 1) }, (_, i) => ({ nombre: names[i] || "Ubicación " + (i + 1), tecnica: tec, colores: tec === "serigrafia" ? e.tintas || 1 : 0, tintas: "", ...(tec === "bordado" ? { puntadas: e.bordado === "grande" ? 20000 : e.bordado === "chico" ? 5000 : 9000 } : {}) })) : [] }));
+      }
+      if (solicitud && !lineas.length) lineas.push(mkLine("libre", solicitud.piezas || 0, { concepto: solicitud.prenda || "Playera" }));
       const q = normalize({ oportunidadId, cuentaId, cliente, estado: "borrador", lineas, fecha: today(),
         notas: solicitud && (solicitud.tecnicas || []).length ? "Técnica solicitada: " + solicitud.tecnicas.join(", ") + "." : "" });
       if (solicitud && solicitud.fechaNecesaria) { q.ent = "fecha"; q.fechaEnt = solicitud.fechaNecesaria; }
