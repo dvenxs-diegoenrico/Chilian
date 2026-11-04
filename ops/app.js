@@ -92,7 +92,10 @@
   };
 
   /* ---------------- state + helpers ---------------- */
-  const S = { token: "", name: "", data: {}, loadedAt: 0, settings: structuredClone(DEFAULT_SETTINGS) };
+  const S = { token: "", name: "", usuario: "", role: "", users: [], data: {}, loadedAt: 0, settings: structuredClone(DEFAULT_SETTINGS) };
+  // The people who can own tasks and clients: the active team accounts.
+  const team = () => { const names = S.users.filter((u) => u.active).map((u) => u.name); return names.length ? names : [S.name]; };
+  const persistSession = () => store.set("chilian-os", JSON.stringify({ token: S.token, name: S.name, usuario: S.usuario, role: S.role }));
   const COLS = ["solicitudes", "cuentas", "oportunidades", "tareas", "cotizaciones", "ots", "ajustes"];
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -153,10 +156,15 @@
     return j;
   }
   async function loadAll(silent) {
+    const usersP = loadUsers();
     const res = await Promise.all(COLS.map((c) => api("GET", `/api/db?col=${c}`).then((j) => [c, j.docs]).catch((e) => { if (!silent) toast(`No se pudo cargar ${c}: ${e.message}`, true); return [c, null]; })));
     for (const [c, docs] of res) if (docs) S.data[c] = new Map(docs.map((d) => [d.id, d]));
     const st = byId("ajustes", "general");
     S.settings = mergeSettings(st);
+    await usersP;
+    // name or role changed by the admin: this session follows
+    const me = S.users.find((u) => u.username === S.usuario);
+    if (me && (me.name !== S.name || me.role !== S.role)) { S.name = me.name; S.role = me.role; persistSession(); }
     S.loadedAt = Date.now();
   }
   const mergeSettings = (st) => {
@@ -237,12 +245,12 @@
   const ROUTES = {
     inicio: viewHome, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
     prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
-    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings
+    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam
   };
   const NAV = [
     ["inicio", "Tablero"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
     ["cotizaciones", "Cotizaciones"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
-    ["group", "Sistema"], ["ajustes", "Ajustes"]
+    ["group", "Sistema"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
   ];
   const route = () => { const [r, ...rest] = (location.hash.slice(1) || "inicio").split("/"); return { r: ROUTES[r] ? r : "inicio", arg: decodeURIComponent(rest.join("/")) }; };
   const go = (hash) => { if (location.hash === "#" + hash) render(); else location.hash = hash; };
@@ -254,10 +262,11 @@
     const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
     const side = h("aside", { class: "side", id: "side" },
       h("div", { class: "brand" }, h("i", { "aria-hidden": "true" }), h("div", {}, h("b", { text: "CHILIAN" }), h("small", { text: "OS · PEDIDOS" }))),
-      h("nav", { class: "nav", "aria-label": "Secciones" }, NAV.map(([id, label]) => id === "group" ? h("div", { class: "group", text: label })
+      h("nav", { class: "nav", "aria-label": "Secciones" }, NAV.filter(([id]) => isAdmin() || (id !== "equipo" && id !== "ajustes")).filter(([id], i, a) => !(id === "group" && (!a[i + 1] || a[i + 1][0] === "group"))).map(([id, label]) => id === "group" ? h("div", { class: "group", text: label })
         : h("a", { href: "#" + id, class: parent === id ? "on" : "", onclick: () => $("#side").classList.remove("open") }, label, counts[id] ? h("span", { class: "count", text: counts[id] }) : null))),
-      h("div", { class: "me" }, h("span", { text: S.name }), h("span", { class: "muted small", text: `Datos de ${fmtDT(new Date(S.loadedAt).toISOString())}` }),
+      h("div", { class: "me" }, h("span", {}, S.name, h("span", { class: "muted small", text: " · " + S.usuario })), h("span", { class: "muted small", text: `Datos de ${fmtDT(new Date(S.loadedAt).toISOString())}` }),
         h("button", { type: "button", onclick: async () => { await loadAll(); render(); toast("Datos actualizados."); } }, "Actualizar datos"),
+        h("button", { type: "button", onclick: () => myAccountModal() }, "Mi cuenta"),
         h("button", { type: "button", onclick: () => logout() }, "Salir")));
     return h("div", { class: "shell" }, side,
       h("div", {}, h("div", { class: "mobile-bar" }, h("button", { class: "btn sm ghost", style: "color:inherit;border-color:currentColor", type: "button", onclick: () => $("#side").classList.toggle("open") }, "Menú"), h("b", { text: "CHILIAN OS" }), h("span", {})),
@@ -277,29 +286,28 @@
 
   /* ---------------- login ---------------- */
   function renderLogin(msg = "") {
-    const team = DEFAULT_SETTINGS.equipo;
     const err = h("p", { class: "err", text: msg });
     const form = h("form", { onsubmit: async (e) => {
       e.preventDefault(); err.textContent = "";
       const btn = form.querySelector("button"); btn.disabled = true;
       try {
-        const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: $("#l-name").value, password: $("#l-pass").value }) });
+        const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ usuario: $("#l-user").value, password: $("#l-pass").value }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || "No se pudo entrar.");
-        S.token = j.token; S.name = j.name; store.set("chilian-os", JSON.stringify({ token: j.token, name: j.name }));
+        Object.assign(S, { token: j.token, name: j.name, usuario: j.usuario, role: j.role }); persistSession(); store.set("chilian-os-user", j.usuario);
         $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
         await loadAll(); render();
       } catch (e2) { err.textContent = e2.message; btn.disabled = false; }
     } },
       h("div", { class: "label", text: "Grupo Chilian · sistema interno" }), h("h1", { text: "Chilian OS" }),
       h("p", { class: "muted small", text: "Solicitudes, CRM, cotizaciones, órdenes de trabajo, programación por pulpo, escaneo y embarques." }),
-      h("label", { class: "f" }, h("span", { text: "Tu nombre" }), h("input", { class: "i", id: "l-name", list: "l-team", required: true, autocomplete: "username", value: store.get("chilian-os-name") || "" }), h("datalist", { id: "l-team" }, team.map((n) => h("option", { value: n })))),
-      h("label", { class: "f" }, h("span", { text: "Contraseña del equipo" }), h("input", { class: "i", id: "l-pass", type: "password", required: true, autocomplete: "current-password" })),
-      err, h("button", { class: "btn accent", type: "submit" }, "Entrar"));
+      h("label", { class: "f" }, h("span", { text: "Usuario" }), h("input", { class: "i mono", id: "l-user", required: true, autocomplete: "username", autocapitalize: "none", spellcheck: "false", value: store.get("chilian-os-user") || "" })),
+      h("label", { class: "f" }, h("span", { text: "Contraseña" }), h("input", { class: "i", id: "l-pass", type: "password", required: true, autocomplete: "current-password" })),
+      err, h("button", { class: "btn accent", type: "submit" }, "Entrar"),
+      h("p", { class: "hint", text: "¿Sin cuenta o sin contraseña? Pídela a la cuenta principal (admin1)." }));
     $("#app").replaceChildren(h("div", { class: "login" }, form));
-    $("#l-name").addEventListener("change", (e) => store.set("chilian-os-name", e.target.value));
   }
-  function logout(msg) { S.token = ""; store.set("chilian-os", null); renderLogin(msg); }
+  function logout(msg) { Object.assign(S, { token: "", role: "", users: [] }); store.set("chilian-os", null); renderLogin(msg); }
 
   /* ---------------- home / dashboard ---------------- */
   function viewHome() {
@@ -350,7 +358,9 @@
     const o = t.oportunidadId ? byId("oportunidades", t.oportunidadId) : null;
     return h("li", {}, h("time", { class: dueClass(t.fecha), text: t.fecha ? fmtDate(t.fecha) : "Sin fecha" }),
       h("div", { class: "row between", style: "flex-wrap:nowrap;align-items:start" },
-        h("div", {}, h("b", { text: t.tipo ? t.tipo + ": " : "" }), t.texto, o ? h("div", {}, h("a", { class: "small muted", href: "#oportunidad/" + o.id }, `${o.titulo} · ${cuentaName(o.cuentaId)}`)) : null),
+        h("div", {}, t.prioridad && t.prioridad !== "normal" ? h("span", { class: "pill p-bad", style: "margin-right:.35rem", text: t.prioridad }) : null, h("b", { text: t.tipo ? t.tipo + ": " : "" }), t.texto,
+          o ? h("div", {}, h("a", { class: "small muted", href: "#oportunidad/" + o.id }, `${o.titulo} · ${cuentaName(o.cuentaId)}`)) : !o && t.cuentaId ? h("div", {}, h("a", { class: "small muted", href: "#cuenta/" + t.cuentaId }, cuentaName(t.cuentaId))) : null,
+          t.asignadaPor && t.asignadaPor !== t.asesor ? h("div", { class: "small muted", text: `Asignada por ${t.asignadaPor}${t.asesor !== S.name ? " a " + t.asesor : ""}` }) : t.asesor && t.asesor !== S.name ? h("div", { class: "small muted", text: t.asesor }) : null),
         h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha")));
   }
 
@@ -439,7 +449,7 @@
       top("CRM · arrastra para cambiar de etapa", "Oportunidades",
         h("input", { class: "i search", type: "search", placeholder: "Buscar oportunidad o cuenta", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewPipeline.t); viewPipeline.t = setTimeout(rerender, 250); } }),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.seg = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los segmentos" }), SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: f.seg === s.id }))),
-        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.asesor = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: f.asesor === n }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.asesor = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), team().map((n) => h("option", { value: n, text: n, selected: f.asesor === n }))),
         h("button", { class: "btn accent", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),
       h("div", { class: "board" }, lanes));
   }
@@ -488,7 +498,7 @@
       h("label", { class: "f" }, h("span", { text: "Origen" }), h("select", { class: "i", name: "origen" }, SOURCES.map((s) => h("option", { value: s, text: s, selected: s === "Prospección" })))),
       h("label", { class: "f" }, h("span", { text: "Valor estimado (MXN)" }), h("input", { class: "i", name: "valor", type: "number", min: "0", step: "100" })),
       h("label", { class: "f" }, h("span", { text: "Piezas al año" }), h("input", { class: "i", name: "piezasAnio", type: "number", min: "0", step: "100" })),
-      h("label", { class: "f" }, h("span", { text: "Responsable" }), h("select", { class: "i", name: "asesor" }, S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: n === S.name })))),
+      h("label", { class: "f" }, h("span", { text: "Responsable" }), h("select", { class: "i", name: "asesor" }, team().map((n) => h("option", { value: n, text: n, selected: n === S.name })))),
       h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Crear oportunidad")));
     modal("Nueva oportunidad", f);
   }
@@ -513,7 +523,7 @@
               field("Cuenta", h("a", { href: "#cuenta/" + o.cuentaId, text: cuenta?.nombre || "—" })),
               inputField("Valor estimado (MXN)", o.valor, "number", (v) => upd({ valor: +v || 0 })),
               inputField("Piezas al año", o.piezasAnio, "number", (v) => upd({ piezasAnio: +v || 0 })),
-              selectField("Responsable", o.asesor, S.settings.equipo, (v) => upd({ asesor: v })),
+              selectField("Responsable", o.asesor, team(), (v) => upd({ asesor: v })),
               selectField("Segmento", o.segmento, SEGMENTS.map((s) => [s.id, s.name]), (v) => upd({ segmento: v })),
               inputField("Probabilidad (%)", o.probabilidad ?? stageProb(o.etapa), "number", (v) => upd({ probabilidad: Math.max(0, Math.min(100, +v || 0)) })),
               inputField("Fecha que lo necesita", o.fechaNecesaria, "date", (v) => upd({ fechaNecesaria: v })),
@@ -544,7 +554,8 @@
               h("span", { class: "small", style: "flex:1", text: s.text }), h("span", { class: "num small muted", text: "+" + s.pts }))))),
           h("div", { class: "card" }, h("h2", { text: "Tareas" }),
             tasks.length ? h("ul", { class: "log" }, tasks.filter((t) => !t.hecha).map(taskItem)) : h("p", { class: "muted small", text: "Sin tareas. Inicia la cadencia o agrega una." }),
-            h("form", { class: "grid g2", onsubmit: async (e) => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); await save("tareas", { tipo: fd.tipo, texto: fd.texto, fecha: fd.fecha, oportunidadId: o.id, cuentaId: o.cuentaId, asesor: o.asesor || S.name, hecha: false }); rerender(); } },
+            h("form", { class: "grid g2", onsubmit: async (e) => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); await save("tareas", { tipo: fd.tipo, texto: fd.texto, fecha: fd.fecha, oportunidadId: o.id, cuentaId: o.cuentaId, asesor: fd.asesor || o.asesor || S.name, hecha: false, ...(fd.asesor && fd.asesor !== S.name ? { asignadaPor: S.name, asignadaEn: new Date().toISOString() } : {}) }); rerender(); } },
+              h("select", { class: "i full", name: "asesor", "aria-label": "Para" }, team().map((n) => h("option", { value: n, text: "Para: " + n, selected: n === (o.asesor || S.name) }))),
               h("select", { class: "i", name: "tipo" }, TIPOS_ACT.map((x) => h("option", { value: x, text: x }))), h("input", { class: "i", name: "fecha", type: "date", value: addDays(localDate(), 2) }),
               h("input", { class: "i full", name: "texto", placeholder: "Nueva tarea", required: true }), h("button", { class: "btn sm full", type: "submit" }, "Agregar tarea"))),
           h("div", { class: "card" }, h("h2", { text: "Mensajes listos" }),
@@ -593,7 +604,7 @@
     const groups = [["Atrasadas", ts.filter((t) => t.fecha && t.fecha < localDate())], ["Hoy", ts.filter((t) => t.fecha === localDate())], ["Próximas", ts.filter((t) => !t.fecha || t.fecha > localDate())]];
     return h("div", {},
       top("Lo que sigue con cada cuenta", "Tareas",
-        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: f.who === n }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), team().map((n) => h("option", { value: n, text: n, selected: f.who === n }))),
         h("div", { class: "chips" }, ["pendientes", "hechas"].map((x) => h("button", { type: "button", class: "chip" + (f.show === x ? " on" : ""), onclick: () => { f.show = x; rerender(); } }, x)))),
       f.show === "hechas" ? (ts.length ? h("div", { class: "card" }, h("ul", { class: "log" }, ts.slice(0, 200).map((t) => h("li", {}, h("time", { text: fmtDate(t.fecha) }), h("span", { text: `${t.tipo}: ${t.texto}` }))))) : h("div", { class: "empty", text: "No hay tareas hechas aún." }))
         : h("div", { class: "grid g3" }, groups.map(([name, xs]) => h("div", { class: "card" }, h("h2", { text: `${name} (${xs.length})` }), xs.length ? h("ul", { class: "log" }, xs.map(taskItem)) : h("p", { class: "muted small", text: "Nada aquí." })))));
@@ -601,8 +612,9 @@
 
   /* ---------------- accounts ---------------- */
   function viewAccounts() {
-    const f = viewAccounts.f ||= { q: "", seg: "" };
+    const f = viewAccounts.f ||= { q: "", seg: "", who: "" };
     let cs = list("cuentas");
+    if (f.who) cs = cs.filter((c) => (f.who === "-" ? !c.responsable : c.responsable === f.who));
     if (f.seg) cs = cs.filter((c) => c.segmento === f.seg);
     if (f.q) { const q = f.q.toLowerCase(); cs = cs.filter((c) => [c.nombre, c.ciudad, ...(c.contactos || []).map((x) => x.nombre + " " + x.contacto)].join(" ").toLowerCase().includes(q)); }
     cs.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -611,11 +623,13 @@
       top(`${list("cuentas").length} cuentas`, "Cuentas",
         h("input", { class: "i search", type: "search", placeholder: "Buscar empresa, ciudad o contacto", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewAccounts.t); viewAccounts.t = setTimeout(rerender, 250); } }),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.seg = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los segmentos" }), SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: f.seg === s.id }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, [["", "Todos los responsables"], [S.name, "Mis clientes"], ["-", "Sin responsable"], ...team().filter((n) => n !== S.name).map((n) => [n, n])].map(([v, t]) => h("option", { value: v, text: t, selected: f.who === v }))),
         h("button", { class: "btn ghost", type: "button", onclick: importModal }, "Importar CSV"),
+        isAdmin() ? h("button", { class: "btn ghost", type: "button", onclick: () => assignFollowModal() }, "Asignar seguimiento") : null,
         h("button", { class: "btn accent", type: "button", onclick: () => accountModal() }, "+ Cuenta")),
-      cs.length ? h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Empresa", "Segmento", "Ciudad", "Contacto principal", "Oportunidades", "Valor abierto"].map((x, i) => h("th", { class: i > 3 ? "r" : "", text: x })))),
+      cs.length ? h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Empresa", "Segmento", "Responsable", "Contacto principal", "Oportunidades", "Valor abierto"].map((x, i) => h("th", { class: i > 3 ? "r" : "", text: x })))),
         h("tbody", {}, cs.map((c) => { const os = oppsOf(c.id), open = os.filter((o) => !["ganado", "perdido"].includes(o.etapa)); return h("tr", { class: "click", onclick: () => go("cuenta/" + c.id) },
-          h("td", {}, h("b", { text: c.nombre })), h("td", { text: segName(c.segmento) }), h("td", { text: [c.ciudad, c.pais].filter(Boolean).join(", ") }),
+          h("td", {}, h("b", { text: c.nombre })), h("td", { text: segName(c.segmento) }), h("td", { class: c.responsable ? "" : "muted", text: c.responsable || "Sin asignar" }),
           h("td", { class: "small", text: c.contactos?.[0] ? `${c.contactos[0].nombre} · ${c.contactos[0].contacto}` : "—" }), h("td", { class: "r num", text: os.length }), h("td", { class: "r money", text: moneyK(open.reduce((a, o) => a + oppValue(o), 0)) })); }))))
         : h("div", { class: "empty", text: "Aún no hay cuentas. Agrega prospectos uno por uno o importa una lista en CSV desde Prospección." }));
   }
@@ -624,7 +638,7 @@
     const f = h("form", { class: "grid g2", onsubmit: async (e) => {
       e.preventDefault(); const fd = new FormData(f);
       const cts = $$(".ct", f).map((row) => ({ nombre: $(".cn", row).value.trim(), puesto: $(".cp", row).value.trim(), contacto: $(".cc", row).value.trim() })).filter((x) => x.nombre || x.contacto);
-      const saved = await save("cuentas", { ...c, nombre: fd.get("nombre").trim(), segmento: fd.get("segmento"), ciudad: fd.get("ciudad"), pais: fd.get("pais"), sitio: fd.get("sitio"), fuente: fd.get("fuente"), notas: fd.get("notas"), contactos: cts });
+      const saved = await save("cuentas", { ...c, nombre: fd.get("nombre").trim(), segmento: fd.get("segmento"), ciudad: fd.get("ciudad"), pais: fd.get("pais"), sitio: fd.get("sitio"), fuente: fd.get("fuente"), notas: fd.get("notas"), responsable: fd.get("responsable"), contactos: cts });
       closeModal(); go("cuenta/" + saved.id);
     } },
       h("label", { class: "f full" }, h("span", { text: "Empresa" }), h("input", { class: "i", name: "nombre", required: true, value: c.nombre || "" })),
@@ -632,7 +646,8 @@
       h("label", { class: "f" }, h("span", { text: "Origen" }), h("select", { class: "i", name: "fuente" }, SOURCES.map((s) => h("option", { value: s, text: s, selected: (c.fuente || "Prospección") === s })))),
       h("label", { class: "f" }, h("span", { text: "Ciudad" }), h("input", { class: "i", name: "ciudad", value: c.ciudad || "" })),
       h("label", { class: "f" }, h("span", { text: "País" }), h("input", { class: "i", name: "pais", value: c.pais || "México" })),
-      h("label", { class: "f full" }, h("span", { text: "Sitio o red social" }), h("input", { class: "i", name: "sitio", value: c.sitio || "" })),
+      h("label", { class: "f" }, h("span", { text: "Sitio o red social" }), h("input", { class: "i", name: "sitio", value: c.sitio || "" })),
+      h("label", { class: "f" }, h("span", { text: "Responsable" }), h("select", { class: "i", name: "responsable" }, h("option", { value: "", text: "— Sin asignar —" }), team().map((n) => h("option", { value: n, text: n, selected: (c.id ? c.responsable : S.name) === n })))),
       h("div", { class: "full grid", style: "gap:.4rem" }, h("span", { class: "label", text: "Contactos" }), h("div", { class: "grid", id: "cts", style: "gap:.4rem" }, contacts.map(contactRow)),
         h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => $("#cts").append(contactRow({})) }, "+ Contacto")),
       h("label", { class: "f full" }, h("span", { text: "Notas" }), h("textarea", { class: "i", name: "notas", text: c.notas || "" })),
@@ -645,7 +660,9 @@
     if (!c) return h("div", { class: "empty", text: "No encontramos esta cuenta." });
     const os = list("oportunidades").filter((o) => o.cuentaId === id), qs = list("cotizaciones").filter((q) => q.cuentaId === id), ots = list("ots").filter((o) => o.cuentaId === id);
     return h("div", {},
-      top(`${segName(c.segmento)} · ${c.fuente || ""}`, c.nombre, h("button", { class: "btn ghost", type: "button", onclick: () => accountModal(c) }, "Editar"), h("button", { class: "btn accent", type: "button", onclick: () => newOppModal({ cuentaId: c.id, segmento: c.segmento }) }, "+ Oportunidad")),
+      top(`${segName(c.segmento)} · ${c.fuente || ""} · ${c.responsable ? "Responsable: " + c.responsable : "Sin responsable"}`, c.nombre, h("button", { class: "btn ghost", type: "button", onclick: () => accountModal(c) }, "Editar"),
+        isAdmin() ? h("button", { class: "btn ghost", type: "button", onclick: () => assignFollowModal({ cuentaId: c.id, asesor: c.responsable }) }, "Asignar seguimiento") : null,
+        h("button", { class: "btn ghost", type: "button", onclick: () => assignTaskModal({ cuentaId: c.id, asesor: c.responsable || S.name }) }, "+ Tarea"), h("button", { class: "btn accent", type: "button", onclick: () => newOppModal({ cuentaId: c.id, segmento: c.segmento }) }, "+ Oportunidad")),
       h("div", { class: "cols" },
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("h2", { text: "Oportunidades" }), os.length ? h("div", { class: "tbl" }, h("table", {}, h("tbody", {}, os.map((o) => h("tr", { class: "click", onclick: () => go("oportunidad/" + o.id) }, h("td", { text: o.titulo }), h("td", { text: stageName(OPP_STAGES, o.etapa) }), h("td", { class: "r money", text: moneyK(oppValue(o)) })))))) : h("p", { class: "muted small", text: "Sin oportunidades." })),
@@ -1064,8 +1081,172 @@
             h("td", {}, o.embarque?.rastreoUrl ? h("a", { class: "btn sm ghost", href: o.embarque.rastreoUrl, target: "_blank", rel: "noopener" }, "Rastrear") : null, h("button", { class: "btn sm", type: "button", onclick: async () => { await save("ots", setStage(o, "entregada", "Entrega confirmada"), { quiet: true }); toast(`${o.id} entregada.`); rerender(); } }, "Entregada"))))))) : h("p", { class: "muted small", text: "Nada en camino." }))));
   }
 
+  /* ---------------- team: accounts, assignments and follow-ups (admin1 and admins) ---------------- */
+  const isAdmin = () => S.role === "admin";
+  const userByName = (name) => S.users.find((u) => u.name === name);
+  function newPassword() {
+    const abc = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint32Array(12));
+    return [...r].map((x) => abc[x % abc.length]).join("").replace(/(.{4})(?=.)/g, "$1-");
+  }
+  const credText = (u, pw) => `Tu cuenta de Chilian OS\n${location.origin}/ops\nUsuario: ${u.username}\nContraseña: ${pw}\n\nAl entrar, cámbiala en «Mi cuenta».`;
+  function showCredentials(u, pw, title) {
+    const txt = credText(u, pw);
+    modal(title, h("div", { class: "grid" },
+      h("p", { class: "small", text: "Compártelos por un canal privado. La contraseña no se vuelve a mostrar; si se pierde, restablécela." }),
+      h("div", { class: "copybox", text: txt }),
+      h("div", { class: "row" }, h("button", { class: "btn accent", type: "button", onclick: () => copy(txt) }, "Copiar datos de acceso"), h("button", { class: "btn ghost", type: "button", onclick: () => closeModal() }, "Listo"))));
+  }
+  async function loadUsers() {
+    try { S.users = (await api("GET", "/api/usuarios")).users || []; } catch (e) { if (e.message !== "401") S.users = S.users || []; }
+  }
+  async function saveUser(data) {
+    const { user } = await api("POST", "/api/usuarios", { accion: "guardar", ...data });
+    await loadUsers();
+    return user;
+  }
+  function userModal(u = null) {
+    const pwIn = h("input", { class: "i mono", name: "password", value: u ? "" : newPassword(), placeholder: u ? "Déjala vacía para no cambiarla" : "", autocomplete: "new-password" });
+    const nameIn = h("input", { class: "i", name: "name", required: true, value: u?.name || "" });
+    const userIn = h("input", { class: "i mono", name: "username", required: true, value: u?.username || "", readonly: !!u, pattern: "[a-zA-Z0-9._\\-]{3,40}", title: "3 a 40 letras, números, punto o guion", autocapitalize: "none" });
+    if (!u) nameIn.addEventListener("input", () => { if (!userIn.dataset.touched) userIn.value = nameIn.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).join("."); });
+    userIn.addEventListener("input", () => { userIn.dataset.touched = "1"; });
+    const main = u?.username === "admin1";
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      try {
+        const saved = await saveUser({ nuevo: !u, username: fd.username, name: fd.name, puesto: fd.puesto, role: main ? "admin" : fd.role, active: u ? u.active : true, password: fd.password || undefined });
+        if (u && u.name !== saved.name) await renameEverywhere(u.name, saved.name);
+        if (u && saved.username === S.usuario) { S.name = saved.name; persistSession(); }
+        if (fd.password) showCredentials(saved, fd.password, u ? "Contraseña nueva" : "Cuenta creada"); else { closeModal(); toast("Cuenta guardada."); }
+        rerender();
+      } catch (err) { toast(err.message, true); }
+    } },
+      h("label", { class: "f" }, h("span", { text: "Nombre" }), nameIn),
+      h("label", { class: "f" }, h("span", { text: "Usuario para entrar" }), userIn),
+      h("label", { class: "f" }, h("span", { text: "Puesto" }), h("input", { class: "i", name: "puesto", value: u?.puesto || "", placeholder: "Ej. Ventas uniformes" })),
+      h("label", { class: "f" }, h("span", { text: "Permisos" }), h("select", { class: "i", name: "role", disabled: main },
+        h("option", { value: "equipo", text: "Equipo (ventas, planta)", selected: u?.role !== "admin" }), h("option", { value: "admin", text: "Administrador (cuentas y ajustes)", selected: u?.role === "admin" }))),
+      h("label", { class: "f full" }, h("span", { text: u ? "Contraseña nueva (opcional)" : "Contraseña inicial" }),
+        h("div", { class: "row", style: "flex-wrap:nowrap" }, pwIn, h("button", { class: "btn sm ghost", type: "button", onclick: () => { pwIn.value = newPassword(); } }, "Generar"))),
+      h("p", { class: "hint full", text: "Mínimo 8 caracteres. Al cambiarla, la persona sale de sus otros dispositivos." }),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, u ? "Guardar cambios" : "Crear cuenta")));
+    modal(u ? `Editar ${u.name}` : "Nueva cuenta del equipo", f);
+  }
+  // Tasks, opportunities and accounts point to people by name: keep them when a name changes.
+  async function renameEverywhere(from, to) {
+    for (const t of list("tareas").filter((x) => x.asesor === from)) await save("tareas", { ...t, asesor: to }, { quiet: true });
+    for (const o of list("oportunidades").filter((x) => x.asesor === from)) await save("oportunidades", { ...o, asesor: to }, { quiet: true });
+    for (const c of list("cuentas").filter((x) => x.responsable === from)) await save("cuentas", { ...c, responsable: to }, { quiet: true });
+  }
+  function myAccountModal() {
+    const f = h("form", { class: "grid", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      if (fd.nueva !== fd.otra) return toast("Las dos contraseñas nuevas no coinciden.", true);
+      try { const { token } = await api("POST", "/api/usuarios", { accion: "mi-clave", actual: fd.actual, nueva: fd.nueva }); S.token = token; persistSession(); closeModal(); toast("Contraseña cambiada."); }
+      catch (err) { if (err.message !== "401") toast(err.message, true); }
+    } },
+      h("p", { class: "small" }, "Usuario: ", h("b", { class: "mono", text: S.usuario }), ` · ${S.name}${isAdmin() ? " · administrador" : ""}`),
+      h("label", { class: "f" }, h("span", { text: "Contraseña actual" }), h("input", { class: "i", type: "password", name: "actual", required: true, autocomplete: "current-password" })),
+      h("label", { class: "f" }, h("span", { text: "Contraseña nueva (8 o más)" }), h("input", { class: "i", type: "password", name: "nueva", required: true, minlength: "8", autocomplete: "new-password" })),
+      h("label", { class: "f" }, h("span", { text: "Repite la nueva" }), h("input", { class: "i", type: "password", name: "otra", required: true, minlength: "8", autocomplete: "new-password" })),
+      h("button", { class: "btn accent", type: "submit" }, "Cambiar contraseña"));
+    modal("Mi cuenta", f);
+  }
+
+  // Assign one task to a person (optionally about a client and one of its opportunities).
+  function assignTaskModal(pre = {}) {
+    const people = team();
+    const cuentaSel = h("select", { class: "i", name: "cuentaId" }, h("option", { value: "", text: "— Sin cliente —" }), list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre)).map((c) => h("option", { value: c.id, text: c.nombre, selected: pre.cuentaId === c.id })));
+    const oppSel = h("select", { class: "i", name: "oportunidadId" });
+    const paintOpps = () => oppSel.replaceChildren(h("option", { value: "", text: "— Ninguna —" }), list("oportunidades").filter((o) => o.cuentaId === cuentaSel.value && !["ganado", "perdido"].includes(o.etapa)).map((o) => h("option", { value: o.id, text: o.titulo, selected: pre.oportunidadId === o.id })));
+    cuentaSel.addEventListener("change", paintOpps); paintOpps();
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      await save("tareas", { tipo: fd.tipo, texto: fd.texto.trim(), fecha: fd.fecha, prioridad: fd.prioridad, asesor: fd.asesor, cuentaId: fd.cuentaId, oportunidadId: fd.oportunidadId, hecha: false, asignadaPor: S.name, asignadaEn: new Date().toISOString() }, { quiet: true });
+      closeModal(); toast(`Tarea asignada a ${fd.asesor}.`); rerender();
+    } },
+      h("label", { class: "f" }, h("span", { text: "Para" }), h("select", { class: "i", name: "asesor", required: true }, people.map((n) => h("option", { value: n, text: n, selected: (pre.asesor || "") === n })))),
+      h("label", { class: "f" }, h("span", { text: "Tipo" }), h("select", { class: "i", name: "tipo" }, TIPOS_ACT.concat(["Seguimiento", "Cotizar", "Cobranza", "Producción"]).map((x) => h("option", { value: x, text: x, selected: pre.tipo === x })))),
+      h("label", { class: "f full" }, h("span", { text: "Qué hay que hacer" }), h("input", { class: "i", name: "texto", required: true, value: pre.texto || "", placeholder: "Ej. Llamar para confirmar tallas y fecha de entrega" })),
+      h("label", { class: "f" }, h("span", { text: "Para cuándo" }), h("input", { class: "i", type: "date", name: "fecha", required: true, value: pre.fecha || addDays(localDate(), 1) })),
+      h("label", { class: "f" }, h("span", { text: "Prioridad" }), h("select", { class: "i", name: "prioridad" }, [["normal", "Normal"], ["alta", "Alta"], ["urgente", "Urgente"]].map(([v, t]) => h("option", { value: v, text: t })))),
+      h("label", { class: "f" }, h("span", { text: "Cliente (opcional)" }), cuentaSel),
+      h("label", { class: "f" }, h("span", { text: "Oportunidad (opcional)" }), oppSel),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Asignar tarea")));
+    modal("Asignar tarea", f);
+  }
+  // Give a person a client to follow: they become its owner and get the follow-ups on their list.
+  function assignFollowModal(pre = {}) {
+    const cs = list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre));
+    if (!cs.length) return toast("Primero crea la cuenta del cliente (Cuentas → + Cuenta).", true);
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      const c = byId("cuentas", fd.cuentaId), veces = Math.max(1, Math.min(12, +fd.veces || 1)), cada = +fd.cada || 0;
+      const texto = fd.texto.trim() || `Seguimiento a ${c.nombre}: pedidos, cotizaciones y próximas fechas`;
+      for (let i = 0; i < (cada ? veces : 1); i++) await save("tareas", { tipo: "Seguimiento", texto: cada && veces > 1 ? `${texto} (${i + 1}/${veces})` : texto, fecha: addDays(fd.fecha, i * cada), asesor: fd.asesor, cuentaId: c.id, hecha: false, seguimiento: true, asignadaPor: S.name, asignadaEn: new Date().toISOString() }, { quiet: true });
+      if (fd.responsable) await save("cuentas", { ...c, responsable: fd.asesor }, { quiet: true });
+      if (fd.opps) for (const o of list("oportunidades").filter((x) => x.cuentaId === c.id && !["ganado", "perdido"].includes(x.etapa))) await save("oportunidades", { ...o, asesor: fd.asesor }, { quiet: true });
+      closeModal(); toast(`${c.nombre} quedó con ${fd.asesor}: ${cada ? veces : 1} seguimiento(s).`); rerender();
+    } },
+      h("label", { class: "f" }, h("span", { text: "Cliente" }), h("select", { class: "i", name: "cuentaId", required: true }, cs.map((c) => h("option", { value: c.id, text: c.nombre + (c.responsable ? ` · ${c.responsable}` : ""), selected: pre.cuentaId === c.id })))),
+      h("label", { class: "f" }, h("span", { text: "Lo sigue" }), h("select", { class: "i", name: "asesor", required: true }, team().map((n) => h("option", { value: n, text: n, selected: pre.asesor === n })))),
+      h("label", { class: "f" }, h("span", { text: "Primer seguimiento" }), h("input", { class: "i", type: "date", name: "fecha", required: true, value: addDays(localDate(), 1) })),
+      h("label", { class: "f" }, h("span", { text: "Repetir" }), h("select", { class: "i", name: "cada" }, [["0", "Solo una vez"], ["7", "Cada semana"], ["14", "Cada 2 semanas"], ["30", "Cada mes"]].map(([v, t]) => h("option", { value: v, text: t })))),
+      h("label", { class: "f" }, h("span", { text: "Cuántas veces" }), h("input", { class: "i", type: "number", name: "veces", min: "1", max: "12", value: "4" })),
+      h("label", { class: "f full" }, h("span", { text: "Indicación (opcional)" }), h("input", { class: "i", name: "texto", placeholder: "Ej. Revisar reorden de uniformes y cobrar saldo pendiente" })),
+      h("label", { class: "cz-check full" }, h("input", { type: "checkbox", name: "responsable", value: "1", checked: true }), h("span", { text: "Hacerla responsable de la cuenta" })),
+      h("label", { class: "cz-check full" }, h("input", { type: "checkbox", name: "opps", value: "1" }), h("span", { text: "Pasarle también las oportunidades abiertas de este cliente" })),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Asignar seguimiento")));
+    modal("Asignar seguimiento de cliente", f);
+  }
+
+  function viewTeam() {
+    if (!isAdmin()) return h("div", { class: "empty", text: "Esta sección es solo para la cuenta principal." });
+    const tasks = list("tareas").filter((t) => !t.hecha), today = localDate();
+    const statsOf = (name) => { const ts = tasks.filter((t) => t.asesor === name); return { pend: ts.length, late: ts.filter((t) => t.fecha && t.fecha < today).length, cuentas: list("cuentas").filter((c) => c.responsable === name).length, opps: list("oportunidades").filter((o) => o.asesor === name && !["ganado", "perdido"].includes(o.etapa)).length, ts }; };
+    const rows = S.users.map((u) => {
+      const st = statsOf(u.name), main = u.username === "admin1";
+      return h("tr", {},
+        h("td", {}, h("b", { text: u.name }), h("div", { class: "small muted", text: u.puesto || "" })),
+        h("td", { class: "mono small", text: u.username }),
+        h("td", {}, h("span", { class: "pill " + (u.role === "admin" ? "p-acc" : "p-mut"), text: main ? "principal" : u.role === "admin" ? "admin" : "equipo" })),
+        h("td", {}, h("span", { class: "pill " + (u.active ? "p-ok" : "p-bad"), text: u.active ? "activa" : "desactivada" })),
+        h("td", { class: "small", text: u.lastLogin ? fmtDT(u.lastLogin) : "Nunca" }),
+        h("td", { class: "r num", text: st.pend }), h("td", { class: "r num " + (st.late ? "due-late" : ""), text: st.late }), h("td", { class: "r num", text: st.cuentas }),
+        h("td", {}, h("div", { class: "row", style: "gap:.3rem" },
+          h("button", { class: "btn sm ghost", type: "button", onclick: () => userModal(u) }, "Editar"),
+          h("button", { class: "btn sm ghost", type: "button", onclick: async () => { const pw = newPassword(); try { const saved = await saveUser({ username: u.username, name: u.name, puesto: u.puesto, role: u.role, active: u.active, password: pw }); showCredentials(saved, pw, "Contraseña restablecida"); rerender(); } catch (err) { toast(err.message, true); } } }, "Restablecer contraseña"),
+          !main ? h("button", { class: "btn sm ghost", type: "button", onclick: async () => { try { await saveUser({ username: u.username, name: u.name, puesto: u.puesto, role: u.role, active: !u.active }); toast(u.active ? `${u.name} ya no puede entrar.` : `${u.name} puede entrar de nuevo.`); rerender(); } catch (err) { toast(err.message, true); } } }, u.active ? "Desactivar" : "Activar") : null,
+          !main ? h("button", { class: "btn sm danger", type: "button", onclick: async () => { if (!(await confirmBox(`¿Borrar la cuenta de ${u.name}? Sus tareas y clientes se quedan; reasígnalos antes si hace falta.`))) return; try { await api("DELETE", "/api/usuarios?u=" + encodeURIComponent(u.username)); await loadUsers(); toast("Cuenta borrada."); rerender(); } catch (err) { toast(err.message, true); } } }, "Borrar") : null)));
+    });
+    const people = S.users.filter((u) => u.active);
+    return h("div", {},
+      top("Solo la cuenta principal ve esta sección", "Equipo",
+        h("button", { class: "btn ghost", type: "button", onclick: () => assignFollowModal() }, "Asignar seguimiento de cliente"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => assignTaskModal() }, "Asignar tarea"),
+        h("button", { class: "btn accent", type: "button", onclick: () => userModal() }, "+ Cuenta")),
+      h("div", { class: "card" }, h("h2", { text: "Cuentas de acceso" }),
+        h("p", { class: "hint", text: "Cada persona entra con su usuario y su contraseña. Desactivar una cuenta la saca de inmediato de todos sus dispositivos." }),
+        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Persona", "Usuario", "Permisos", "Estado", "Último acceso", "Pendientes", "Atrasadas", "Clientes", ""].map((x, i) => h("th", { class: i >= 5 && i <= 7 ? "r" : "", text: x })))), h("tbody", {}, rows)))),
+      h("h2", { class: "label", style: "margin:1.4rem 0 .6rem", text: "Carga de trabajo" }),
+      h("div", { class: "grid g3" }, people.map((u) => {
+        const st = statsOf(u.name), next = st.ts.sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9")).slice(0, 5);
+        return h("div", { class: "card" },
+          h("div", { class: "row between" }, h("h2", { text: u.name }), h("span", { class: "small muted", text: `${st.pend} pendientes · ${st.opps} oportunidades` })),
+          st.late ? h("p", { class: "small due-late", text: `${st.late} atrasada(s)` }) : null,
+          next.length ? h("ul", { class: "log" }, next.map((t) => h("li", {}, h("time", { class: dueClass(t.fecha), text: t.fecha ? fmtDate(t.fecha) : "Sin fecha" }),
+            h("span", {}, h("b", { text: (t.tipo || "Tarea") + ": " }), t.texto, t.cuentaId ? h("span", { class: "muted small", text: " · " + cuentaName(t.cuentaId) }) : null))))
+            : h("p", { class: "muted small", text: "Sin tareas pendientes." }),
+          h("div", { class: "row" },
+            h("button", { class: "btn sm", type: "button", onclick: () => assignTaskModal({ asesor: u.name }) }, "Asignar tarea"),
+            h("button", { class: "btn sm ghost", type: "button", onclick: () => assignFollowModal({ asesor: u.name }) }, "Asignar cliente"),
+            h("a", { class: "btn sm ghost", href: "#tareas", onclick: () => { viewTasks.f = { who: u.name, show: "pendientes" }; } }, "Ver todas")));
+      })));
+  }
+
   /* ---------------- settings ---------------- */
   function viewSettings() {
+    if (!isAdmin()) return h("div", { class: "empty", text: "Los ajustes los cambia la cuenta principal." });
     const st = structuredClone(S.settings);
     const saveAll = async () => { const saved = await save("ajustes", { ...st, id: "general" }); S.settings = mergeSettings(saved); toast("Ajustes guardados."); rerender(); };
     const num = (obj, key, label, step = "any") => h("label", { class: "f" }, h("span", { text: label }), h("input", { class: "i", type: "number", step, value: obj[key], oninput: (e) => { obj[key] = +e.target.value; } }));
@@ -1100,9 +1281,8 @@
             h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } })), num(p, "paletas", "Paletas", "1"), num(p, "colores", "Colores", "1"),
             h("button", { class: "x", type: "button", "aria-label": "Quitar pulpo", onclick: (e) => { st.pulpos.splice(i, 1); e.target.closest(".grid").remove(); } }, "×")))),
             h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.pulpos.push({ id: "p" + rid(), nombre: "Pulpo nuevo", paletas: 12, colores: 8 }); saveAll(); } }, "+ Pulpo")),
-          h("div", { class: "card" }, h("h2", { text: "Equipo" }), h("p", { class: "hint", text: "Nombres para responsables y tareas, uno por línea." }),
-            h("textarea", { class: "i", style: "min-height:150px", value: st.equipo.join("\n"), oninput: (e) => { st.equipo = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean); } })),
-          h("div", { class: "card" }, h("h2", { text: "Acceso" }), h("p", { class: "small", text: "La contraseña del equipo vive en Vercel (proyecto chilian → Settings → Environment Variables → OPS_PASSWORD). Cámbiala ahí y vuelve a desplegar; las sesiones abiertas duran 14 días." })))));
+          h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
+            h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));
   }
 
   /* ---------------- start ---------------- */
@@ -1114,7 +1294,7 @@
   // keep data fresh while the app is open (other people are working too)
   setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); } }, 90_000);
   (async () => {
-    try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token) { S.token = s.token; S.name = s.name; } } catch {}
+    try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token && s.usuario) Object.assign(S, { token: s.token, name: s.name, usuario: s.usuario, role: s.role }); } catch {}
     if (!S.token) return renderLogin();
     $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
     try { await loadAll(); render(); } catch { /* 401 handled in api() */ }

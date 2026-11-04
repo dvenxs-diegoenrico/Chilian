@@ -7,7 +7,7 @@ const ALLOWED = /^(image\/(png|jpeg|webp|svg\+xml|gif)|application\/pdf)$/;
 
 export async function POST(req) {
   try {
-    if (!sessionOf(req)) return json({ error: "Tu sesión terminó. Vuelve a entrar." }, 401);
+    if (!(await sessionOf(req))) return json({ error: "Tu sesión terminó. Vuelve a entrar." }, 401);
     const q = new URL(req.url).searchParams, type = (req.headers.get("content-type") || "").split(";")[0];
     if (!ALLOWED.test(type)) return json({ error: "Sube PNG, JPG, WebP, SVG o PDF." }, 415);
     const bytes = new Uint8Array(await req.arrayBuffer());
@@ -20,7 +20,7 @@ export async function POST(req) {
 export async function GET(req) {
   try {
     const q = new URL(req.url).searchParams, p = q.get("path") || "";
-    let ok = !!sessionOf(req);
+    let ok = !!(await sessionOf(req));
     if (!ok && q.get("t")) {
       const ot = await otByToken(q.get("t"));
       ok = !!ot && p.startsWith(`files/${ot.id}/`);

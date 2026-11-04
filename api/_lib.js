@@ -176,9 +176,49 @@ export function verify(token) {
     return p.exp > Date.now() ? p : null;
   } catch { return null; }
 }
-export function sessionOf(req) {
+// A session is valid while its account exists, is active and has not been reset since
+// (resetting a password or deactivating bumps the account's version, closing its sessions).
+export async function sessionOf(req) {
   const h = req.headers.get("authorization") || "";
-  return verify(h.startsWith("Bearer ") ? h.slice(7) : new URL(req.url).searchParams.get("s"));
+  const p = verify(h.startsWith("Bearer ") ? h.slice(7) : new URL(req.url).searchParams.get("s"));
+  if (!p || !p.u) return null;
+  const user = await userCached(p.u);
+  if (!user || user.active === false || (user.v || 0) !== (p.v || 0)) return null;
+  return { u: user.username, name: user.name, role: user.role };
+}
+export const sessionToken = (user) => sign({ u: user.username, v: user.v || 0, exp: Date.now() + 14 * 864e5 });
+
+/* ---------- accounts: users/<username>.json, never exposed through /api/db ---------- */
+export const ADMIN = "admin1";
+export const safeUser = (u) => String(u || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 40);
+const userPath = (u) => `users/${safeUser(u)}.json`;
+const ucache = new Map();   // username -> { at, user }
+async function userCached(u) {
+  const c = ucache.get(u);
+  if (c && Date.now() - c.at < 15000) return c.user;
+  const user = await readPath(userPath(u));
+  ucache.set(u, { at: Date.now(), user });
+  return user;
+}
+export const getUser = (u) => readPath(userPath(u));
+export async function listUsers() {
+  const items = await listPaths("users/");
+  return (await Promise.all(items.map((i) => readPath(i.pathname)))).filter(Boolean);
+}
+export async function putUser(user) { await writePath(userPath(user.username), user); ucache.delete(user.username); }
+export async function deleteUser(u) { await removePath(userPath(u)); ucache.delete(safeUser(u)); }
+export const publicUser = (u) => ({ username: u.username, name: u.name, role: u.role, puesto: u.puesto || "", active: u.active !== false, createdAt: u.createdAt, lastLogin: u.lastLogin || "" });
+export function hashPass(pw) {
+  const salt = crypto.randomBytes(16), hash = crypto.scryptSync(String(pw), salt, 32);
+  return "scrypt$" + salt.toString("base64url") + "$" + hash.toString("base64url");
+}
+export function checkPass(pw, stored) {
+  try {
+    const [kind, salt, hash] = String(stored || "").split("$");
+    if (kind !== "scrypt") return false;
+    const want = Buffer.from(hash, "base64url"), got = crypto.scryptSync(String(pw || ""), Buffer.from(salt, "base64url"), want.length);
+    return crypto.timingSafeEqual(got, want);
+  } catch { return false; }
 }
 export function passwordOk(given) {
   const want = process.env.OPS_PASSWORD || (LOCAL ? "local" : "");

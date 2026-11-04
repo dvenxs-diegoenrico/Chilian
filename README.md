@@ -309,7 +309,9 @@ Para regenerar el catálogo cuando Chilian actualice sus PDF: ver `tools/catalog
 
 ## Chilian OS: cada pedido, de la prospección al embarque (`/ops`)
 
-Sistema interno en `chilian.vercel.app/ops`. Entra el equipo con su nombre y la contraseña del equipo (`OPS_PASSWORD` en las variables de entorno del proyecto de Vercel; la sesión dura 14 días).
+Sistema interno en `chilian.vercel.app/ops`. Cada persona entra con su usuario y contraseña (la sesión dura 14 días).
+
+**Cuentas:** `admin1` es la cuenta principal. La primera vez entra con la contraseña original del equipo (`OPS_PASSWORD` en Vercel) y conviene cambiarla en «Mi cuenta». Desde **Equipo** crea las cuentas del equipo con su contraseña inicial, restablece contraseñas, desactiva o borra cuentas, da permisos de administrador, asigna tareas (con cliente, oportunidad, fecha y prioridad) y seguimientos de clientes (responsable de la cuenta y seguimientos repetidos), y ve la carga de trabajo de cada persona. Solo los administradores ven Equipo y Ajustes; el servidor lo hace valer. Las contraseñas se guardan con scrypt en `users/` del Blob privado, fuera de `/api/db`.
 
 **Flujo:** Solicitud del sitio → Oportunidad (CRM) → Cotización → OT → Programación por pulpo → Escaneo por estación → Embarque → Entregada.
 
