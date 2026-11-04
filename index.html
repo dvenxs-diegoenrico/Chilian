@@ -644,6 +644,22 @@
   .st-range input { grid-column: 1 / -1; width: 100%; }
   .st-range output { font: 500 .8rem var(--f-mono); }
   .st-actions { display: grid; gap: .6rem; padding-top: .4rem; border-top: 1px solid var(--rule); }
+  /* The main action never scrolls away: quoting with this design is always one tap. */
+  .st-actions #st-quote { position: sticky; bottom: .6rem; z-index: 2; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .st-library { display: grid; gap: .4rem; }
+  .st-lib-label { font-size: .8rem; color: var(--steel); }
+  .st-lib-row { display: flex; gap: .5rem; overflow-x: auto; padding: .15rem .1rem .35rem; scroll-snap-type: x proximity; }
+  .st-lib-row button { flex: none; width: 4.6rem; height: 4.6rem; padding: .3rem; border: 1px solid var(--rule); background: repeating-conic-gradient(#e9e8ec 0 25%, #f7f6f8 0 50%) 0 0/14px 14px; cursor: pointer; scroll-snap-align: start; position: relative; transition: border-color .15s ease, transform .15s ease; }
+  .st-lib-row button img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .st-lib-row button.on { border: 2px solid var(--ink); }
+  .st-lib-row button.on::after { content: "✓"; position: absolute; top: .15rem; right: .25rem; font: 700 .62rem var(--f-mono); color: var(--paper); background: var(--ink); width: 1rem; height: 1rem; display: grid; place-items: center; border-radius: 50%; }
+  @media (hover: hover) { .st-lib-row button:hover { transform: translateY(-2px); border-color: var(--ink); } }
+  .st-undo { background: none; border: 0; padding: 0 0 0 .4rem; color: var(--magenta); font: 600 .78rem var(--f-mono); text-decoration: underline; cursor: pointer; }
+  @media (min-width: 861px) {
+    /* Desktop: the garment stays in view while the options scroll. */
+    .st-stage { position: sticky; top: 3.3rem; align-self: start; }
+    #st-canvas { max-height: calc(100dvh - 14rem); width: auto; max-width: 100%; margin: 0 auto; }
+  }
   .st-actions .btn { width: 100%; }
   .st-note { font: 400 .72rem/1.5 var(--f-mono); color: var(--steel); }
   @media (max-width: 860px) {
@@ -1636,15 +1652,23 @@
     <div class="st-panel">
       <div>
         <h2 id="st-title" data-en="Print your idea">Estampa tu idea</h2>
-        <p class="lead" data-en="Upload your design and see it on the garment. Your file stays on your device.">Sube tu diseño y míralo en la prenda. Tu archivo no sale de tu dispositivo.</p>
+        <p class="lead" data-en="Pick the garment, upload your design and see it printed. Your file stays on your device.">Elige la prenda, sube tu diseño y míralo estampado. Tu archivo no sale de tu dispositivo.</p>
       </div>
-      <div class="st-step">
-        <span data-en="Print sections · one graphic each">Secciones de impresión · un gráfico por sección</span>
+      <fieldset class="st-step"><legend data-en="Garment">Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
+      <fieldset class="st-step" id="st-step-mode"><legend data-en="Print type">Tipo de impresión</legend><div class="chips" id="st-modes"></div>
+        <span class="st-color-name" id="st-mode-note"></span></fieldset>
+      <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
+      <div class="st-step st-design">
+        <span data-en="Your design · one graphic per section">Tu diseño · un gráfico por sección</span>
         <div class="chips st-sections" id="st-sections"></div>
+        <div class="st-library" id="st-library" hidden>
+          <span class="st-lib-label" data-en="Your files · tap one to use it in this section">Tus archivos · toca uno para usarlo en esta sección</span>
+          <div class="st-lib-row" id="st-lib-row"></div>
+        </div>
         <label class="st-drop" id="st-drop">
           <input type="file" id="st-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
           <strong id="st-drop-title">Sube o arrastra tu archivo</strong>
-          <span data-en="PNG with transparency works best · JPG, SVG, WebP">PNG con fondo transparente funciona mejor · JPG, SVG, WebP</span>
+          <span data-en="PNG, JPG, SVG or WebP · you can also paste it (Ctrl+V)">PNG, JPG, SVG o WebP · también puedes pegarlo (Ctrl+V)</span>
         </label>
         <p class="st-file" id="st-file-name" aria-live="polite"></p>
         <div class="st-file-row">
@@ -1652,12 +1676,9 @@
           <button class="st-remove" type="button" id="st-remove" data-en="Remove graphic">Quitar gráfico</button>
         </div>
       </div>
-      <fieldset class="st-step"><legend data-en="Garment">Prenda</legend><div class="chips" id="st-garments"></div></fieldset>
-      <fieldset class="st-step" id="st-step-mode"><legend data-en="Print type">Tipo de impresión</legend><div class="chips" id="st-modes"></div>
-        <span class="st-color-name" id="st-mode-note"></span></fieldset>
-      <fieldset class="st-step"><legend id="st-color-legend" data-en="Garment color">Color de la prenda</legend><div class="swatches" id="st-colors"></div><span class="st-color-name" id="st-color-name"></span></fieldset>
       <fieldset class="st-step" id="st-step-place"><legend data-en="Placement in this section">Posición en la sección</legend><div class="chips" id="st-places"></div></fieldset>
-      <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div></fieldset>
+      <fieldset class="st-step" id="st-step-size"><legend data-en="Print size">Tamaño del estampado</legend><div class="chips" id="st-sizes"></div>
+        <label class="st-range"><span data-en="Fine-tune the width">Ajustar el ancho</span> <output id="st-fine-out"></output><input type="range" id="st-fine" min="4" max="40" step="0.5" value="25"></label></fieldset>
       <fieldset class="st-step" id="st-step-edit" hidden><legend data-en="Edit on the pattern">Editar en el molde</legend>
         <label class="st-range"><span id="st-scale-name">Tamaño</span> <output id="st-scale-out"></output><input type="range" id="st-scale" min="2" max="60" step="0.5" value="20"></label>
         <label class="st-range"><span data-en="Rotation">Rotación</span> <output id="st-rot-out">0°</output><input type="range" id="st-rot" min="-180" max="180" step="1" value="0"></label>
@@ -2423,7 +2444,10 @@
     const p = placesOf(id)[Math.min(pr.place, placesOf(id).length - 1)], art = pr.art;
     let wcm = p.sizes[pr.size], hcm = wcm * (art.height / art.width);
     if (hcm > p.maxH) { hcm = p.maxH; wcm = hcm * (art.width / art.height); }
-    if (st.mode === "full" && pr.wcm) { wcm = pr.wcm; hcm = wcm * (art.height / art.width); }   // free size on the pattern
+    if (pr.wcm) {   // free size: on the pattern, or fine-tuned on the photo (never taller than the place allows)
+      wcm = pr.wcm; hcm = wcm * (art.height / art.width);
+      if (st.mode !== "full" && hcm > p.maxH) { hcm = p.maxH; wcm = hcm * (art.width / art.height); }
+    }
     if (isSleeve(id)) return { wcm, hcm, place: p };
     const v = garment().views[secDef(id).side], w = wcm * v.pxcm, h = hcm * v.pxcm;
     return { x: (p.cx || v.cx) - w / 2 + pr.dx, y: p.top + pr.dy, w, h, wcm, hcm, place: p };
@@ -2514,8 +2538,30 @@
     return out;
   }
   // Put an image in a section (replacing what was there: one graphic per section).
-  function setSource(id, img, name) {
+  // A file without transparency whose corners are white almost always wants its background removed.
+  function whiteBackground(img) {
+    try {
+      const c = document.createElement("canvas"); c.width = c.height = 48;
+      const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, 48, 48);
+      const d = x.getImageData(0, 0, 48, 48).data, at = (px, py) => (py * 48 + px) * 4;
+      return [[0, 0], [47, 0], [0, 47], [47, 47], [24, 0], [0, 24]].every(([px, py]) => { const i = at(px, py); return d[i + 3] > 250 && Math.min(d[i], d[i + 1], d[i + 2]) > 236; });
+    } catch (e) { return false; }
+  }
+  st.library = [];
+  function remember(img, name) {
+    let item = st.library.find((x) => x.img === img || (x.name === name && x.w === img.naturalWidth && x.h === img.naturalHeight));
+    if (!item) {
+      const c = document.createElement("canvas"), k = Math.min(1, 160 / Math.max(img.naturalWidth || 160, img.naturalHeight || 160));
+      c.width = Math.max(1, Math.round((img.naturalWidth || 160) * k)); c.height = Math.max(1, Math.round((img.naturalHeight || 160) * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      item = { img, name, w: img.naturalWidth, h: img.naturalHeight, thumb: c.toDataURL("image/png"), knockout: whiteBackground(img) };
+      st.library.unshift(item); st.library = st.library.slice(0, 12);
+    }
+    return item;
+  }
+  function setSource(id, img, name, knockout) {
     const pr = st.prints[id] || (st.prints[id] = newPrint());
+    if (knockout !== undefined) pr.knockout = knockout;
     pr.source = img; pr.name = name; pr.art = prepareArt(img, pr.knockout);
     Object.assign(pr, { dx: 0, dy: 0, wcm: null, rot: 0, scale: 1, dxmm: 0, dymm: 0 });
   }
@@ -2580,8 +2626,24 @@
     $("#st-drop-title").textContent = st.active === "bg" ? (pr && pr.art ? L("Cambiar el fondo de todas las piezas", "Replace the background of every piece") : L("Sube un fondo para todas las piezas", "Upload a background for every piece"))
       : isPiece(st.active) ? (pr && pr.art ? L(`Cambiar la imagen de la pieza ${secName.toLowerCase()}`, `Replace the ${secName.toLowerCase()} image`) : L(`Sube la imagen de la pieza ${secName.toLowerCase()}`, `Upload the ${secName.toLowerCase()} image`))
       : pr && pr.art ? L(`Cambiar el gráfico de ${secName}`, `Replace the ${secName} graphic`) : L(`Sube el gráfico para ${secName}`, `Upload the ${secName} graphic`);
-    $("#st-file-name").textContent = pr && pr.art ? (pr.name === "sample" ? L("Diseño de ejemplo.", "Sample design.") : pr.name)
+    const fileName = $("#st-file-name");
+    fileName.textContent = pr && pr.art ? (pr.name === "sample" ? L("Diseño de ejemplo. Sube el tuyo para reemplazarlo.", "Sample design. Upload yours to replace it.") : pr.name + (pr.knockout && pr.autoKnock ? L(" · quitamos el fondo blanco", " · white background removed") : ""))
       : L("Esta sección está vacía.", "This section is empty.");
+    if (st.undo && st.undo.id === st.active && !(pr && pr.art)) {
+      fileName.textContent = L("Gráfico quitado.", "Graphic removed.");
+      const undo = el("button", { type: "button", class: "st-undo", text: L("Deshacer", "Undo") });
+      undo.addEventListener("click", () => { st.prints[st.undo.id] = st.undo.pr; st.undo = null; renderStudio(); drawStudio(); });
+      fileName.append(undo);
+    }
+    // Every file uploaded in this visit, ready to drop into another section without uploading it again.
+    const lib = st.library.filter((x) => x.name !== "sample");
+    $("#st-library").hidden = !lib.length;
+    $("#st-lib-row").replaceChildren(...lib.map((item) => {
+      const on = !!(pr && pr.source === item.img);
+      const b = el("button", { type: "button", class: on ? "on" : "", title: item.name, "aria-label": L("Usar " + item.name + " en " + secName, "Use " + item.name + " in " + secName), "aria-pressed": String(on) }, [el("img", { src: item.thumb, alt: "" })]);
+      b.addEventListener("click", () => { st.undo = null; setSource(st.active, item.img, item.name, item.knockout); st.prints[st.active].autoKnock = item.knockout; renderStudio(); drawStudio(); });
+      return b;
+    }));
     $("#st-knockout").checked = !!(pr && pr.knockout);
     $("#st-remove").disabled = !(pr && pr.art);
 
@@ -2642,7 +2704,13 @@
     if (pr && !editingBg && placesOf(st.active).length) {
       const places = placesOf(st.active);
       stChips($("#st-places"), "st-p", places.map((p) => t(p.name)), (i) => i === pr.place, (i) => { pr.place = i; pr.dx = pr.dy = 0; });
-      stChips($("#st-sizes"), "st-s", places[Math.min(pr.place, places.length - 1)].sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === pr.size, (i) => { pr.size = i; });
+      const place = places[Math.min(pr.place, places.length - 1)];
+      stChips($("#st-sizes"), "st-s", place.sizes.map((cm, i) => `${t(STUDIO.sizeNames[i])} · ${cm} cm`), (i) => i === pr.size && !pr.wcm, (i) => { pr.size = i; pr.wcm = null; });
+      if (pr.art && st.mode === "place") {
+        const fine = $("#st-fine"), w = printRect(st.active).wcm;
+        fine.min = Math.max(3, Math.round(place.sizes[0] * 0.5)); fine.max = Math.round(place.sizes[place.sizes.length - 1] * 1.25); fine.value = w;
+        $("#st-fine-out").textContent = fmt(w, 1) + " cm";
+      }
     }
     const sw = $("#st-colors"); sw.textContent = "";
     STUDIO.colors.forEach((c, i) => {
@@ -2721,12 +2789,22 @@
     const useFile = (f) => {
       if (!f || !/^image\//.test(f.type)) { $("#st-file-name").textContent = L("Ese archivo no es una imagen. Usa PNG, JPG, SVG o WebP.", "That file is not an image. Use PNG, JPG, SVG or WebP."); return; }
       const id = st.active, url = URL.createObjectURL(f), img = new Image();
-      img.onload = () => { setSource(id, img, f.name); URL.revokeObjectURL(url); renderStudio(); drawStudio(); };
+      img.onload = () => {
+        const item = remember(img, f.name || L("imagen pegada", "pasted image"));
+        setSource(id, img, item.name, item.knockout); st.prints[id].autoKnock = item.knockout; st.undo = null;
+        renderStudio(); drawStudio();
+      };
       img.onerror = () => { $("#st-file-name").textContent = L("No pudimos abrir ese archivo. Prueba con PNG o JPG.", "We could not open that file. Try a PNG or JPG."); };
       img.src = url;
     };
     // Clear the input after reading, so choosing the same file again still reloads it.
     file.addEventListener("change", () => { useFile(file.files[0]); file.value = ""; });
+    // Paste an image (Ctrl/Cmd+V) straight into the section being edited.
+    addEventListener("paste", (e) => {
+      if (!$("#studio").open) return;
+      const item = [...((e.clipboardData && e.clipboardData.items) || [])].find((x) => x.type.startsWith("image/"));
+      if (item) { e.preventDefault(); useFile(item.getAsFile()); }
+    });
     ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
     ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
     drop.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); useFile(e.dataTransfer.files[0]); });
@@ -2740,7 +2818,14 @@
       const pr = activePrint(); if (!pr) return;
       pr.knockout = e.target.checked; if (pr.source) pr.art = prepareArt(pr.source, pr.knockout); drawStudio();
     });
-    $("#st-remove").addEventListener("click", () => { delete st.prints[st.active]; renderStudio(); drawStudio(); });
+    $("#st-remove").addEventListener("click", () => { st.undo = { id: st.active, pr: st.prints[st.active] }; delete st.prints[st.active]; renderStudio(); drawStudio(); });
+    $("#st-knockout").addEventListener("change", () => { const pr = activePrint(); if (pr) pr.autoKnock = false; });
+    // Fine width on the photo: any size between the presets.
+    $("#st-fine").addEventListener("input", (e) => {
+      const pr = activePrint(); if (!pr || !pr.art) return;
+      pr.wcm = +e.target.value; $("#st-fine-out").textContent = fmt(printRect(st.active).wcm, 1) + " cm";
+      document.querySelectorAll("#st-sizes input").forEach((i) => { i.checked = false; }); requestDraw();
+    });
 
     // Drag the active section's graphic (mouse, finger or pen), limited to ±6 cm sideways and ±10 cm up/down.
     let drag = null;
@@ -2758,6 +2843,12 @@
     });
     const end = () => { drag = null; stCanvas.classList.remove("dragging"); stDragging = false; requestDraw(); };
     stCanvas.addEventListener("pointerup", end); stCanvas.addEventListener("pointercancel", end);
+    stCanvas.addEventListener("wheel", (e) => {
+      if (!canDrag()) return;
+      e.preventDefault(); const pr = activePrint(), w = printRect(st.active).wcm, f = e.deltaY < 0 ? 1.04 : 1 / 1.04;
+      const fine = $("#st-fine"); pr.wcm = Math.max(+fine.min, Math.min(+fine.max, w * f));
+      fine.value = pr.wcm; $("#st-fine-out").textContent = fmt(printRect(st.active).wcm, 1) + " cm"; requestDraw();
+    }, { passive: false });
     stCanvas.addEventListener("keydown", (e) => {
       if (!canDrag()) return;
       const step = (e.shiftKey ? 2 : 0.5) * curView().pxcm, m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];

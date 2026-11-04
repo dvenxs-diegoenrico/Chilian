@@ -86,9 +86,8 @@
     ],
     turno: { horas: 9, turnos: 1, uso: 85, dias: [1, 2, 3, 4, 5] },
     tarifas: {
-      ejemplo: true,
-      tramos: [{ min: 1, porColor: 7 }, { min: 300, porColor: 5 }, { min: 1000, porColor: 3.6 }, { min: 3000, porColor: 2.6 }, { min: 10000, porColor: 1.9 }],
-      basePorUbicacion: 2, costoPantalla: 350, margenPrenda: 20, costoMinPulpo: 22, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15
+      descVol: [[1, 0], [100, 0], [500, 3], [1000, 5], [5000, 8], [20000, 10]], expressPct: 30, factor: 1.4, margenPrenda: 20, margenEstampado: 30,
+      ajusteTabla: 0, tablaTintas: null, costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15
     }
   };
 
@@ -193,27 +192,12 @@
 
   /* ---------------- calculations ---------------- */
   const T = () => S.settings.tarifas;
-  const tierFor = (pzs) => [...T().tramos].sort((a, b) => b.min - a.min).find((x) => pzs >= x.min) || T().tramos[0];
+  // Press minutes of a line: screens to set up per color, a transition, and the run.
   function calcLinea(l) {
     const t = T(), pzs = +l.piezas || 0, ubic = (l.ubicaciones || []).filter((u) => +u.colores > 0);
-    const tier = tierFor(pzs), colores = ubic.reduce((a, u) => a + (+u.colores || 0), 0);
-    const estampado = ubic.reduce((a, u) => a + t.basePorUbicacion + (+u.colores) * tier.porColor, 0);
-    const prenda = (+l.costoPrenda || 0) * (1 + t.margenPrenda / 100);
-    const unit = l.precioManual ? +l.precioManual : prenda + estampado + (+l.extraUnit || 0);
-    const pantallas = l.sinPantallas ? 0 : colores * t.costoPantalla;
-    const minutos = ubic.reduce((a, u) => a + (+u.colores) * t.minPantalla + t.transicion + (pzs / t.impHora) * 60, 0);
-    const costo = (+l.costoPrenda || 0) * pzs + minutos * t.costoMinPulpo;
-    const subtotal = unit * pzs + pantallas;
-    return { unit, pantallas, subtotal, minutos, costo, colores, margen: subtotal ? (subtotal - costo) / subtotal : 0, porColor: tier.porColor };
+    return { minutos: ubic.reduce((a, u) => a + (+u.colores) * t.minPantalla + t.transicion + (pzs / t.impHora) * 60, 0) };
   }
-  function calcCot(c) {
-    const lines = (c.lineas || []).map(calcLinea);
-    const sub = lines.reduce((a, x) => a + x.subtotal, 0) + (+c.envio || 0);
-    const iva = c.sinIva ? 0 : sub * (T().iva / 100);
-    const costo = lines.reduce((a, x) => a + x.costo, 0);
-    const piezas = (c.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
-    return { lines, sub, iva, total: sub + iva, costo, margen: sub ? (sub - costo - (+c.envio || 0)) / sub : 0, minutos: lines.reduce((a, x) => a + x.minutos, 0), piezas };
-  }
+  function calcCot(q) { const c = CZ.calc(q); return { total: c.total, sub: c.base0, piezas: c.pcs, margen: c.margen }; }
   const otMinutes = (ot) => (ot.lineas || []).reduce((a, l) => a + calcLinea(l).minutos, 0);
   const dayCapacity = () => S.settings.turno.horas * 60 * S.settings.turno.turnos * (S.settings.turno.uso / 100);
   const scoreOf = (o) => SCORE.reduce((a, s) => a + (o.score?.[s.id] ? s.pts : 0), 0);
@@ -733,136 +717,98 @@
             h("li", { text: "Campañas 2027: anticipo de 50–100 % y mismas condiciones para todas las fuerzas." }), h("li", { text: "Cada cotización enviada tiene seguimiento a los 2 días." }))))));
   }
 
-  /* ---------------- quotes ---------------- */
+  /* ---------------- quotes (the quoter itself lives in cotizador.js) ---------------- */
+  const CZ = window.makeCotizador({
+    h, settings: () => S.settings, list, byId, cuentaName, me: () => S.name, isPhone, waLink, copy, toast,
+    save: (col, doc, o) => save(col, doc, o), rerender: () => rerender(),
+    onSent: (q) => markSent(q), onAccept: (q) => acceptQuote(q), onDuplicate: (q) => duplicateQuote(q), onDelete: (q) => deleteQuote(q)
+  });
   function quoteTable(qs) {
-    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Folio", "Cuenta", "Estado", "Piezas", "Total", "Margen"].map((x, i) => h("th", { class: i > 2 ? "r" : "", text: x })))),
+    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Folio", "Cliente", "Estado", "Piezas", "Total", "Margen"].map((x, i) => h("th", { class: i > 2 ? "r" : "", text: x })))),
       h("tbody", {}, qs.sort((a, b) => b.id.localeCompare(a.id)).map((q) => { const c = calcCot(q); return h("tr", { class: "click", onclick: () => go("cotizacion/" + q.id) },
-        h("td", { class: "num", text: q.id }), h("td", { text: cuentaName(q.cuentaId) }), h("td", {}, quotePill(q.estado)), h("td", { class: "r num", text: fmtN(c.piezas) }), h("td", { class: "r money", text: money(c.total) }), h("td", { class: "r num", text: fmtN(c.margen * 100) + " %" })); }))));
+        h("td", { class: "num", text: q.id }), h("td", { text: CZ.clientOf(q) || "—" }), h("td", {}, quotePill(q.estado)), h("td", { class: "r num", text: fmtN(c.piezas) }), h("td", { class: "r money", text: money(c.total) }),
+        h("td", { class: "r num", text: c.margen == null ? "—" : fmtN(c.margen * 100) + " %" })); }))));
   }
   const quotePill = (e) => h("span", { class: "pill " + ({ borrador: "p-mut", enviada: "p-info", aceptada: "p-ok", rechazada: "p-bad" }[e] || "p-mut"), text: e || "borrador" });
   function viewQuotes() {
-    const qs = list("cotizaciones");
-    return h("div", {}, top(`${qs.length} cotizaciones`, "Cotizaciones"), qs.length ? quoteTable(qs) : h("div", { class: "empty", text: "Las cotizaciones se crean desde una oportunidad (botón «+ Cotización»)." }));
+    const f = viewQuotes.f ||= { estado: "", q: "" };
+    let qs = list("cotizaciones");
+    if (f.estado) qs = qs.filter((q) => (q.estado || "borrador") === f.estado);
+    if (f.q) { const k = f.q.toLowerCase(); qs = qs.filter((q) => (q.id + " " + CZ.clientOf(q) + " " + (q.lineas || []).map((l) => l.concepto || l.descripcion).join(" ")).toLowerCase().includes(k)); }
+    return h("div", {}, top(`${list("cotizaciones").length} cotizaciones · solo equipo`, "Cotizaciones",
+      h("input", { class: "i search", type: "search", placeholder: "Buscar folio, cliente o producto", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewQuotes.t); viewQuotes.t = setTimeout(rerender, 250); } }),
+      h("select", { class: "i", style: "width:auto", onchange: (e) => { f.estado = e.target.value; rerender(); } }, [["", "Todas"], ["borrador", "Borrador"], ["enviada", "Enviadas"], ["aceptada", "Aceptadas"], ["rechazada", "Rechazadas"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.estado === v }))),
+      h("button", { class: "btn accent", type: "button", onclick: () => newQuoteModal() }, "+ Cotización")),
+      qs.length ? quoteTable(qs) : h("div", { class: "empty", text: "Crea una cotización aquí o desde una oportunidad. Cada cotización guardada enseña sus precios al cotizador." }));
+  }
+  function newQuoteModal() {
+    const cs = list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const sel = h("select", { class: "i", name: "cuenta" }, h("option", { value: "", text: "— Cliente sin cuenta —" }), cs.map((c) => h("option", { value: c.id, text: c.nombre })));
+    const name = h("input", { class: "i", placeholder: "Nombre del cliente (si no tiene cuenta)" });
+    modal("Nueva cotización", h("form", { class: "grid", onsubmit: async (e) => {
+      e.preventDefault(); closeModal();
+      const doc = await CZ.newDoc({ cuentaId: sel.value, cliente: sel.value ? "" : name.value.trim() });
+      const q = await save("cotizaciones", doc, { quiet: true });
+      go("cotizacion/" + q.id);
+    } }, h("label", { class: "f" }, h("span", { text: "Cuenta" }), sel), h("label", { class: "f" }, h("span", { text: "O escribe el cliente" }), name),
+      h("p", { class: "hint", text: "Para seguimiento en el CRM conviene crearla desde la oportunidad." }), h("button", { class: "btn accent", type: "submit" }, "Crear cotización")));
   }
   async function newQuote(o) {
-    const s = o.solicitud;
-    const lineas = s?.modelos?.length
-      ? s.modelos.map((m) => ({ id: rid(), descripcion: m.titulo, modelo: (m.modelos || []).join(", "), color: m.color, piezas: m.piezas, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }))
-      : [{ id: rid(), descripcion: s?.prenda || "Playera", modelo: "", color: "", piezas: s?.piezas || o.piezasAnio || 0, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }];
-    const q = await save("cotizaciones", { oportunidadId: o.id, cuentaId: o.cuentaId, estado: "borrador", lineas, envio: 0, anticipo: T().anticipo, vigencia: T().vigencia, entregaDias: 15, notas: (s?.tecnicas || []).length ? "Técnica: " + s.tecnicas.join(", ") : "" }, { quiet: true });
+    const doc = await CZ.newDoc({ oportunidadId: o.id, cuentaId: o.cuentaId, solicitud: o.solicitud || null });
+    const q = await save("cotizaciones", doc, { quiet: true });
     toast(`Cotización ${q.id} creada.`);
     go("cotizacion/" + q.id);
   }
   function viewQuote(id) {
     const q0 = byId("cotizaciones", id);
     if (!q0) return h("div", { class: "empty", text: "No encontramos esta cotización." });
-    const q = structuredClone(q0), o = byId("oportunidades", q.oportunidadId), cuenta = byId("cuentas", q.cuentaId);
-    const totalsBox = h("div", {}), linesBox = h("div", { class: "grid" });
-    let dirty = false;
-    const saveBtn = h("button", { class: "btn accent", type: "button", onclick: () => doSave() }, "Guardar");
-    const mark = () => { dirty = true; saveBtn.textContent = "Guardar cambios"; paintTotals(); };
-    async function doSave(extra = {}) {
-      Object.assign(q, extra);
-      const saved = await save("cotizaciones", q, { quiet: true }); Object.assign(q, saved); dirty = false; saveBtn.textContent = "Guardar"; toast("Cotización guardada.");
-      return saved;
-    }
-    function paintTotals() {
-      const c = calcCot(q);
-      totalsBox.replaceChildren(h("div", { class: "totals" },
-        h("span", { text: "Piezas" }), h("span", { class: "num", text: fmtN(c.piezas) }),
-        h("span", { text: "Subtotal (con pantallas y envío)" }), h("span", { class: "money", text: money(c.sub) }),
-        h("span", { text: q.sinIva ? "IVA (no aplica)" : `IVA ${T().iva} %` }), h("span", { class: "money", text: money(c.iva) }),
-        h("span", { class: "grand", text: "Total" }), h("span", { class: "grand money", text: money(c.total) }),
-        h("span", { class: "muted", text: "Costo estimado (prenda + pulpo)" }), h("span", { class: "money muted", text: money(c.costo) }),
-        h("span", { class: "muted", text: "Margen estimado" }), h("span", { class: "num " + (c.margen < 0.2 ? "due-late" : ""), text: fmtN(c.margen * 100, 1) + " %" }),
-        h("span", { class: "muted", text: "Tiempo de pulpo" }), h("span", { class: "num muted", text: `${fmtN(c.minutos)} min (${fmtN(c.minutos / 60, 1)} h)` }),
-        h("span", { class: "muted", text: `Anticipo ${q.anticipo} %` }), h("span", { class: "money muted", text: money(c.total * (q.anticipo / 100)) })));
-      $$("[data-unit]", linesBox).forEach((el) => { const l = q.lineas.find((x) => x.id === el.dataset.unit); if (l) { const r = calcLinea(l); el.textContent = `${money(r.unit)} c/u · ${money(r.subtotal)} · pantallas ${money(r.pantallas)} · ${fmtN(r.minutos)} min · margen ${fmtN(r.margen * 100)} %`; } });
-    }
-    const numIn = (obj, key, attrs = {}) => h("input", { class: "i", type: "number", step: "any", min: "0", value: obj[key] ?? "", ...attrs, oninput: (e) => { obj[key] = e.target.value === "" ? "" : +e.target.value; mark(); } });
-    const txtIn = (obj, key, attrs = {}) => h("input", { class: "i", value: obj[key] ?? "", ...attrs, oninput: (e) => { obj[key] = e.target.value; mark(); } });
-    function paintLines() {
-      linesBox.replaceChildren(...q.lineas.map((l, li) => h("div", { class: "lineitem" },
-        h("div", { class: "row between" }, h("b", { text: `Partida ${li + 1}` }), h("button", { class: "x", type: "button", "aria-label": "Quitar partida", onclick: () => { q.lineas.splice(li, 1); paintLines(); mark(); } }, "×")),
-        h("div", { class: "grid g4" },
-          h("label", { class: "f", style: "grid-column:span 2" }, h("span", { text: "Prenda" }), txtIn(l, "descripcion", { list: "cat-titles", placeholder: "Busca en el catálogo o escribe" })),
-          h("label", { class: "f" }, h("span", { text: "Modelo" }), txtIn(l, "modelo")), h("label", { class: "f" }, h("span", { text: "Color de prenda" }), txtIn(l, "color")),
-          h("label", { class: "f" }, h("span", { text: "Piezas" }), numIn(l, "piezas", { step: "1" })), h("label", { class: "f" }, h("span", { text: "Costo prenda (MXN c/u)" }), numIn(l, "costoPrenda")),
-          h("label", { class: "f" }, h("span", { text: "Extra por pieza (MXN)" }), numIn(l, "extraUnit")), h("label", { class: "f" }, h("span", { text: "Precio manual c/u (opcional)" }), numIn(l, "precioManual"))),
-        h("div", { class: "grid", style: "gap:.35rem" }, h("span", { class: "label", text: "Ubicaciones de impresión" }),
-          ...(l.ubicaciones || []).map((u, ui) => h("div", { class: "ub" },
-            h("label", { class: "f" }, h("span", { text: "Ubicación" }), h("select", { class: "i", onchange: (e) => { u.nombre = e.target.value; mark(); } }, ["Frente", "Pecho izquierdo", "Espalda", "Nuca", "Manga derecha", "Manga izquierda", "Full print"].map((n) => h("option", { value: n, text: n, selected: u.nombre === n })))),
-            h("label", { class: "f" }, h("span", { text: "Colores" }), numIn(u, "colores", { step: "1", max: "14" })),
-            h("label", { class: "f" }, h("span", { text: "Tintas / Pantone" }), txtIn(u, "tintas")),
-            h("button", { class: "x", type: "button", "aria-label": "Quitar ubicación", onclick: () => { l.ubicaciones.splice(ui, 1); paintLines(); mark(); } }, "×"))),
-          h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { (l.ubicaciones ||= []).push({ nombre: "Espalda", colores: 1, tintas: "" }); paintLines(); mark(); } }, "+ Ubicación")),
-        h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !!l.sinPantallas, onchange: (e) => { l.sinPantallas = e.target.checked; mark(); } }), "Sin cargo de pantallas (reorden con pantallas guardadas)"),
-        h("p", { class: "num small muted", "data-unit": l.id }))),
-        h("button", { class: "btn ghost", type: "button", style: "justify-self:start", onclick: () => { q.lineas.push({ id: rid(), descripcion: "", piezas: 0, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }); paintLines(); mark(); } }, "+ Partida"));
-      paintTotals();
-    }
-    paintLines();
-    const contact = cuenta?.contactos?.find((x) => isPhone(x.contacto)) || cuenta?.contactos?.[0];
-    const sendText = () => { const c = calcCot(q); return `Hola ${contact?.nombre?.split(" ")[0] || ""}, te comparto la cotización ${q.id} de Chilian:\n${q.lineas.map((l) => `• ${l.descripcion}${l.modelo ? " (" + l.modelo + ")" : ""}: ${fmtN(l.piezas)} pzas a ${money(calcLinea(l).unit)} c/u`).join("\n")}\nTotal: ${money(c.total)} ${q.sinIva ? "" : "IVA incluido"}\nAnticipo: ${q.anticipo} % · Vigencia: ${q.vigencia} días · Entrega: ${q.entregaDias} días hábiles después de aprobar la muestra.\n— ${S.name}`; };
-    return h("div", {},
-      top(`${cuentaName(q.cuentaId)} · ${o ? o.titulo : ""}`, `Cotización ${q.id}`, quotePill(q.estado), saveBtn,
-        h("button", { class: "btn ghost", type: "button", onclick: async () => { if (dirty) await doSave(); printQuote(q); } }, "Imprimir / PDF"),
-        q.estado !== "aceptada" ? h("button", { class: "btn", type: "button", onclick: async () => { await doSave({ estado: "enviada", enviadaEn: new Date().toISOString() }); if (o && ["nuevo", "contactado", "calificado"].includes(o.etapa)) await save("oportunidades", { ...o, etapa: "cotizacion", probabilidad: stageProb("cotizacion"), valor: calcCot(q).sub, proximaAccion: { texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2) } }, { quiet: true }); await save("tareas", { tipo: "WhatsApp", texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2), oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, asesor: o?.asesor || S.name, hecha: false }, { quiet: true }); rerender(); } }, "Marcar enviada") : null,
-        q.estado !== "aceptada" ? h("button", { class: "btn accent", type: "button", onclick: () => acceptQuote(q, doSave) }, "Aceptada → crear OT") : q.otId ? h("a", { class: "btn accent", href: "#ot/" + q.otId }, `Ver ${q.otId}`) : null),
-      h("datalist", { id: "cat-titles" }, (catalogTitles() || []).map((t) => h("option", { value: t }))),
-      h("div", { class: "cols" }, linesBox,
-        h("div", { class: "grid", style: "position:sticky;top:1rem" },
-          h("div", { class: "card" }, h("h2", { text: "Totales" }), totalsBox),
-          h("div", { class: "card" }, h("h2", { text: "Condiciones" }),
-            h("div", { class: "grid g2" },
-              h("label", { class: "f" }, h("span", { text: "Envío (MXN)" }), numIn(q, "envio")), h("label", { class: "f" }, h("span", { text: "Anticipo (%)" }), numIn(q, "anticipo")),
-              h("label", { class: "f" }, h("span", { text: "Vigencia (días)" }), numIn(q, "vigencia")), h("label", { class: "f" }, h("span", { text: "Entrega (días hábiles)" }), numIn(q, "entregaDias")),
-              h("label", { class: "row small full", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !!q.sinIva, onchange: (e) => { q.sinIva = e.target.checked; mark(); } }), "Sin IVA (exportación)"),
-              h("label", { class: "f full" }, h("span", { text: "Notas para el cliente" }), h("textarea", { class: "i", value: q.notas || "", oninput: (e) => { q.notas = e.target.value; mark(); } }))),
-            T().ejemplo ? h("p", { class: "hint", text: "Las tarifas son valores de ejemplo. Ajústalas en Ajustes → Tarifas con los costos reales de Chilian." }) : null),
-          h("div", { class: "card" }, h("h2", { text: "Enviar" }), h("div", { class: "copybox", text: sendText() }),
-            h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(sendText()) }, "Copiar"),
-              isPhone(contact?.contacto) ? h("a", { class: "btn sm ghost", href: waLink(contact.contacto, sendText()), target: "_blank", rel: "noopener" }, "Abrir WhatsApp") : null)),
-          h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox(`¿Borrar la cotización ${q.id}?`))) return; await remove("cotizaciones", q.id); go(o ? "oportunidad/" + o.id : "cotizaciones"); } }, "Borrar cotización"))));
+    return CZ.view(q0, { pill: quotePill(q0.estado) });
   }
-  let CATALOG = null;
-  function catalogTitles() {
-    if (CATALOG) return CATALOG;
-    fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => { CATALOG = [...new Set(d.map((e) => `${e.title}${e.models?.length ? " · " + e.models.slice(0, 2).join("/") : ""} (${e.cat})`))]; const dl = $("#cat-titles"); if (dl) dl.replaceChildren(...CATALOG.map((t) => h("option", { value: t }))); }).catch(() => {});
-    return [];
+  async function markSent(q) {
+    const o = byId("oportunidades", q.oportunidadId), c = calcCot(q);
+    await save("cotizaciones", { ...q, estado: "enviada", enviadaEn: new Date().toISOString() }, { quiet: true });
+    if (o && ["nuevo", "contactado", "calificado", "cotizacion"].includes(o.etapa)) await save("oportunidades", { ...o, etapa: "cotizacion", probabilidad: stageProb("cotizacion"), valor: c.sub, proximaAccion: { texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2) } }, { quiet: true });
+    if (q.estado !== "enviada") await save("tareas", { tipo: "WhatsApp", texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2), oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, asesor: o?.asesor || S.name, hecha: false }, { quiet: true });
+    toast("Marcada como enviada. Seguimiento en 2 días.");
+    rerender();
   }
-  async function acceptQuote(q, doSave) {
-    const c = calcCot(q), due = workDays(q.entregaDias || 15).pop();
+  async function acceptQuote(q) {
+    const nq = CZ.normalize(q);
+    let lineas = nq.lineas;
+    if (nq.opciones && lineas.length > 1) {   // options: the client picked one
+      const labels = lineas.map((l, i) => `${String.fromCharCode(65 + i)} · ${l.concepto}`);
+      const pick = await askText("¿Qué opción eligió el cliente?", labels);
+      if (pick == null) return;
+      lineas = [lineas[Math.max(0, labels.findIndex((x) => pick.startsWith(x)))]];
+    }
+    const c = calcCot(nq.opciones ? { ...nq, opciones: false, lineas } : nq);
+    const due = nq.ent === "fecha" && nq.fechaEnt ? nq.fechaEnt : workDays(parseInt(nq.dias, 10) || 15).pop();
     const ot = await save("ots", {
-      cotizacionId: q.id, oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, clienteNombre: cuentaName(q.cuentaId), etapa: "arte", prioridad: "normal",
+      cotizacionId: q.id, oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, clienteNombre: CZ.clientOf(q) || "Cliente", etapa: "arte", prioridad: nq.expressOn ? "urgente" : "normal",
       fechaCompromiso: due, tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(),
-      lineas: q.lineas.map((l) => ({ ...l, tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })), total: c.total, anticipo: q.anticipo,
+      lineas: lineas.filter((l) => !l.nopcs).map((l) => ({ id: l.id, descripcion: l.concepto, modelo: "", color: l.color, piezas: +l.piezas || 0, catId: l.catId, ubicaciones: l.ubicaciones || [], tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })),
+      total: c.total, anticipo: +nq.anticipo || 0, notas: nq.notas,
       arte: { estado: "pendiente", archivos: [] }, programacion: [], merma: [], historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: S.name, nota: `Creada desde ${q.id}` }]
     }, { quiet: true });
-    await doSave({ estado: "aceptada", aceptadaEn: new Date().toISOString(), otId: ot.id });
+    await save("cotizaciones", { ...q, estado: "aceptada", aceptadaEn: new Date().toISOString(), otId: ot.id }, { quiet: true });
     const o = byId("oportunidades", q.oportunidadId);
     if (o) await save("oportunidades", { ...o, etapa: "ganado", probabilidad: 100, valor: c.sub, cerradaEn: new Date().toISOString(), actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `${q.id} aceptada. ${ot.id} creada.`, por: S.name }] }, { quiet: true });
     toast(`${ot.id} creada.`);
     go("ot/" + ot.id);
   }
-  function printQuote(q) {
-    const c = calcCot(q), cuenta = byId("cuentas", q.cuentaId), ct = cuenta?.contactos?.[0];
-    $("#print").replaceChildren(h("div", { class: "doc" },
-      h("div", { class: "hdr" }, h("div", {}, h("h1", { text: "Cotización" }), h("div", { text: `${q.id} · ${fmtDate(localDate())}` }), h("div", { text: `Vigencia: ${q.vigencia} días` })),
-        h("div", { style: "text-align:right" }, h("b", { text: "Grupo Chilian · Chilian Screen Printing" }), h("div", { text: "Tlacomulco No. 2, San Pablo Ahuatempan, Santa Isabel Cholula, Pue." }), h("div", { text: "WhatsApp 222 692 5404 · grupochilian.com.mx" }), h("div", { text: `Atiende: ${S.name}` }))),
-      h("p", {}, h("b", { text: "Para: " }), `${cuenta?.nombre || ""}${ct ? " · " + ct.nombre + " · " + ct.contacto : ""}`),
-      h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", "Impresión", "Piezas", "Precio c/u", "Pantallas", "Importe"].map((x) => h("th", { text: x })))),
-        h("tbody", {}, q.lineas.map((l) => { const r = calcLinea(l); return h("tr", {}, h("td", {}, h("b", { text: l.descripcion }), l.modelo ? " · " + l.modelo : "", l.color ? h("div", { text: "Color: " + l.color }) : null),
-          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} color(es)${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), h("td", { text: fmtN(l.piezas) }), h("td", { text: money(r.unit) }), h("td", { text: money(r.pantallas) }), h("td", { text: money(r.subtotal) })); }))),
-      h("table", { style: "width:50%;margin-left:auto;margin-top:8pt" }, h("tbody", {},
-        +q.envio ? h("tr", {}, h("td", { text: "Envío" }), h("td", { text: money(q.envio) })) : null,
-        h("tr", {}, h("td", { text: "Subtotal" }), h("td", { text: money(c.sub) })), h("tr", {}, h("td", { text: q.sinIva ? "IVA" : `IVA ${T().iva} %` }), h("td", { text: q.sinIva ? "No aplica" : money(c.iva) })),
-        h("tr", {}, h("td", {}, h("b", { text: "Total MXN" })), h("td", {}, h("b", { text: money(c.total) }))), h("tr", {}, h("td", { text: `Anticipo ${q.anticipo} %` }), h("td", { text: money(c.total * q.anticipo / 100) })))),
-      q.notas ? h("p", { style: "white-space:pre-wrap;margin-top:8pt", text: q.notas }) : null,
-      h("div", { class: "foot" }, h("p", { text: `Entrega: ${q.entregaDias} días hábiles después de aprobar la muestra física y recibir el anticipo. Los colores finales se aprueban en la muestra. Planta auditada: Disney FAMA, SMETA, Walmart, WRAP, VF y C&A.` }))));
-    setTimeout(() => print(), 50);
+  async function duplicateQuote(q) {
+    const d = structuredClone(q);
+    for (const k of ["id", "createdAt", "createdBy", "updatedAt", "updatedBy", "otId", "enviadaEn", "aceptadaEn"]) delete d[k];
+    Object.assign(d, { estado: "borrador", fecha: localDate() });
+    const saved = await save("cotizaciones", d, { quiet: true });
+    toast(`Copia creada: ${saved.id}.`);
+    go("cotizacion/" + saved.id);
   }
-
+  async function deleteQuote(q) {
+    if (!(await confirmBox(`¿Borrar la cotización ${q.id}?`))) return;
+    await remove("cotizaciones", q.id);
+    go(q.oportunidadId ? "oportunidad/" + q.oportunidadId : "cotizaciones");
+  }
   /* ---------------- work orders ---------------- */
   const otPill = (e) => h("span", { class: "pill " + ({ entregada: "p-ok", embarcada: "p-ok", impresion: "p-acc", calidad: "p-info", empaque: "p-info", aprobacion: "p-warn", arte: "p-warn" }[e] || "p-mut"), text: stageName(OT_STAGES, e) });
   function otTable(ots) {
@@ -1126,12 +1072,25 @@
     return h("div", {}, top("Valores que usa todo el sistema", "Ajustes", h("button", { class: "btn accent", type: "button", onclick: saveAll }, "Guardar ajustes")),
       h("div", { class: "cols" },
         h("div", { class: "grid" },
-          h("div", { class: "card" }, h("h2", { text: "Tarifas de cotización" }),
-            h("p", { class: "hint", text: "Precio por color en cada impresión, según el tiraje. Los valores iniciales son ejemplos: cámbialos por los de Chilian." }),
-            h("div", { class: "grid g2" }, st.tarifas.tramos.map((t) => h("div", { class: "grid g2" }, num(t, "min", "Desde (piezas)", "1"), num(t, "porColor", "MXN por color")))),
-            h("div", { class: "grid g3" }, num(st.tarifas, "basePorUbicacion", "Base por ubicación (MXN)"), num(st.tarifas, "costoPantalla", "Pantalla (MXN por color)"), num(st.tarifas, "margenPrenda", "Margen sobre prenda (%)"),
-              num(st.tarifas, "costoMinPulpo", "Costo minuto de pulpo (MXN)"), num(st.tarifas, "iva", "IVA (%)"), num(st.tarifas, "anticipo", "Anticipo (%)"), num(st.tarifas, "vigencia", "Vigencia (días)")),
-            h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !st.tarifas.ejemplo, onchange: (e) => { st.tarifas.ejemplo = !e.target.checked; } }), "Estas tarifas ya son las reales de Chilian")),
+          h("div", { class: "card" }, h("h2", { text: "Cotizador" }),
+            h("p", { class: "hint", text: "Valores con los que arranca cada cotización. Los precios de cada producto se aprenden solos de las cotizaciones guardadas." }),
+            h("div", { class: "grid g3" }, num(st.tarifas, "factor", "Factor costo → precio"), num(st.tarifas, "margenPrenda", "Margen prenda, tintas (%)"), num(st.tarifas, "margenEstampado", "Margen estampado, tintas (%)"),
+              num(st.tarifas, "expressPct", "Cargo express (%)"), num(st.tarifas, "costoPantalla", "Pantalla (MXN por color)"), num(st.tarifas, "iva", "IVA (%)"),
+              num(st.tarifas, "anticipo", "Anticipo (%)"), num(st.tarifas, "vigencia", "Vigencia (días)"), num(st.tarifas, "ajusteTabla", "Ajuste a la tabla de tintas (%)"))),
+          h("div", { class: "card" }, h("h2", { text: "Descuento por volumen" }),
+            h("p", { class: "hint", text: "Se aplica por renglón según sus piezas, cuando la cotización lo activa." }),
+            ((box) => { const paint = () => box.replaceChildren(...st.tarifas.descVol.map((t, i) => h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) minmax(0,1fr) 2rem;gap:.4rem;align-items:end" },
+              h("label", { class: "f" }, h("span", { text: "Desde (piezas)" }), h("input", { class: "i", type: "number", min: "1", value: t[0], oninput: (e) => { t[0] = +e.target.value; } })),
+              h("label", { class: "f" }, h("span", { text: "Descuento (%)" }), h("input", { class: "i", type: "number", step: "any", value: t[1], oninput: (e) => { t[1] = +e.target.value; } })),
+              h("button", { class: "x", type: "button", "aria-label": "Quitar escala", onclick: () => { st.tarifas.descVol.splice(i, 1); paint(); } }, "×"))),
+              h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.tarifas.descVol.push([(st.tarifas.descVol.at(-1)?.[0] || 0) * 2 || 100, 0]); paint(); } }, "+ Escala"));
+              paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
+          h("div", { class: "card" }, h("h2", { text: "Tabla de costos por tintas" }),
+            h("p", { class: "hint", text: "Costo por pieza (MXN) por tamaño en cm² (100, 300, 600, 1200, 1800) y escala (100, 250, 500, 1,000, 10,000 y 100,000 pz). Columnas: 1, 2–3, 4–5, 6–7, 8–9 y 10–11 tintas, prenda de color, antimigrante, HD/puff, fleece, glitter y calidad exportación. Para un cambio parejo usa el ajuste en %." }),
+            ((ta) => h("div", { class: "grid", style: "gap:.4rem" }, ta, h("div", { class: "row" },
+              h("button", { class: "btn sm", type: "button", onclick: () => { try { const v = JSON.parse(ta.value); if (!["100", "300", "600", "1200", "1800"].every((k) => Array.isArray(v[k]) && v[k].length === 6 && v[k].every((r) => r.length === 12 && r.every((x) => typeof x === "number")))) throw 0; st.tarifas.tablaTintas = v; toast("Tabla lista; guarda los ajustes."); } catch { toast("La tabla no tiene el formato esperado (5 tamaños × 6 escalas × 12 columnas).", true); } } }, "Usar esta tabla"),
+              h("button", { class: "btn sm ghost", type: "button", onclick: () => { st.tarifas.tablaTintas = null; ta.value = JSON.stringify(window.CZ_DEFAULT_TABLE); toast("Tabla base restablecida; guarda los ajustes."); } }, "Restablecer la tabla base"))))(
+              h("textarea", { class: "i mono", style: "min-height:140px;font-size:.72rem", spellcheck: "false", value: JSON.stringify(st.tarifas.tablaTintas || window.CZ_DEFAULT_TABLE) }))),
           h("div", { class: "card" }, h("h2", { text: "Tiempos de planta" }),
             h("div", { class: "grid g3" }, num(st.tarifas, "minPantalla", "Minutos por pantalla"), num(st.tarifas, "transicion", "Minutos entre trabajos"), num(st.tarifas, "impHora", "Impresiones por hora"),
               num(st.turno, "horas", "Horas por turno"), num(st.turno, "turnos", "Turnos", "1"), num(st.turno, "uso", "Tiempo disponible usado (%)")),
@@ -1153,7 +1112,7 @@
   addEventListener("hashchange", async () => { if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
   addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
   // keep data fresh while the app is open (other people are working too)
-  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select")) { await loadAll(true); rerender(); } }, 90_000);
+  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); } }, 90_000);
   (async () => {
     try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token) { S.token = s.token; S.name = s.name; } } catch {}
     if (!S.token) return renderLogin();

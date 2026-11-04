@@ -318,7 +318,7 @@ Sistema interno en `chilian.vercel.app/ops`. Entra el equipo con su nombre y la 
 | Solicitudes | Todo lo que se envía desde el cotizador y el catálogo del sitio llega aquí con folio `SOL-AAMM-###`, además de abrir WhatsApp. «Convertir» crea la cuenta, la oportunidad y la primera tarea. |
 | Oportunidades | Tablero por etapas (arrastrar), valor y valor ponderado, ajuste high-ticket de 7 puntos (A/B/C), siguiente paso con fecha, cadencia de 8 toques en 21 días y mensajes listos. |
 | Tareas, Cuentas, Prospección | Tareas por persona (atrasadas, hoy, próximas); cuentas con contactos e importación CSV; guía de dónde encontrar cuentas que llenen la planta. |
-| Cotizaciones | Partidas con prenda del catálogo, ubicaciones y colores, tarifas por tiraje, pantallas, minutos de pulpo, margen, IVA, PDF y texto para WhatsApp. «Aceptada» crea la OT. |
+| Cotizaciones (solo equipo, `ops/cotizador.js`) | Catálogo de Chilian (174 prendas y servicios de planta), productos frecuentes, precios aprendidos de cada cotización guardada con sugerencia por volumen, costeo interno (costo × factor, margen), descuento general y por volumen, cargo express, 4 formas de IVA, anticipo, entrega, condiciones, escenarios de cantidad, opciones a elegir, hoja del cliente en vivo (PDF) y texto para WhatsApp. Cotizador de serigrafía por tintas (tabla editable en Ajustes) con prenda opcional. Se guarda sola. «Aceptada» crea la OT. |
 | Órdenes de trabajo | Folio `OT-AAMM-###` con código de barras Code 128, tallas, arte con enlace de aprobación para el cliente, merma, historial, hoja viajera y lista de empaque. |
 | Programación | 8 pulpos × días hábiles, capacidad en minutos por día, arrastrar OT desde la fila de espera. |
 | Escaneo | Lector USB/Bluetooth (o cámara donde el navegador lo permite): cada escaneo mueve la OT a la estación. |
@@ -328,3 +328,7 @@ Sistema interno en `chilian.vercel.app/ops`. Entra el equipo con su nombre y la 
 **Páginas del cliente** (sin índice en buscadores): `/aprobar?t=…` para aprobar el arte o pedir cambios, `/pedido?t=…` para seguir el pedido.
 
 **Técnica:** funciones en `api/` (Node, Vercel) sobre un Blob privado (`chilian-ops`); un archivo por registro en `db/<colección>/<id>.json`, archivos de arte en `files/<OT>/`. Cada guardado revisa que nadie haya guardado antes (si pasó, se carga la versión nueva). Variables: `BLOB_READ_WRITE_TOKEN`, `OPS_PASSWORD`, `SESSION_SECRET`. Para probar en local: `OPS_LOCAL_DIR=/ruta` guarda los registros como archivos y la contraseña local es `local`.
+
+### Estampa tu idea (cliente)
+
+El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y color primero; cada archivo subido queda en «Tus archivos» para usarlo en otra sección sin volver a subirlo; el fondo blanco se quita solo cuando el archivo lo tiene; se puede pegar una imagen (Ctrl+V); el ancho se ajusta con un deslizador o la rueda; «Quitar gráfico» se puede deshacer; la prenda queda a la vista mientras se eligen opciones y «Cotizar con este diseño» siempre está visible.
