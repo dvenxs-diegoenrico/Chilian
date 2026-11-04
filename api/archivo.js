@@ -23,7 +23,7 @@ export async function GET(req) {
     let ok = !!(await sessionOf(req));
     if (!ok && q.get("t")) {
       const ot = await otByToken(q.get("t"));
-      ok = !!ot && p.startsWith(`files/${ot.id}/`);
+      ok = !!ot && (p.startsWith(`files/${ot.id}/`) || (!!ot.solicitudId && p.startsWith(`files/${ot.solicitudId}/`)));
     }
     if (!ok) return new Response("No autorizado", { status: 401 });
     const f = await readFile(p);

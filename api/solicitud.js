@@ -1,7 +1,9 @@
 /* Public: the website's quote form files its request here (as well as opening
    WhatsApp), so every request lands in the team's inbox with a folio.
-   POST { ... } -> { id } */
-import { saveDoc, json, fail, body } from "./_lib.js";
+   POST { ... } -> { id, subir? }
+   A request made with Estampa tu idea also gets "subir": a 30-minute permit to attach its
+   mockup and design files (POST /api/adjunto), which the OS turns into a draft work order. */
+import { saveDoc, sign, json, fail, body } from "./_lib.js";
 
 const s = (v, n = 300) => String(v ?? "").trim().slice(0, n);
 
@@ -26,9 +28,14 @@ export async function POST(req) {
       fuente: s(d.fuente, 30).toLowerCase() || "directo", medio: s(d.medio, 40), campana: s(d.campana, 60),
       herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
       mockup: s(d.mockup, 600), especifica: modelos.length > 0,
+      estudio: d.estudio && typeof d.estudio === "object" ? {
+        prenda: s(d.estudio.prenda, 60), color: s(d.estudio.color, 40), modo: d.estudio.modo === "full" ? "full" : "place", piezas: Math.max(0, parseInt(d.estudio.piezas, 10) || 0),
+        secciones: Array.isArray(d.estudio.secciones) ? d.estudio.secciones.slice(0, 12).map((x) => ({ seccion: s(x.seccion, 40), lugar: s(x.lugar, 40), medida: s(x.medida, 40), archivo: s(x.archivo, 120) })) : []
+      } : null,
       recibida: new Date().toISOString()
     };
     const saved = await saveDoc("solicitudes", doc, "Sitio web");
-    return json({ id: saved.id });
+    const subir = doc.estudio ? sign({ sol: saved.id, exp: Date.now() + 30 * 60e3 }) : undefined;
+    return json({ id: saved.id, subir });
   } catch (e) { return fail(e); }
 }

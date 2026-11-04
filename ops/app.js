@@ -313,7 +313,7 @@
   /* ---------------- home / dashboard ---------------- */
   function viewHome() {
     const opps = list("oportunidades"), open = opps.filter((o) => !["ganado", "perdido"].includes(o.etapa));
-    const ots = list("ots"), active = ots.filter((o) => !["entregada"].includes(o.etapa));
+    const ots = list("ots").filter((o) => !o.previa), active = ots.filter((o) => !["entregada"].includes(o.etapa));
     const lateOts = active.filter((o) => o.fechaCompromiso && o.fechaCompromiso < localDate() && o.etapa !== "embarcada");
     const quotes = list("cotizaciones"), sent = quotes.filter((c) => c.estado === "enviada");
     const won = opps.filter((o) => o.etapa === "ganado"), lost = opps.filter((o) => o.etapa === "perdido");
@@ -372,6 +372,7 @@
   const CANALES = { whatsapp: "enviada por WhatsApp", copiada: "copiada (WhatsApp o correo)", instagram: "Instagram Direct", manual: "registrada por el equipo", web: "sitio" };
   const HERR = { cotizador: "cotizador", catalogo: "catálogo", estudio: "Estampa tu idea" };
   const specific = (s) => !!(s.modelos && s.modelos.length);
+  const fileHref = (p) => `/api/archivo?path=${encodeURIComponent(p)}&s=${encodeURIComponent(S.token)}`;
   function arrivedBy(s) {
     if (s.canal === "instagram") return "Instagram Direct (mensaje directo)";
     if (s.canal === "manual") return `${fuenteName(s.fuente)} · registrada por ${s.registradaPor || "el equipo"}`;
@@ -420,6 +421,10 @@
         h("span", { class: "small" }, h("b", { text: "Pre-cotización " + pre.id }), preC.total > 0 ? ` · ${money(preC.total)} estimado con precios anteriores` : " · lista para poner precios"),
         h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
       s.mockup ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Mockup: " }), s.mockup) : null,
+      (s.adjuntos || []).length ? h("div", { class: "grid", style: "gap:.4rem" },
+        h("div", { class: "thumbs" }, s.adjuntos.map((a) => h("a", { href: fileHref(a.path), target: "_blank", rel: "noopener" }, h("img", { src: fileHref(a.path), alt: a.name, loading: "lazy" }), h("span", { text: (a.tipo === "mockup" ? "Mockup · " : "Diseño · ") + a.name })))),
+        s.preOtId && byId("ots", s.preOtId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "OT previa " + s.preOtId }), ` · mockup y ${s.adjuntos.filter((a) => a.tipo !== "mockup").length} archivo(s) de diseño`),
+          h("a", { class: "btn sm", href: "#ot/" + s.preOtId }, "Abrir OT previa")) : h("p", { class: "small muted", text: "Preparando la OT previa…" })) : null,
       ((n) => n && !ig ? h("p", { class: "small", style: "white-space:pre-wrap", text: n }) : null)((s.notas || "").split("\n").filter((l) => !(s.mockup && l.startsWith("Mockup: "))).join("\n").trim()),
       ig ? igThread(s) : null,
       h("div", { class: "row" },
@@ -495,7 +500,42 @@
       }
     } catch (e) { console.error(e); }
     finally { preBusy = false; }
-    if (made && !(window.__czDirty && window.__czDirty()) && route().r === "solicitudes") rerender();
+    made += await ensurePreOTs();
+    if (made && !(window.__czDirty && window.__czDirty()) && ["solicitudes", "ots"].includes(route().r)) rerender();
+  }
+  // A request made with Estampa tu idea brings its mockup and design files: they become a draft
+  // work order (OT previa) with the art attached and the print sizes per section, so the plant
+  // can review it before the sale closes. It stays out of scheduling until it is confirmed.
+  async function ensurePreOTs() {
+    let made = 0;
+    for (const s of list("solicitudes")) {
+      const files = (s.adjuntos || []).map((a) => ({ path: a.path, name: a.name, type: a.type, size: a.size, tipo: a.tipo }));
+      if (!files.length || s.estado === "descartada") continue;
+      const ot = s.preOtId ? byId("ots", s.preOtId) : null;
+      try {
+        if (ot) {   // files that arrived after the draft was made join it
+          const have = new Set((ot.arte?.archivos || []).map((a) => a.path)), add = files.filter((a) => !have.has(a.path));
+          if (add.length) { await save("ots", { ...ot, arte: { ...(ot.arte || {}), archivos: [...(ot.arte?.archivos || []), ...add] } }, { quiet: true }); made++; }
+          continue;
+        }
+        if (s.preOtId) continue;
+        const est = s.estudio || {}, piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : est.piezas || s.piezas || 0;
+        const ubic = (est.secciones || []).map((x) => ({ nombre: x.seccion + (x.lugar ? " (" + x.lugar + ")" : ""), colores: 0, tintas: "", medida: x.medida, archivo: x.archivo }));
+        const lineas = s.modelos?.length
+          ? s.modelos.map((m) => ({ id: rid(), descripcion: m.titulo, modelo: (m.modelos || []).join(", "), color: m.color || est.color || "", piezas: m.piezas || 0, catId: m.id, ubicaciones: ubic.map((u) => ({ ...u })), tallas: Object.fromEntries(SIZES.map((z) => [z, 0])) }))
+          : [{ id: rid(), descripcion: est.prenda || s.prenda || "Prenda", modelo: "", color: est.color || "", piezas, ubicaciones: ubic, tallas: Object.fromEntries(SIZES.map((z) => [z, 0])) }];
+        const saved = await save("ots", {
+          previa: true, solicitudId: s.id, cuentaId: s.cuentaId || "", oportunidadId: s.oportunidadId || "", cotizacionId: s.preCotizacionId || "",
+          clienteNombre: s.empresa || s.nombre, etapa: "arte", prioridad: "normal", fechaCompromiso: s.fechaNecesaria || "",
+          tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(), lineas, estudio: est, mockup: s.mockup || "",
+          arte: { estado: "pendiente", archivos: files }, programacion: [], merma: [],
+          historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: "Sitio web", nota: `OT previa desde Estampa tu idea (${s.id})` }]
+        }, { quiet: true });
+        try { await save("solicitudes", { ...byId("solicitudes", s.id), preOtId: saved.id }, { quiet: true }); made++; }
+        catch { await remove("ots", saved.id).catch(() => {}); }
+      } catch (e) { console.error(e); }
+    }
+    return made;
   }
   async function convertRequest(s) {
     // Reuse the account if one already has this company or contact.
@@ -905,17 +945,22 @@
     }
     const c = calcCot(nq.opciones ? { ...nq, opciones: false, lineas } : nq);
     const due = nq.ent === "fecha" && nq.fechaEnt ? nq.fechaEnt : workDays(parseInt(nq.dias, 10) || 15).pop();
+    const opp0 = byId("oportunidades", q.oportunidadId), solId = q.solicitudId || opp0?.solicitudId;
+    const draft = list("ots").find((o) => o.previa && ((solId && o.solicitudId === solId) || o.cotizacionId === q.id));
     const ot = await save("ots", {
+      ...(draft || {}), previa: false,
       cotizacionId: q.id, oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, clienteNombre: CZ.clientOf(q) || "Cliente", etapa: "arte", prioridad: nq.expressOn ? "urgente" : "normal",
       fechaCompromiso: due, tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(),
-      lineas: lineas.filter((l) => !l.nopcs).map((l) => ({ id: l.id, descripcion: l.concepto, modelo: "", color: l.color, piezas: +l.piezas || 0, catId: l.catId, ubicaciones: l.ubicaciones || [], tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })),
+      lineas: lineas.filter((l) => !l.nopcs).map((l, i) => ({ id: l.id, descripcion: l.concepto, modelo: "", color: l.color, piezas: +l.piezas || 0, catId: l.catId,
+        ubicaciones: (l.ubicaciones || []).length ? l.ubicaciones : (draft?.lineas?.[Math.min(i, draft.lineas.length - 1)]?.ubicaciones || []), tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })),
       total: c.total, anticipo: +nq.anticipo || 0, notas: nq.notas,
-      arte: { estado: "pendiente", archivos: [] }, programacion: [], merma: [], historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: S.name, nota: `Creada desde ${q.id}` }]
+      arte: draft?.arte || { estado: "pendiente", archivos: [] }, programacion: draft?.programacion || [], merma: draft?.merma || [],
+      historial: [...(draft?.historial || []), { etapa: draft?.etapa || "arte", fecha: new Date().toISOString(), por: S.name, nota: draft ? `OT previa confirmada con ${q.id}` : `Creada desde ${q.id}` }]
     }, { quiet: true });
     await save("cotizaciones", { ...q, estado: "aceptada", aceptadaEn: new Date().toISOString(), otId: ot.id }, { quiet: true });
     const o = byId("oportunidades", q.oportunidadId);
     if (o) await save("oportunidades", { ...o, etapa: "ganado", probabilidad: 100, valor: c.sub, cerradaEn: new Date().toISOString(), actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `${q.id} aceptada. ${ot.id} creada.`, por: S.name }] }, { quiet: true });
-    toast(`${ot.id} creada.`);
+    toast(draft ? `${ot.id} confirmada con el mockup del cliente.` : `${ot.id} creada.`);
     go("ot/" + ot.id);
   }
   async function duplicateQuote(q) {
@@ -936,7 +981,7 @@
   function otTable(ots) {
     return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Pulpo", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
       h("tbody", {}, ots.sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9")).map((o) => h("tr", { class: "click", onclick: () => go("ot/" + o.id) },
-        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, otPill(o.etapa)),
+        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa)),
         h("td", {}, h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[o.arte?.estado] || "p-mut"), text: o.arte?.estado || "pendiente" })),
         h("td", { class: "r num", text: fmtN((o.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0)) }),
         h("td", { class: "small", text: (o.programacion || []).map((p) => `${S.settings.pulpos.find((x) => x.id === p.pulpo)?.nombre || p.pulpo} · ${fmtDate(p.fecha)}`).join("; ") || "—" }),
@@ -945,12 +990,12 @@
   function viewOTs() {
     const f = viewOTs.f ||= { etapa: "activas", q: "" };
     let ots = list("ots");
-    if (f.etapa === "activas") ots = ots.filter((o) => o.etapa !== "entregada"); else if (f.etapa) ots = ots.filter((o) => o.etapa === f.etapa);
+    if (f.etapa === "activas") ots = ots.filter((o) => o.etapa !== "entregada" && !o.previa); else if (f.etapa === "previas") ots = ots.filter((o) => o.previa); else if (f.etapa) ots = ots.filter((o) => o.etapa === f.etapa && !o.previa);
     if (f.q) { const q = f.q.toLowerCase(); ots = ots.filter((o) => (o.id + " " + (o.clienteNombre || "")).toLowerCase().includes(q)); }
     return h("div", {},
-      top(`${list("ots").filter((o) => o.etapa !== "entregada").length} activas`, "Órdenes de trabajo",
+      top(`${list("ots").filter((o) => o.etapa !== "entregada" && !o.previa).length} activas · ${list("ots").filter((o) => o.previa).length} previas`, "Órdenes de trabajo",
         h("input", { class: "i search", type: "search", placeholder: "Buscar OT o cliente", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewOTs.t); viewOTs.t = setTimeout(rerender, 250); } }),
-        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.etapa = e.target.value; rerender(); } }, h("option", { value: "activas", text: "Activas" }), h("option", { value: "", text: "Todas", selected: f.etapa === "" }), OT_STAGES.map((s) => h("option", { value: s.id, text: s.name, selected: f.etapa === s.id }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.etapa = e.target.value; rerender(); } }, h("option", { value: "activas", text: "Activas" }), h("option", { value: "previas", text: `Previas (${list("ots").filter((o) => o.previa).length})`, selected: f.etapa === "previas" }), h("option", { value: "", text: "Todas", selected: f.etapa === "" }), OT_STAGES.map((s) => h("option", { value: s.id, text: s.name, selected: f.etapa === s.id }))),
         h("button", { class: "btn ghost", type: "button", onclick: () => manualOT() }, "+ OT sin cotización")),
       h("div", { class: "kpis" }, OT_STAGES.map((s) => h("a", { class: "kpi", href: "#ots", onclick: () => { f.etapa = s.id; } }, h("span", { class: "label", text: s.name }), h("strong", { text: list("ots").filter((o) => o.etapa === s.id).length })))),
       ots.length ? otTable(ots) : h("div", { class: "empty", text: "No hay órdenes en esta vista. Una OT nace cuando se acepta una cotización." }));
@@ -988,13 +1033,22 @@
       top(`${ot.clienteNombre || cuentaName(ot.cuentaId)}${ot.cotizacionId ? " · " + ot.cotizacionId : ""}`, `Orden ${ot.id}`, otPill(ot.etapa),
         h("button", { class: "btn ghost", type: "button", onclick: () => printTraveler(ot) }, "Hoja viajera"),
         h("button", { class: "btn ghost", type: "button", onclick: () => printPacking(ot) }, "Lista de empaque")),
+      ot.previa ? h("div", { class: "card", style: "border-color:var(--magenta);margin-bottom:1rem" },
+        h("div", { class: "row between" }, h("div", {}, h("h2", { text: "OT previa" }),
+          h("p", { class: "small", style: "margin:0", text: `Nació de ${ot.solicitudId || "una solicitud"} con el mockup y el diseño que el cliente armó en Estampa tu idea. No entra a programación ni a planta hasta confirmarla; se confirma sola al aceptar su cotización.` })),
+          h("div", { class: "row" }, ot.solicitudId ? h("a", { class: "btn ghost", href: "#solicitudes" }, "Ver solicitud") : null,
+            h("button", { class: "btn accent", type: "button", onclick: async () => { if (!(await confirmBox(`¿Confirmar ${ot.id} como orden de trabajo? Pasará a planta en la etapa ${stageName(OT_STAGES, ot.etapa)}.`))) return; await persist({ previa: false, fechaCompromiso: ot.fechaCompromiso || workDays(15).pop(), historial: [...(ot.historial || []), { etapa: ot.etapa, fecha: new Date().toISOString(), por: S.name, nota: "OT previa confirmada" }] }, "OT confirmada."); } }, "Confirmar OT")))) : null,
+      ot.estudio && (ot.estudio.secciones || []).length ? h("div", { class: "card", style: "margin-bottom:1rem" }, h("h2", { text: "Diseño del cliente (Estampa tu idea)" }),
+        h("p", { class: "small muted", text: `${ot.estudio.prenda || ""} ${ot.estudio.color ? "· " + ot.estudio.color : ""} · ${ot.estudio.modo === "full" ? "estampado completo" : "serigrafía por posición"}${ot.estudio.piezas ? " · " + fmtN(ot.estudio.piezas) + " piezas" : ""}` }),
+        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Sección", "Posición", "Medida", "Archivo"].map((x) => h("th", { text: x })))),
+          h("tbody", {}, ot.estudio.secciones.map((x) => h("tr", {}, h("td", { text: x.seccion }), h("td", { text: x.lugar || "—" }), h("td", { class: "num", text: x.medida || "—" }), h("td", { class: "small", text: x.archivo || "—" }))))))) : null,
       h("div", { class: "steps", style: "margin-bottom:1rem" }, OT_STAGES.map((s, i) => h("button", { type: "button", class: i < idx ? "done" : i === idx ? "now" : "", title: "Mover a " + s.name, onclick: () => persist(setStage(ot, s.id, "Cambio manual"), `Etapa: ${s.name}.`) }, (i < idx ? "✓ " : "") + s.name))),
       h("div", { class: "cols" },
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Partidas y tallas" }), saveLines),
             ...ot.lineas.map((l) => h("div", { class: "lineitem" },
               h("div", { class: "row between" }, h("b", { text: `${l.descripcion}${l.modelo ? " · " + l.modelo : ""}${l.color ? " · " + l.color : ""}` }), h("span", { class: "num", text: fmtN(l.piezas) + " pzas" })),
-              h("div", { class: "small muted", text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} col.${u.tintas ? " (" + u.tintas + ")" : ""}`).join(" · ") }),
+              h("div", { class: "small muted", text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${+u.colores ? u.colores + " col." : "colores por definir"}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`).join(" · ") }),
               h("div", { class: "grid", style: `grid-template-columns:repeat(${SIZES.length},minmax(0,1fr));gap:.35rem` }, SIZES.map((sz) => h("label", { class: "f" }, h("span", { text: sz }), h("input", { class: "i", type: "number", min: "0", step: "1", value: l.tallas?.[sz] || "", oninput: (e) => { (l.tallas ||= {})[sz] = +e.target.value || 0; mark(); sumNote.textContent = tallaNote(l); } })))),
               ((sumNote) => sumNote)(h("p", { class: "small", text: tallaNote(l) }))))),
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Arte y aprobación del cliente" }), h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[ot.arte?.estado] || "p-mut"), text: ot.arte?.estado || "pendiente" })),
@@ -1023,8 +1077,8 @@
             h("div", { class: "grid g2" }, inputField("Compromiso de entrega", ot.fechaCompromiso, "date", (v) => persist({ fechaCompromiso: v }, "Fecha guardada.")),
               selectField("Prioridad", ot.prioridad || "normal", [["normal", "Normal"], ["alta", "Alta"], ["urgente", "Urgente"]], (v) => persist({ prioridad: v }, "Prioridad guardada."))),
             h("p", { class: "small muted", text: `${fmtN(piezas)} piezas · ${fmtN(minutos)} min estimados de pulpo` })),
-          h("div", { class: "card" }, h("h2", { text: "Programación" }), scheduleForm(ot, minutos, persist)),
-          h("div", { class: "card" }, h("h2", { text: "Embarque" }), shipForm(ot, persist, contact, linkSeg)),
+          ot.previa ? null : h("div", { class: "card" }, h("h2", { text: "Programación" }), scheduleForm(ot, minutos, persist)),
+          ot.previa ? null : h("div", { class: "card" }, h("h2", { text: "Embarque" }), shipForm(ot, persist, contact, linkSeg)),
           h("div", { class: "card" }, h("h2", { text: "Seguimiento del cliente" }), h("p", { class: "small", text: "El cliente ve la etapa de su pedido y la guía de envío en este enlace." }), h("div", { class: "copybox", text: linkSeg }),
             h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(linkSeg) }, "Copiar"), h("a", { class: "btn sm ghost", href: linkSeg, target: "_blank", rel: "noopener" }, "Ver como cliente"))),
           h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox(`¿Borrar la orden ${ot.id}? No se puede deshacer.`))) return; await remove("ots", ot.id); go("ots"); } }, "Borrar OT"))));
@@ -1077,7 +1131,7 @@
         h("div", { style: "width:70mm", html: code128svg(ot.id) })),
       h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", "Ubicaciones y tintas", ...SIZES, "Total"].map((x) => h("th", { text: x })))),
         h("tbody", {}, ot.lineas.map((l) => h("tr", {}, h("td", {}, h("b", { text: l.descripcion }), l.modelo ? " · " + l.modelo : "", l.color ? h("div", { text: l.color }) : null),
-          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} col.${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
+          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${+u.colores ? u.colores + " col." : "colores por definir"}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
       h("table", { style: "margin-top:10pt" }, h("thead", {}, h("tr", {}, ["Estación", "Inicio", "Fin", "Firma", "Notas"].map((x) => h("th", { text: x })))), h("tbody", {}, STATIONS.slice(0, 5).map((s) => h("tr", { style: "height:22pt" }, h("td", { text: s.name }), h("td"), h("td"), h("td"), h("td")))))));
     setTimeout(() => print(), 50);
   }
@@ -1093,7 +1147,7 @@
   /* ---------------- press schedule ---------------- */
   function viewSchedule() {
     const days = workDays(viewSchedule.n || 10, viewSchedule.from || localDate()), cap = dayCapacity();
-    const queue = list("ots").filter((o) => !(o.programacion || []).length && !["embarcada", "entregada", "impresion", "calidad", "empaque"].includes(o.etapa)).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
+    const queue = list("ots").filter((o) => !o.previa && !(o.programacion || []).length && !["embarcada", "entregada", "impresion", "calidad", "empaque"].includes(o.etapa)).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
     const dragJob = (el, otId) => { el.draggable = true; el.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", otId)); };
     const cell = (p, d) => {
       const jobs = loadOn(p.id, d), used = jobs.reduce((a, x) => a + x.min, 0), pct = cap ? used / cap : 0;
@@ -1137,6 +1191,7 @@
       await loadAll(true);   // the freshest status before moving anything
       const ot = byId("ots", code) || list("ots").find((o) => o.id.toUpperCase() === code);
       if (!ot) { result.replaceChildren(h("div", { class: "card", style: "border-color:var(--bad)" }, h("h2", { text: "No se encontró " + code }), h("p", { class: "small", text: "Revisa que la etiqueta sea de una OT activa." }))); return; }
+      if (ot.previa) { result.replaceChildren(h("div", { class: "card", style: "border-color:var(--warn)" }, h("h2", { text: ot.id + " es una OT previa" }), h("p", { class: "small", text: "Confírmala (o acepta su cotización) antes de moverla en planta." }), h("a", { class: "link small", href: "#ot/" + ot.id }, "Abrir la OT"))); return; }
       const sid = station.value, name = stageName(STATIONS, sid);
       const saved = await save("ots", setStage(ot, sid, `Escaneo en ${name}`), { quiet: true });
       const card = h("div", { class: "card flash" }, h("div", { class: "row between" }, h("h2", { text: `${saved.id} → ${stageName(OT_STAGES, sid)}` }), otPill(saved.etapa)),
@@ -1176,7 +1231,7 @@
 
   /* ---------------- shipping ---------------- */
   function viewShipping() {
-    const ready = list("ots").filter((o) => ["empaque", "calidad"].includes(o.etapa));
+    const ready = list("ots").filter((o) => !o.previa && ["empaque", "calidad"].includes(o.etapa));
     const sent = list("ots").filter((o) => o.etapa === "embarcada").sort((a, b) => (b.embarque?.fecha || "").localeCompare(a.embarque?.fecha || ""));
     return h("div", {}, top("Listas para salir y en camino", "Embarques"),
       h("div", { class: "grid" },
