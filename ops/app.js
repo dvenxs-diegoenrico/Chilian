@@ -598,6 +598,11 @@
     return made;
   }
   async function convertRequest(s) {
+    const opp = await leadFromRequest(s);
+    toast(`Oportunidad creada para ${cuentaName(opp.cuentaId)}.`);
+    go("oportunidad/" + opp.id);
+  }
+  async function leadFromRequest(s) {
     // Reuse the account if one already has this company or contact.
     const key = (s.empresa || s.nombre || "").trim().toLowerCase();
     const src = s.canal === "instagram" || s.fuente === "instagram" ? "Redes sociales" : s.canal === "manual" ? ({ referido: "Referido", feria: "Feria", distribuidor: "Distribuidor" }[s.fuente] || "Prospección") : "Sitio web";
@@ -614,8 +619,37 @@
     if (pre) await save("cotizaciones", { ...pre, oportunidadId: opp.id, cuentaId: cuenta.id, cliente: "" }, { quiet: true });
     await save("tareas", { tipo: s.canal === "instagram" ? "Instagram" : "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}${pre ? " (revisar la pre-cotización " + pre.id + ")" : ""}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
     await save("solicitudes", { ...byId("solicitudes", s.id), estado: "convertida", nuevoMensaje: false, oportunidadId: opp.id, cuentaId: cuenta.id }, { quiet: true });
-    toast(`Oportunidad creada para ${cuenta.nombre}.`);
-    go("oportunidad/" + opp.id);
+    return opp;
+  }
+
+  /* Every quote belongs to a lead. A quote without an opportunity gets one: from its website
+     request when it has one, otherwise from the account (found by name or created). */
+  const quoteTitle = (q, c) => {
+    const ls = (q.lineas || []).filter((l) => !l.nopcs), first = ls[0]?.concepto || ls[0]?.descripcion || "Pedido";
+    return `${first}${ls.length > 1 ? ` y ${ls.length - 1} más` : ""} · ${fmtN(c.piezas)} pzas`;
+  };
+  async function ensureLead(q, info = {}) {
+    let o = q.oportunidadId ? byId("oportunidades", q.oportunidadId) : null;
+    if (o) return { q, o };
+    const sol = q.solicitudId ? byId("solicitudes", q.solicitudId) : null;
+    if (sol) {
+      o = (sol.oportunidadId && byId("oportunidades", sol.oportunidadId)) || await leadFromRequest(sol);
+      q = await save("cotizaciones", { ...byId("cotizaciones", q.id), oportunidadId: o.id, cuentaId: o.cuentaId, cliente: "" }, { quiet: true });
+      return { q, o };
+    }
+    const c = calcCot(q), name = (info.nombre || CZ.clientOf(q) || "").trim() || "Cliente sin nombre";
+    let cuenta = q.cuentaId ? byId("cuentas", q.cuentaId) : list("cuentas").find((x) => x.nombre.trim().toLowerCase() === name.toLowerCase());
+    if (!cuenta) cuenta = await save("cuentas", { nombre: name, segmento: info.segmento || "marca", fuente: info.fuente || "Prospección", responsable: S.name,
+      contactos: info.contacto || info.persona ? [{ nombre: info.persona || "", puesto: "", contacto: info.contacto || "" }] : [], notas: "" }, { quiet: true });
+    o = await save("oportunidades", {
+      titulo: quoteTitle(q, c), tituloAuto: true, cuentaId: cuenta.id, segmento: info.segmento || cuenta.segmento || "marca", etapa: "calificado", probabilidad: stageProb("calificado"),
+      valor: Math.round(c.sub) || 0, piezasAnio: c.piezas, asesor: cuenta.responsable && team().includes(cuenta.responsable) ? cuenta.responsable : S.name,
+      origen: `Cotización ${q.id} · ${info.fuente || cuenta.fuente || "Prospección"}`, cotizacionId: q.id,
+      proximaAccion: { texto: `Enviar la cotización ${q.id}`, fecha: localDate() },
+      actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Lead creado con la cotización ${q.id}.`, por: S.name }]
+    }, { quiet: true });
+    q = await save("cotizaciones", { ...byId("cotizaciones", q.id), oportunidadId: o.id, cuentaId: cuenta.id, cliente: "" }, { quiet: true });
+    return { q, o };
   }
   // A first value from the pieces: an average decorated garment price, editable later.
   const estimateValue = (pzs) => Math.round((+pzs || 0) * 160);
@@ -966,19 +1000,46 @@
   }
   function newQuoteModal() {
     const cs = list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const sel = h("select", { class: "i", name: "cuenta" }, h("option", { value: "", text: "— Cliente sin cuenta —" }), cs.map((c) => h("option", { value: c.id, text: c.nombre })));
-    const name = h("input", { class: "i", placeholder: "Nombre del cliente (si no tiene cuenta)" });
+    const sel = h("select", { class: "i", name: "cuenta" }, h("option", { value: "", text: "— Cliente nuevo —" }), cs.map((c) => h("option", { value: c.id, text: c.nombre })));
+    const oppSel = h("select", { class: "i" });
+    const fresh = h("div", { class: "grid g2" },
+      h("label", { class: "f" }, h("span", { text: "Empresa o cliente" }), h("input", { class: "i", name: "nombre", required: true, placeholder: "Ej. Cervecería del Valle" })),
+      h("label", { class: "f" }, h("span", { text: "Contacto" }), h("input", { class: "i", name: "persona", placeholder: "Nombre de quien compra" })),
+      h("label", { class: "f" }, h("span", { text: "WhatsApp o correo" }), h("input", { class: "i", name: "contacto" })),
+      h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((x) => h("option", { value: x.id, text: x.name })))),
+      h("label", { class: "f" }, h("span", { text: "Fuente" }), h("select", { class: "i", name: "fuente" }, SOURCES.map((x) => h("option", { value: x, text: x, selected: x === "Prospección" })))));
+    const oppBox = h("label", { class: "f" }, h("span", { text: "Oportunidad" }), oppSel);
+    const paint = () => {
+      const open = list("oportunidades").filter((o) => o.cuentaId === sel.value && !["ganado", "perdido"].includes(o.etapa));
+      oppSel.replaceChildren(h("option", { value: "", text: "+ Nueva oportunidad (lead) con esta cotización" }), ...open.map((o) => h("option", { value: o.id, text: `${o.titulo} · ${stageName(OPP_STAGES, o.etapa)}` })));
+      fresh.hidden = !!sel.value; fresh.querySelector("[name=nombre]").required = !sel.value; oppBox.hidden = !sel.value;
+    };
+    sel.addEventListener("change", paint); paint();
     modal("Nueva cotización", h("form", { class: "grid", onsubmit: async (e) => {
-      e.preventDefault(); closeModal();
-      const doc = await CZ.newDoc({ cuentaId: sel.value, cliente: sel.value ? "" : name.value.trim() });
-      const q = await save("cotizaciones", doc, { quiet: true });
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(e.target)); closeModal();
+      const opp = oppSel.value && byId("oportunidades", oppSel.value);
+      const doc = await CZ.newDoc({ cuentaId: sel.value, oportunidadId: opp ? opp.id : "", cliente: sel.value ? "" : (fd.nombre || "").trim() });
+      let q = await save("cotizaciones", doc, { quiet: true });
+      if (opp) await leadQuoted(opp, q);
+      else q = (await ensureLead(q, { nombre: fd.nombre, persona: (fd.persona || "").trim(), contacto: (fd.contacto || "").trim(), segmento: fd.segmento, fuente: fd.fuente })).q;
+      toast(`Cotización ${q.id} creada y su lead en Oportunidades.`);
       go("cotizacion/" + q.id);
-    } }, h("label", { class: "f" }, h("span", { text: "Cuenta" }), sel), h("label", { class: "f" }, h("span", { text: "O escribe el cliente" }), name),
-      h("p", { class: "hint", text: "Para seguimiento en el CRM conviene crearla desde la oportunidad." }), h("button", { class: "btn accent", type: "submit" }, "Crear cotización")));
+    } }, h("label", { class: "f" }, h("span", { text: "Cuenta" }), sel), fresh, oppBox,
+      h("p", { class: "hint", text: "Cada cotización entra al pipeline: crea o usa la oportunidad de la cuenta, y al marcarla enviada su etapa, valor y seguimiento se actualizan solos." }), h("button", { class: "btn accent", type: "submit" }, "Crear cotización")));
+  }
+  // A quote started on an existing opportunity: the opportunity is at least "qualified" and logs it.
+  async function leadQuoted(o, q) {
+    o = byId("oportunidades", o.id) || o;
+    const early = ["nuevo", "contactado"].includes(o.etapa || "nuevo");
+    await save("oportunidades", { ...o, ...(early ? { etapa: "calificado", probabilidad: stageProb("calificado") } : {}), cotizacionId: o.cotizacionId || q.id,
+      proximaAccion: early || !o.proximaAccion?.texto ? { texto: `Enviar la cotización ${q.id}`, fecha: localDate() } : o.proximaAccion,
+      actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `Cotización ${q.id} creada.`, por: S.name }] }, { quiet: true });
   }
   async function newQuote(o) {
     const doc = await CZ.newDoc({ oportunidadId: o.id, cuentaId: o.cuentaId, solicitud: o.solicitud || null });
     const q = await save("cotizaciones", doc, { quiet: true });
+    await leadQuoted(o, q);
     toast(`Cotización ${q.id} creada.`);
     go("cotizacion/" + q.id);
   }
@@ -988,11 +1049,21 @@
     return CZ.view(q0, { pill: quotePill(q0.estado) });
   }
   async function markSent(q) {
-    const o = byId("oportunidades", q.oportunidadId), c = calcCot(q);
-    await save("cotizaciones", { ...q, estado: "enviada", enviadaEn: new Date().toISOString() }, { quiet: true });
-    if (o && ["nuevo", "contactado", "calificado", "cotizacion"].includes(o.etapa)) await save("oportunidades", { ...o, etapa: "cotizacion", probabilidad: stageProb("cotizacion"), valor: c.sub, proximaAccion: { texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2) } }, { quiet: true });
-    if (q.estado !== "enviada") await save("tareas", { tipo: "WhatsApp", texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2), oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, asesor: o?.asesor || S.name, hecha: false }, { quiet: true });
-    toast("Marcada como enviada. Seguimiento en 2 días.");
+    const wasSent = q.estado === "enviada";
+    let o; ({ q, o } = await ensureLead(q));   // a quote sent without a lead gets one now
+    const c = calcCot(q), now = new Date().toISOString(), follow = addDays(localDate(), 2);
+    q = await save("cotizaciones", { ...q, estado: "enviada", enviadaEn: now }, { quiet: true });
+    o = byId("oportunidades", o.id) || o;
+    // stage: up to "quote sent" (never backwards from negotiation; a lost deal re-quoted comes back)
+    const stage = ["nuevo", "contactado", "calificado", "cotizacion", "perdido"].includes(o.etapa || "nuevo") ? "cotizacion" : o.etapa;
+    if (o.etapa !== "ganado") await save("oportunidades", {
+      ...o, ...(o.tituloAuto ? { titulo: quoteTitle(q, c) } : {}), etapa: stage, probabilidad: stage === o.etapa ? o.probabilidad ?? stageProb(stage) : stageProb(stage), valor: Math.round(c.sub), piezasAnio: Math.max(+o.piezasAnio || 0, c.piezas),
+      cotizacionId: q.id, cotizacionEnviada: now, ...(o.etapa === "perdido" ? { motivoPerdida: "", cerradaEn: "" } : {}),
+      proximaAccion: { texto: `Seguimiento a la cotización ${q.id}`, fecha: follow },
+      actividad: [...(o.actividad || []), { fecha: now, tipo: "Nota", texto: `${wasSent ? "Cotización reenviada" : "Cotización enviada"}: ${q.id} · ${money(c.total)} con IVA · ${fmtN(c.piezas)} pzas.${stage !== o.etapa ? ` Pasó a ${stageName(OPP_STAGES, stage)}.` : ""}`, por: S.name }]
+    }, { quiet: true });
+    if (!wasSent) await save("tareas", { tipo: "WhatsApp", texto: `Seguimiento a la cotización ${q.id}`, fecha: follow, oportunidadId: o.id, cuentaId: o.cuentaId, asesor: o.asesor || S.name, hecha: false }, { quiet: true });
+    toast(`Enviada. ${o.titulo} está en ${stageName(OPP_STAGES, o.etapa === "ganado" ? "ganado" : stage)} por ${moneyK(c.sub)}; seguimiento en 2 días.`);
     rerender();
   }
   async function acceptQuote(q) {
@@ -1028,7 +1099,9 @@
     const d = structuredClone(q);
     for (const k of ["id", "createdAt", "createdBy", "updatedAt", "updatedBy", "otId", "enviadaEn", "aceptadaEn"]) delete d[k];
     Object.assign(d, { estado: "borrador", fecha: localDate() });
-    const saved = await save("cotizaciones", d, { quiet: true });
+    let saved = await save("cotizaciones", d, { quiet: true });
+    if (saved.oportunidadId && byId("oportunidades", saved.oportunidadId)) await leadQuoted(byId("oportunidades", saved.oportunidadId), saved);
+    else saved = (await ensureLead(saved)).q;
     toast(`Copia creada: ${saved.id}.`);
     go("cotizacion/" + saved.id);
   }
