@@ -1449,6 +1449,7 @@
           <button class="btn btn-ghost" type="button" data-studio data-en="Print your idea →">Estampa tu idea →</button>
         </div>
         <form class="quote-form" id="quote" novalidate>
+          <input type="text" id="q-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
           <fieldset class="q-step">
             <legend><span class="n">01</span><span data-en="Type of project">Tipo de proyecto</span></legend>
             <div class="chips" id="q-type"></div>
@@ -2074,14 +2075,40 @@
     return ok;
   }
 
+  // Every request also lands in the team's system (Chilian OS) with a folio,
+  // so nothing depends on a WhatsApp chat being read. Same request twice = one folio.
+  let filed = { key: "", id: "" };
+  function fileRequest(canal) {
+    const s = summary();
+    const payload = {
+      tipo: s.ty.id, tipoNombre: t(s.ty.label), asesor: s.advisor.name, prenda: s.garment, piezas: s.qty, tecnicas: s.techs, fecha: s.date,
+      nombre: s.name, empresa: s.company, contacto: s.contact, notas: s.notes, idioma: lang, canal,
+      modelos: picked.map((p) => ({ id: p.id, titulo: p.title, modelos: p.models, piezas: p.qty || 0, color: p.color || "", catalogo: p.cat, pagina: p.page, tipo: p.kind || "" })),
+      pagina: location.href.slice(0, 300), referencia: document.referrer.slice(0, 300), web: ($("#q-web") || {}).value || ""
+    };
+    const key = JSON.stringify({ ...payload, canal: "", pagina: "" });
+    if (key === filed.key) { if (filed.id) showFolio(filed.id); return; }
+    filed = { key, id: "" };
+    fetch("/api/solicitud", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), keepalive: true })
+      .then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.id && j.id !== "ok") { filed.id = j.id; showFolio(j.id); } })
+      .catch(() => { filed.key = ""; });   // offline: WhatsApp still carries the request
+  }
+  function showFolio(id) {
+    const note = $("#ticket-note");
+    note.textContent = lang === "en" ? `Request ${id} received. Your advisor will reply today (business days). Attach your artwork in WhatsApp.` : `Solicitud ${id} recibida. Tu asesora te responde hoy (días hábiles). Adjunta tu arte en WhatsApp.`;
+    note.classList.add("copied");
+    $("#ticket-no").textContent = id;
+  }
+
   function wireQuote() {
     const form = $("#quote");
     form.addEventListener("input", updateTicket);
     form.addEventListener("change", updateTicket);
     form.addEventListener("submit", (e) => e.preventDefault());
-    $("#send-wa").addEventListener("click", (e) => { if (!validate()) e.preventDefault(); });
+    $("#send-wa").addEventListener("click", (e) => { if (!validate()) { e.preventDefault(); return; } fileRequest("whatsapp"); });
     $("#copy-brief").addEventListener("click", async () => {
       const text = briefText(summary()), note = $("#ticket-note");
+      if (validate()) fileRequest("copiada");
       try { await navigator.clipboard.writeText(text); note.textContent = lang === "en" ? "Request copied. Paste it in WhatsApp or an email." : "Solicitud copiada. Pégala en WhatsApp o en un correo."; note.classList.add("copied"); toast(note.textContent); }
       catch (err) { note.textContent = text; note.classList.remove("copied"); }
     });

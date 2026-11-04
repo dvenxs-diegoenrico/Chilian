@@ -1,0 +1,9 @@
+{
+  "name": "chilian-site",
+  "private": true,
+  "type": "module",
+  "description": "Sitio de Grupo Chilian (estático) y Chilian OS: funciones en /api sobre Vercel Blob privado.",
+  "dependencies": {
+    "@vercel/blob": "2.8.2"
+  }
+}

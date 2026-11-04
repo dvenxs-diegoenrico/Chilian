@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Tu pedido · Chilian</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 700 900; font-display: swap; src: url(/fonts/big-shoulders-display.woff2) format("woff2"); }
+  @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap; src: url(/fonts/instrument-sans.woff2) format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono-400.woff2) format("woff2"); }
+  :root {
+    --paper: #F4F3F5; --card: #FFFFFF; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13);
+    --magenta: #C20E62; --on-accent: #FFFFFF; --ok: #3F7A0A; --bad: #C8322B;
+    --f-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --f-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14);
+    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14);
+    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.55 var(--f-body); -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 1.5rem 16px 4rem; }
+  header { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.4rem; }
+  header img { width: 38px; height: 38px; }
+  header b { font: 800 1.35rem/1 var(--f-display); letter-spacing: .04em; }
+  header small { display: block; font: 400 .72rem/1.2 var(--f-mono); color: var(--steel); letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font: 800 clamp(2rem, 7vw, 3rem)/1 var(--f-display); margin: 0 0 .3rem; letter-spacing: .01em; }
+  h2 { font: 700 1.35rem/1.1 var(--f-display); margin: 0 0 .7rem; letter-spacing: .02em; }
+  .label { font: 400 .72rem/1.3 var(--f-mono); color: var(--steel); text-transform: uppercase; letter-spacing: .08em; }
+  .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--steel); }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1.1rem 1.2rem; margin-bottom: 1rem; }
+  .track { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: 0; }
+  .track li { display: grid; grid-template-columns: 1.4rem 1fr auto; gap: .7rem; align-items: center; padding: .45rem 0; color: var(--steel); position: relative; }
+  .track li::before { content: ""; width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid var(--rule); justify-self: center; background: var(--card); z-index: 1; }
+  .track li:not(:last-child)::after { content: ""; position: absolute; left: calc(.7rem - 1px); top: 1.4rem; bottom: -.45rem; width: 2px; background: var(--rule); }
+  .track li.done { color: var(--ink); } .track li.done::before { background: var(--ok); border-color: var(--ok); }
+  .track li.done::after { background: var(--ok); }
+  .track li.now { color: var(--ink); font-weight: 700; } .track li.now::before { background: var(--magenta); border-color: var(--magenta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--magenta) 22%, transparent); }
+  .track time { font: 400 .78rem var(--f-mono); color: var(--steel); }
+  .art { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .7rem; margin: .4rem 0 1rem; }
+  .art a { display: block; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; background: #fff; }
+  .art img { display: block; width: 100%; height: 220px; object-fit: contain; background: #fff; }
+  .art .pdf { height: 220px; display: grid; place-items: center; color: #333; font: 700 1.4rem var(--f-display); }
+  .art span { display: block; padding: .35rem .6rem; font: 400 .75rem var(--f-mono); color: #333; border-top: 1px solid #eee; overflow-wrap: anywhere; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: .45rem .3rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font: 400 .7rem var(--f-mono); color: var(--steel); text-transform: uppercase; letter-spacing: .06em; }
+  td.r, th.r { text-align: right; }
+  label.f { display: grid; gap: .25rem; margin-bottom: .7rem; }
+  label.f span { font: 400 .75rem var(--f-mono); color: var(--steel); text-transform: uppercase; letter-spacing: .06em; }
+  input, textarea { font: inherit; color: inherit; width: 100%; padding: .65rem .75rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, textarea:focus { outline: 2px solid var(--magenta); outline-offset: 1px; }
+  .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: .6rem 1.15rem; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font: 600 1rem var(--f-body); cursor: pointer; text-decoration: none; transition: transform .15s ease, background .15s ease; }
+  .btn:hover { transform: translateY(-1px); } .btn:active { transform: translateY(1px) scale(.98); }
+  .btn.accent { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn[disabled] { opacity: .5; pointer-events: none; }
+  .status { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font: 400 .75rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; border: 1px solid currentColor; }
+  .status.ok { color: var(--ok); } .status.bad { color: var(--bad); } .status.wait { color: var(--magenta); }
+  .msg { padding: .7rem .9rem; border-radius: 8px; border: 1px solid var(--rule); margin: .6rem 0 0; }
+  .msg.ok { border-color: var(--ok); } .msg.bad { border-color: var(--bad); color: var(--bad); }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--steel); }
+  footer { margin-top: 2rem; font-size: .85rem; color: var(--steel); }
+  footer a { color: inherit; }
+  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="/favicon.png" alt=""><div><b>CHILIAN</b><small>Screen Printing · Puebla</small></div></header>
+  <main id="app"><p class="empty">Cargando tu pedido…</p></main>
+  <footer>¿Dudas? Escríbenos por <a href="https://wa.me/522226925404" target="_blank" rel="noopener">WhatsApp 222 692 5404</a> · <a href="/">grupochilian.com.mx</a></footer>
+</div>
+<script>
+(() => {
+  "use strict";
+  const STAGE = { arte: "Preparando el arte", aprobacion: "Arte en tu revisión", compra: "Prenda en preparación", pantallas: "Pantallas listas para imprimir", programada: "Programado en máquina", impresion: "En impresión", calidad: "Control de calidad", empaque: "Empacando", embarcada: "Enviado", entregada: "Entregado" };
+  const t = new URLSearchParams(location.search).get("t") || "";
+  const wantsApproval = /aprobar/.test(location.pathname);
+  const app = document.getElementById("app");
+  const fmtDate = (iso) => (iso ? new Date(iso.length <= 10 ? iso + "T12:00" : iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "");
+  const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+  const fmtN = (n) => (Number(n) || 0).toLocaleString("es-MX");
+  function h(tag, attrs = {}, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) { if (v == null || v === false) continue; if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v); }
+    for (const k of kids.flat()) if (k != null && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+    return n;
+  }
+  const fileUrl = (p) => `/api/archivo?path=${encodeURIComponent(p)}&t=${encodeURIComponent(t)}`;
+
+  async function load() {
+    if (!t) return fail("Este enlace está incompleto. Pide a tu asesora el enlace de tu pedido.");
+    try {
+      const r = await fetch(`/api/cliente?t=${encodeURIComponent(t)}`, { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return fail(j.error || "No pudimos abrir tu pedido.");
+      render(j.ot);
+    } catch { fail("No hay conexión. Vuelve a intentar en un momento."); }
+  }
+  function fail(msg) { app.replaceChildren(h("div", { class: "card empty" }, h("p", { text: msg }))); }
+
+  function render(ot) {
+    document.title = `${ot.id} · Chilian`;
+    const idx = ot.etapas.indexOf(ot.etapa);
+    const when = {};
+    for (const x of ot.historial || []) when[x.etapa] = x.fecha;
+    const art = ot.arte || {}, files = art.archivos || [];
+    const decided = art.estado === "aprobada" || art.estado === "cambios";
+    const artCard = h("section", { class: "card", id: "arte" },
+      h("div", { class: "row", style: "justify-content:space-between" }, h("h2", { text: "Arte de tu pedido" }),
+        h("span", { class: "status " + (art.estado === "aprobada" ? "ok" : art.estado === "cambios" ? "bad" : "wait"), text: art.estado === "aprobada" ? "Aprobado" : art.estado === "cambios" ? "Cambios pedidos" : "Por aprobar" })),
+      files.length ? h("div", { class: "art" }, files.map((a) => h("a", { href: fileUrl(a.path), target: "_blank", rel: "noopener" },
+        (a.type || "").startsWith("image/") ? h("img", { src: fileUrl(a.path), alt: a.name, loading: "lazy" }) : h("div", { class: "pdf", text: "PDF" }), h("span", { text: a.name }))))
+        : h("p", { class: "muted", text: "Tu asesora todavía no sube el arte. Te avisaremos por WhatsApp en cuanto esté listo." }),
+      decided ? h("p", { class: "msg " + (art.estado === "aprobada" ? "ok" : ""), text: `${art.estado === "aprobada" ? "Aprobado" : "Cambios pedidos"} por ${art.aprobadoPor} · ${fmtDT(art.fecha)}${art.comentario ? " · “" + art.comentario + "”" : ""}` }) : null,
+      files.length && art.estado !== "aprobada" ? approvalForm(ot) : null);
+    const lines = h("section", { class: "card" }, h("h2", { text: "Lo que estamos fabricando" }),
+      h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Prenda" }), h("th", { text: "Impresión" }), h("th", { class: "r", text: "Piezas" }))),
+        h("tbody", {}, (ot.lineas || []).map((l) => h("tr", {}, h("td", { text: `${l.descripcion || ""}${l.color ? " · " + l.color : ""}` }), h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} color(es)`).join(" · ") }), h("td", { class: "r num", text: fmtN(l.piezas) }))))));
+    const ship = ot.embarque && ot.embarque.guia ? h("section", { class: "card" }, h("h2", { text: "Envío" }),
+      h("p", {}, `Salió por ${ot.embarque.paqueteria} el ${fmtDate(ot.embarque.fecha)}. Guía: `, h("b", { class: "num", text: ot.embarque.guia })),
+      ot.embarque.rastreoUrl ? h("a", { class: "btn", href: ot.embarque.rastreoUrl, target: "_blank", rel: "noopener" }, "Rastrear envío") : null) : null;
+    const track = h("section", { class: "card" }, h("h2", { text: "Dónde va tu pedido" }),
+      h("ol", { class: "track" }, ot.etapas.map((s, i) => h("li", { class: i < idx ? "done" : i === idx ? "now" : "" }, h("span", { text: STAGE[s] || s }), h("time", { text: i <= idx && when[s] ? fmtDT(when[s]) : "" })))));
+    app.replaceChildren(
+      h("div", { class: "label", text: ot.cliente || "Tu pedido" }), h("h1", { class: "num", text: ot.id }),
+      h("p", { class: "muted", style: "margin:0 0 1.2rem" }, STAGE[ot.etapa] || "", ot.fechaCompromiso && idx < ot.etapas.indexOf("embarcada") ? ` · entrega comprometida: ${fmtDate(ot.fechaCompromiso)}` : ""),
+      ...[...(wantsApproval ? [artCard, track] : [track, artCard]), ship, lines].filter(Boolean));
+    if (wantsApproval && files.length && art.estado !== "aprobada") document.getElementById("arte").scrollIntoView({ block: "start" });
+  }
+
+  function approvalForm(ot) {
+    const name = h("input", { name: "nombre", autocomplete: "name", required: "", placeholder: "Nombre y apellido" });
+    const note = h("textarea", { name: "comentario", placeholder: "Si algo debe cambiar, descríbelo: color, tamaño, posición, texto…" });
+    const msg = h("p", { class: "msg", hidden: "" });
+    const send = async (accion, btn) => {
+      msg.hidden = true;
+      if (!name.value.trim()) { name.focus(); return show("Escribe tu nombre para registrar la decisión.", true); }
+      if (accion === "cambios" && !note.value.trim()) { note.focus(); return show("Cuéntanos qué cambio necesitas.", true); }
+      btn.disabled = true;
+      try {
+        const r = await fetch("/api/cliente", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t, accion, nombre: name.value, comentario: note.value }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "No se pudo guardar.");
+        render(j.ot);
+        const m = document.querySelector("#arte .msg"); if (m) m.scrollIntoView({ block: "center" });
+      } catch (e) { show(e.message, true); btn.disabled = false; }
+    };
+    function show(text, bad) { msg.textContent = text; msg.className = "msg" + (bad ? " bad" : ""); msg.hidden = false; }
+    return h("form", { onsubmit: (e) => e.preventDefault() },
+      h("p", { text: "Revisa colores, tamaños, posición y textos. Al aprobar, compramos la prenda y preparamos las pantallas; los colores finales se confirman en la muestra física." }),
+      h("label", { class: "f" }, h("span", { text: "Tu nombre" }), name),
+      h("label", { class: "f" }, h("span", { text: "Comentarios" }), note),
+      h("div", { class: "row" },
+        h("button", { class: "btn accent", type: "button", onclick: (e) => send("aprobar", e.currentTarget) }, "Apruebo el arte"),
+        h("button", { class: "btn ghost", type: "button", onclick: (e) => send("cambios", e.currentTarget) }, "Pedir cambios")), msg);
+  }
+  load();
+})();
+</script>
+</body>
+</html>

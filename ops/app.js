@@ -1,0 +1,1163 @@
+/* =====================================================================
+   CHILIAN OS · from the first contact to the shipped box
+   ---------------------------------------------------------------------
+   One page, hash routes. Every record lives in /api/db (private Vercel
+   Blob). The website's quote form files requests in "solicitudes".
+
+   Flow: Solicitud (web) or prospect -> Oportunidad (CRM, cadence, score)
+         -> Cotización (price, margin, press minutes) -> OT (work order,
+         barcode, art approval, press schedule, scans by station)
+         -> Embarque (carrier, tracking link for the client).
+   ===================================================================== */
+(() => {
+  "use strict";
+
+  /* ---------------- constants ---------------- */
+  const OPP_STAGES = [
+    { id: "nuevo", name: "Nuevo", p: 5 }, { id: "contactado", name: "Contactado", p: 10 }, { id: "calificado", name: "Calificado", p: 25 },
+    { id: "cotizacion", name: "Cotización enviada", p: 50 }, { id: "negociacion", name: "Negociación", p: 70 },
+    { id: "ganado", name: "Ganado", p: 100 }, { id: "perdido", name: "Perdido", p: 0 }
+  ];
+  const SEGMENTS = [
+    { id: "marca", name: "Marca / OEM" }, { id: "usa", name: "Marca de EE. UU." }, { id: "uniformes", name: "Uniformes" }, { id: "merch", name: "Merch / artista" },
+    { id: "promo", name: "Eventos y promocionales" }, { id: "campana", name: "Campaña política" }, { id: "distribuidor", name: "Distribuidor" }
+  ];
+  const SOURCES = ["Sitio web", "Prospección", "Referido", "Feria", "Distribuidor", "Redes sociales", "Cliente actual"];
+  const OT_STAGES = [
+    { id: "arte", name: "Arte" }, { id: "aprobacion", name: "Aprobación" }, { id: "compra", name: "Prenda" }, { id: "pantallas", name: "Pantallas" },
+    { id: "programada", name: "Programada" }, { id: "impresion", name: "Impresión" }, { id: "calidad", name: "Calidad" }, { id: "empaque", name: "Empaque" },
+    { id: "embarcada", name: "Embarcada" }, { id: "entregada", name: "Entregada" }
+  ];
+  const STATIONS = [
+    { id: "pantallas", name: "Cuarto de pantallas" }, { id: "impresion", name: "Impresión (pulpo)" }, { id: "calidad", name: "Calidad" },
+    { id: "empaque", name: "Empaque" }, { id: "embarcada", name: "Embarque" }, { id: "entregada", name: "Entregado al cliente" }
+  ];
+  const MERMA_CAUSAS = ["Pelusa", "Registro", "Tensión de malla", "Curado", "Prenda defectuosa", "Tinta / color", "Manejo", "Otra"];
+  const SIZES = ["CH", "M", "G", "EG", "2EG", "3EG"];
+  const TIPOS_ACT = ["Llamada", "WhatsApp", "Correo", "Visita", "Muestra", "Reunión", "Nota"];
+
+  // High-ticket fit: the accounts that fill the plant. Points add to 100.
+  const SCORE = [
+    { id: "volumen", text: "10,000+ piezas al año", pts: 25 },
+    { id: "recurrente", text: "Pedidos recurrentes o programa anual", pts: 20 },
+    { id: "auditoria", text: "Necesita planta auditada (FAMA, SMETA, WRAP…)", pts: 15 },
+    { id: "decisor", text: "Hablamos con quien decide", pts: 15 },
+    { id: "presupuesto", text: "Presupuesto o precio objetivo conocido", pts: 10 },
+    { id: "fecha", text: "Lo necesita en los próximos 90 días", pts: 10 },
+    { id: "segmento", text: "Segmento prioritario (marca, EE. UU., campaña, distribuidor)", pts: 5 }
+  ];
+  const tierOf = (s) => (s >= 70 ? "A" : s >= 40 ? "B" : "C");
+
+  // A 21-day, 8-touch cadence for high-ticket accounts. {n} = contact, {e} = company, {a} = advisor.
+  const CADENCE = [
+    { d: 0, tipo: "Llamada", texto: "Llamada de descubrimiento: volumen anual, fechas, prendas, quién decide." },
+    { d: 1, tipo: "Correo", texto: "Correo con credenciales: auditorías, capacidad (20,000/día), casos de licencias y propuesta de visita." },
+    { d: 3, tipo: "WhatsApp", texto: "WhatsApp corto con un trabajo similar al suyo (foto o video de la planta)." },
+    { d: 6, tipo: "LinkedIn", texto: "Conectar con el decisor y con compras en LinkedIn." },
+    { d: 9, tipo: "Muestra", texto: "Ofrecer muestra física con su arte o un mockup en Estampa tu idea." },
+    { d: 13, tipo: "Visita", texto: "Invitar a visitar la planta y el showroom (o videollamada desde el piso)." },
+    { d: 17, tipo: "Correo", texto: "Propuesta de programa: precio por volumen, capacidad apartada y calendario de entregas." },
+    { d: 21, tipo: "Llamada", texto: "Llamada de cierre o de pausa: ¿seguimos, cambiamos fecha o cerramos?" }
+  ];
+  const TEMPLATES = [
+    { id: "wa1", name: "Primer WhatsApp (marca)", text: "Hola {n}, soy {a} de Chilian Screen Printing, en Puebla. Estampamos para marcas como The North Face, Vans y licencias Disney, en una planta auditada (FAMA, SMETA, WRAP) con capacidad de 20,000 piezas al día. ¿Te puedo mandar un par de trabajos parecidos a lo que hace {e}?" },
+    { id: "mail1", name: "Correo de credenciales", text: "Asunto: Capacidad de estampado auditada para {e}\n\nHola {n}:\n\nTe escribo de Chilian Screen Printing (Puebla, México). Somos una planta de serigrafía con 8 pulpos automáticos Roq y M&R, hasta 20,000 piezas al día y auditorías Disney FAMA, SMETA, Walmart, WRAP, VF y C&A.\n\nTrabajamos programas de marca, uniformes y campañas con muestra física antes de producir. Si te sirve, te propongo una llamada de 15 minutos para entender volumen y fechas, o una visita a la planta.\n\nSaludos,\n{a}\nGrupo Chilian · grupochilian.com.mx" },
+    { id: "usa1", name: "First email (US brand)", text: "Subject: Audited print partner in Mexico for {e}\n\nHi {n},\n\nI'm {a} with Chilian Screen Printing in Puebla, Mexico. We print up to 20,000 pieces a day on 8 Roq and M&R automatics, and we're audited for Disney FAMA, SMETA, Walmart, WRAP, VF and C&A.\n\nBrands use us for quick-turn decorated basics, fleece and replenishment programs with a bilingual team in your time zone. Would a 15-minute call this week make sense?\n\nBest,\n{a}" },
+    { id: "dist1", name: "Distribuidor (marca blanca)", text: "Hola {n}, soy {a} de Chilian. Tenemos un programa de maquila para distribuidores: lista de precios para distribuidor, envío ciego a tu cliente y nunca le vendemos directo. ¿Te comparto la lista y los tiempos de entrega?" },
+    { id: "camp1", name: "Campaña 2027", text: "Hola {n}, soy {a} de Chilian. Para las precampañas (4 ene–12 feb) y campañas (4 abr–2 jun 2027) fabricamos playeras, gorras y banderas textiles en volumen, con factura y planta formal. Podemos apartar capacidad por semana de entrega con anticipo. ¿Te mando paquetes y precios?" },
+    { id: "seg1", name: "Seguimiento de cotización", text: "Hola {n}, ¿pudiste revisar la cotización {c}? Si la aprobamos esta semana, aparto el pulpo para tu fecha y te mando la muestra física. ¿Ajustamos algo de cantidades o colores?" }
+  ];
+  const PROSPECT_SOURCES = [
+    { seg: "Marcas de ropa en México", where: "Instagram y TikTok de marcas con 20k+ seguidores, Expo Moda, tiendas en Liverpool y Palacio, directorio de Canaive." },
+    { seg: "Marcas de EE. UU.", where: "Impressions Expo (Long Beach 21–23 ene 2027, Atlantic City 17–20 mar), expositores de MAGIC, LinkedIn: 'sourcing manager apparel', marcas en Shopify con producción en Asia." },
+    { seg: "Distribuidores de promocionales", where: "ASI y PPAI (directorios), distribuidores en CDMX, Monterrey y Guadalajara, agencias BTL." },
+    { seg: "Uniformes corporativos", where: "Parques industriales de Puebla y Tlaxcala, cadenas de restaurantes, hospitales, escuelas privadas, constructoras; compras de RH." },
+    { seg: "Campañas 2027", where: "Dirigencias estatales de partidos, coordinadores de campaña, agencias de comunicación política (todas las fuerzas, mismas condiciones)." },
+    { seg: "Merch de artistas y creadores", where: "Managers y booking de giras, festivales, creadores con tienda propia, disqueras independientes." }
+  ];
+  const DEFAULT_SETTINGS = {
+    id: "general",
+    equipo: ["Federico Chilian", "Carlos Lecona", "Iván Chilian", "Elizabeth Rojano", "Jenny Castro", "Martha Orta", "Itzel González"],
+    pulpos: [
+      { id: "p1", nombre: "Roq Oval Run XL+", paletas: 36, colores: 12 }, { id: "p2", nombre: "M&R VictoryOne Plus", paletas: 28, colores: 12 },
+      { id: "p3", nombre: "Roq ECO XL", paletas: 18, colores: 14 }, { id: "p4", nombre: "Roq ECO", paletas: 16, colores: 14 },
+      { id: "p5", nombre: "Roq You XL (1)", paletas: 14, colores: 12 }, { id: "p6", nombre: "Roq You XL (2)", paletas: 14, colores: 12 },
+      { id: "p7", nombre: "M&R Sportsman EX", paletas: 14, colores: 12 }, { id: "p8", nombre: "M&R Gauntlet R/S", paletas: 10, colores: 5 }
+    ],
+    turno: { horas: 9, turnos: 1, uso: 85, dias: [1, 2, 3, 4, 5] },
+    tarifas: {
+      ejemplo: true,
+      tramos: [{ min: 1, porColor: 7 }, { min: 300, porColor: 5 }, { min: 1000, porColor: 3.6 }, { min: 3000, porColor: 2.6 }, { min: 10000, porColor: 1.9 }],
+      basePorUbicacion: 2, costoPantalla: 350, margenPrenda: 20, costoMinPulpo: 22, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15
+    }
+  };
+
+  /* ---------------- state + helpers ---------------- */
+  const S = { token: "", name: "", data: {}, loadedAt: 0, settings: structuredClone(DEFAULT_SETTINGS) };
+  const COLS = ["solicitudes", "cuentas", "oportunidades", "tareas", "cotizaciones", "ots", "ajustes"];
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  function h(tag, attrs = {}, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k === "html") n.innerHTML = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else if (k === "value") n.value = v;
+      else if (k === "checked") n.checked = !!v;
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const k of kids.flat(Infinity)) if (k != null && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+    return n;
+  }
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+  const fmtN = (n, d = 0) => (Number(n) || 0).toLocaleString("es-MX", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const money = (n) => "$" + fmtN(n, 2);
+  const moneyK = (n) => (Math.abs(n) >= 1e6 ? "$" + fmtN(n / 1e6, 1) + " M" : Math.abs(n) >= 1e4 ? "$" + fmtN(n / 1e3, 0) + " k" : money(n));
+  const today = () => new Date().toISOString().slice(0, 10);
+  const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const addDays = (iso, n) => { const d = new Date(iso + "T12:00"); d.setDate(d.getDate() + n); return localDate(d); };
+  const fmtDate = (iso) => (iso ? new Date(iso.length <= 10 ? iso + "T12:00" : iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "—");
+  const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+  const dueClass = (iso) => (!iso ? "" : iso < localDate() ? "due-late" : iso === localDate() ? "due-today" : "");
+  const rid = () => Math.random().toString(36).slice(2, 10);
+  const list = (col) => [...(S.data[col]?.values() || [])];
+  const byId = (col, id) => S.data[col]?.get(id);
+  const stageName = (arr, id) => (arr.find((x) => x.id === id) || {}).name || id || "—";
+  const segName = (id) => stageName(SEGMENTS, id);
+  const cuentaName = (id) => byId("cuentas", id)?.nombre || "Sin cuenta";
+  const fill = (t, vars) => t.replace(/\{(\w)\}/g, (_, k) => vars[k] ?? "");
+  const waLink = (phone, text) => `https://wa.me/${String(phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+  const isPhone = (s) => String(s || "").replace(/\D/g, "").length >= 10;
+  const isEmail = (s) => /\S+@\S+\.\S+/.test(String(s || ""));
+
+  function toast(msg, bad = false) {
+    const t = $("#toast"); t.textContent = msg; t.classList.toggle("bad", bad); t.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3400);
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); toast("Copiado."); } catch { toast("No se pudo copiar; selecciona el texto y cópialo.", true); }
+  }
+
+  /* ---------------- API ---------------- */
+  async function api(method, url, data, raw) {
+    const opt = { method, headers: { authorization: "Bearer " + S.token } };
+    if (raw) { opt.body = raw.body; opt.headers["content-type"] = raw.type; }
+    else if (data !== undefined) { opt.body = JSON.stringify(data); opt.headers["content-type"] = "application/json"; }
+    const r = await fetch(url, opt);
+    let j = {};
+    try { j = await r.json(); } catch {}
+    if (r.status === 401 && S.token) { logout("Tu sesión terminó. Vuelve a entrar."); throw Object.assign(new Error("401"), { shown: true }); }
+    if (!r.ok) throw Object.assign(new Error(j.error || `Error ${r.status}`), { status: r.status, current: j.current });
+    return j;
+  }
+  async function loadAll(silent) {
+    const res = await Promise.all(COLS.map((c) => api("GET", `/api/db?col=${c}`).then((j) => [c, j.docs]).catch((e) => { if (!silent) toast(`No se pudo cargar ${c}: ${e.message}`, true); return [c, null]; })));
+    for (const [c, docs] of res) if (docs) S.data[c] = new Map(docs.map((d) => [d.id, d]));
+    const st = byId("ajustes", "general");
+    S.settings = mergeSettings(st);
+    S.loadedAt = Date.now();
+  }
+  const mergeSettings = (st) => {
+    const d = structuredClone(DEFAULT_SETTINGS);
+    if (!st) return d;
+    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, pulpos: st.pulpos?.length ? st.pulpos : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
+  };
+  // Save with a check: if someone saved this record meanwhile, keep theirs and say so.
+  async function save(col, doc, { quiet } = {}) {
+    const prev = doc.id ? byId(col, doc.id) : null;
+    try {
+      const { doc: saved } = await api("POST", "/api/db", { col, doc, base: prev?.updatedAt });
+      (S.data[col] ||= new Map()).set(saved.id, saved);
+      if (!quiet) toast("Guardado.");
+      return saved;
+    } catch (e) {
+      if (e.status === 409 && e.current) {
+        S.data[col].set(e.current.id, e.current);
+        toast(`${e.current.updatedBy || "Alguien"} guardó este registro antes. Se cargó su versión; vuelve a aplicar tu cambio.`, true);
+        render();
+      } else if (e.message !== "401") toast(e.message, true);
+      e.shown = true;
+      throw e;
+    }
+  }
+  async function fresh(col, id) {
+    try { const { doc } = await api("GET", `/api/db?col=${col}&id=${encodeURIComponent(id)}`); if (doc) S.data[col].set(doc.id, doc); return doc || byId(col, id); } catch { return byId(col, id); }
+  }
+  async function remove(col, id) {
+    await api("DELETE", `/api/db?col=${col}&id=${encodeURIComponent(id)}`);
+    S.data[col]?.delete(id);
+  }
+
+  /* ---------------- calculations ---------------- */
+  const T = () => S.settings.tarifas;
+  const tierFor = (pzs) => [...T().tramos].sort((a, b) => b.min - a.min).find((x) => pzs >= x.min) || T().tramos[0];
+  function calcLinea(l) {
+    const t = T(), pzs = +l.piezas || 0, ubic = (l.ubicaciones || []).filter((u) => +u.colores > 0);
+    const tier = tierFor(pzs), colores = ubic.reduce((a, u) => a + (+u.colores || 0), 0);
+    const estampado = ubic.reduce((a, u) => a + t.basePorUbicacion + (+u.colores) * tier.porColor, 0);
+    const prenda = (+l.costoPrenda || 0) * (1 + t.margenPrenda / 100);
+    const unit = l.precioManual ? +l.precioManual : prenda + estampado + (+l.extraUnit || 0);
+    const pantallas = l.sinPantallas ? 0 : colores * t.costoPantalla;
+    const minutos = ubic.reduce((a, u) => a + (+u.colores) * t.minPantalla + t.transicion + (pzs / t.impHora) * 60, 0);
+    const costo = (+l.costoPrenda || 0) * pzs + minutos * t.costoMinPulpo;
+    const subtotal = unit * pzs + pantallas;
+    return { unit, pantallas, subtotal, minutos, costo, colores, margen: subtotal ? (subtotal - costo) / subtotal : 0, porColor: tier.porColor };
+  }
+  function calcCot(c) {
+    const lines = (c.lineas || []).map(calcLinea);
+    const sub = lines.reduce((a, x) => a + x.subtotal, 0) + (+c.envio || 0);
+    const iva = c.sinIva ? 0 : sub * (T().iva / 100);
+    const costo = lines.reduce((a, x) => a + x.costo, 0);
+    const piezas = (c.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
+    return { lines, sub, iva, total: sub + iva, costo, margen: sub ? (sub - costo - (+c.envio || 0)) / sub : 0, minutos: lines.reduce((a, x) => a + x.minutos, 0), piezas };
+  }
+  const otMinutes = (ot) => (ot.lineas || []).reduce((a, l) => a + calcLinea(l).minutos, 0);
+  const dayCapacity = () => S.settings.turno.horas * 60 * S.settings.turno.turnos * (S.settings.turno.uso / 100);
+  const scoreOf = (o) => SCORE.reduce((a, s) => a + (o.score?.[s.id] ? s.pts : 0), 0);
+  const oppValue = (o) => +o.valor || 0;
+  const weighted = (o) => oppValue(o) * ((o.probabilidad ?? stageProb(o.etapa)) / 100);
+  const stageProb = (id) => (OPP_STAGES.find((s) => s.id === id) || { p: 0 }).p;
+  const workDays = (n, from = localDate()) => {
+    const out = []; let d = from;
+    while (out.length < n) { const wd = new Date(d + "T12:00").getDay(); if (S.settings.turno.dias.includes(wd)) out.push(d); d = addDays(d, 1); }
+    return out;
+  };
+  // Which press fits a job: enough color heads for its biggest location, more pallets for longer runs.
+  function suggestPress(ot) {
+    const maxCol = Math.max(0, ...(ot.lineas || []).flatMap((l) => (l.ubicaciones || []).map((u) => +u.colores || 0)));
+    const pzs = (ot.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
+    const fits = S.settings.pulpos.filter((p) => p.colores >= maxCol);
+    if (!fits.length) return S.settings.pulpos[0];
+    const want = pzs >= 5000 ? 28 : pzs >= 1500 ? 16 : 10;
+    return fits.sort((a, b) => Math.abs(a.paletas - want) - Math.abs(b.paletas - want))[0];
+  }
+  function loadOn(pulpo, fecha, exceptOt) {
+    return list("ots").filter((o) => o.id !== exceptOt && !["entregada", "embarcada"].includes(o.etapa))
+      .flatMap((o) => (o.programacion || []).filter((p) => p.pulpo === pulpo && p.fecha === fecha).map((p) => ({ ot: o, min: +p.minutos || 0 })));
+  }
+
+  /* ---------------- modal ---------------- */
+  function modal(title, body, onOpen) {
+    const m = $("#modal"); $("#modal-title").textContent = title;
+    const b = $("#modal-body"); b.replaceChildren(body);
+    if (!m.open) m.showModal();
+    onOpen?.(b);
+    return m;
+  }
+  const closeModal = () => $("#modal").close();
+
+  /* =========================== VIEWS =========================== */
+  const ROUTES = {
+    inicio: viewHome, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
+    prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
+    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings
+  };
+  const NAV = [
+    ["inicio", "Tablero"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
+    ["cotizaciones", "Cotizaciones"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
+    ["group", "Sistema"], ["ajustes", "Ajustes"]
+  ];
+  const route = () => { const [r, ...rest] = (location.hash.slice(1) || "inicio").split("/"); return { r: ROUTES[r] ? r : "inicio", arg: decodeURIComponent(rest.join("/")) }; };
+  const go = (hash) => { if (location.hash === "#" + hash) render(); else location.hash = hash; };
+
+  function shell() {
+    const newReq = list("solicitudes").filter((s) => s.estado === "nueva").length;
+    const late = list("tareas").filter((t) => !t.hecha && t.fecha && t.fecha <= localDate() && (!t.asesor || t.asesor === S.name)).length;
+    const counts = { solicitudes: newReq, tareas: late };
+    const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
+    const side = h("aside", { class: "side", id: "side" },
+      h("div", { class: "brand" }, h("i", { "aria-hidden": "true" }), h("div", {}, h("b", { text: "CHILIAN" }), h("small", { text: "OS · PEDIDOS" }))),
+      h("nav", { class: "nav", "aria-label": "Secciones" }, NAV.map(([id, label]) => id === "group" ? h("div", { class: "group", text: label })
+        : h("a", { href: "#" + id, class: parent === id ? "on" : "", onclick: () => $("#side").classList.remove("open") }, label, counts[id] ? h("span", { class: "count", text: counts[id] }) : null))),
+      h("div", { class: "me" }, h("span", { text: S.name }), h("span", { class: "muted small", text: `Datos de ${fmtDT(new Date(S.loadedAt).toISOString())}` }),
+        h("button", { type: "button", onclick: async () => { await loadAll(); render(); toast("Datos actualizados."); } }, "Actualizar datos"),
+        h("button", { type: "button", onclick: () => logout() }, "Salir")));
+    return h("div", { class: "shell" }, side,
+      h("div", {}, h("div", { class: "mobile-bar" }, h("button", { class: "btn sm ghost", style: "color:inherit;border-color:currentColor", type: "button", onclick: () => $("#side").classList.toggle("open") }, "Menú"), h("b", { text: "CHILIAN OS" }), h("span", {})),
+        h("main", { class: "main", id: "view" })));
+  }
+  function render() {
+    if (!S.token) return renderLogin();
+    const app = $("#app"), y = scrollY;
+    app.replaceChildren(shell());
+    const { r, arg } = route();
+    try { $("#view").replaceChildren(ROUTES[r](arg)); } catch (e) { console.error(e); $("#view").replaceChildren(h("div", { class: "empty", text: "Algo falló al mostrar esta vista: " + e.message })); }
+    if (render.keepScroll) scrollTo(0, y); else scrollTo(0, 0);
+    render.keepScroll = false;
+  }
+  const rerender = () => { render.keepScroll = true; render(); };
+  const top = (sub, title, ...actions) => h("div", { class: "topbar" }, h("div", {}, h("div", { class: "sub", text: sub }), h("h1", { text: title })), h("div", { class: "actions" }, actions));
+
+  /* ---------------- login ---------------- */
+  function renderLogin(msg = "") {
+    const team = DEFAULT_SETTINGS.equipo;
+    const err = h("p", { class: "err", text: msg });
+    const form = h("form", { onsubmit: async (e) => {
+      e.preventDefault(); err.textContent = "";
+      const btn = form.querySelector("button"); btn.disabled = true;
+      try {
+        const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: $("#l-name").value, password: $("#l-pass").value }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "No se pudo entrar.");
+        S.token = j.token; S.name = j.name; store.set("chilian-os", JSON.stringify({ token: j.token, name: j.name }));
+        $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
+        await loadAll(); render();
+      } catch (e2) { err.textContent = e2.message; btn.disabled = false; }
+    } },
+      h("div", { class: "label", text: "Grupo Chilian · sistema interno" }), h("h1", { text: "Chilian OS" }),
+      h("p", { class: "muted small", text: "Solicitudes, CRM, cotizaciones, órdenes de trabajo, programación por pulpo, escaneo y embarques." }),
+      h("label", { class: "f" }, h("span", { text: "Tu nombre" }), h("input", { class: "i", id: "l-name", list: "l-team", required: true, autocomplete: "username", value: store.get("chilian-os-name") || "" }), h("datalist", { id: "l-team" }, team.map((n) => h("option", { value: n })))),
+      h("label", { class: "f" }, h("span", { text: "Contraseña del equipo" }), h("input", { class: "i", id: "l-pass", type: "password", required: true, autocomplete: "current-password" })),
+      err, h("button", { class: "btn accent", type: "submit" }, "Entrar"));
+    $("#app").replaceChildren(h("div", { class: "login" }, form));
+    $("#l-name").addEventListener("change", (e) => store.set("chilian-os-name", e.target.value));
+  }
+  function logout(msg) { S.token = ""; store.set("chilian-os", null); renderLogin(msg); }
+
+  /* ---------------- home / dashboard ---------------- */
+  function viewHome() {
+    const opps = list("oportunidades"), open = opps.filter((o) => !["ganado", "perdido"].includes(o.etapa));
+    const ots = list("ots"), active = ots.filter((o) => !["entregada"].includes(o.etapa));
+    const lateOts = active.filter((o) => o.fechaCompromiso && o.fechaCompromiso < localDate() && o.etapa !== "embarcada");
+    const quotes = list("cotizaciones"), sent = quotes.filter((c) => c.estado === "enviada");
+    const won = opps.filter((o) => o.etapa === "ganado"), lost = opps.filter((o) => o.etapa === "perdido");
+    const winRate = won.length + lost.length ? won.length / (won.length + lost.length) : 0;
+    const newReq = list("solicitudes").filter((s) => s.estado === "nueva");
+    const myTasks = list("tareas").filter((t) => !t.hecha && (!t.asesor || t.asesor === S.name)).sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
+    const days = workDays(10), cap = dayCapacity() * S.settings.pulpos.length;
+    const loadByDay = days.map((d) => S.settings.pulpos.reduce((a, p) => a + loadOn(p.id, d).reduce((x, y) => x + y.min, 0), 0));
+    const kpi = (label, value, href, alert) => h("a", { class: "kpi" + (alert ? " alert" : ""), href: "#" + href }, h("span", { class: "label", text: label }), h("strong", { text: value }));
+    return h("div", {},
+      top(fmtDate(localDate()), `Hola, ${S.name.split(" ")[0]}`, h("a", { class: "btn accent", href: "#solicitudes" }, "Ver solicitudes"), h("button", { class: "btn ghost", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),
+      h("div", { class: "kpis" },
+        kpi("Solicitudes nuevas", fmtN(newReq.length), "solicitudes", newReq.length > 0),
+        kpi("Pipeline abierto", moneyK(open.reduce((a, o) => a + oppValue(o), 0)), "pipeline"),
+        kpi("Pipeline ponderado", moneyK(open.reduce((a, o) => a + weighted(o), 0)), "pipeline"),
+        kpi("Cotizaciones enviadas", fmtN(sent.length), "cotizaciones"),
+        kpi("Tasa de cierre", fmtN(winRate * 100) + " %", "pipeline"),
+        kpi("OT en planta", fmtN(active.length), "ots"),
+        kpi("OT atrasadas", fmtN(lateOts.length), "ots", lateOts.length > 0)),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Carga de planta, 10 días hábiles" }), h("a", { class: "link small", href: "#programacion" }, "Programación →")),
+            h("p", { class: "hint", text: `Capacidad diaria: ${fmtN(cap)} min de pulpo (${S.settings.pulpos.length} pulpos × ${S.settings.turno.horas} h × ${S.settings.turno.turnos} turno(s) × ${S.settings.turno.uso} % de uso).` }),
+            h("div", { class: "grid", style: "gap:.35rem" }, days.map((d, i) => {
+              const pct = cap ? loadByDay[i] / cap : 0;
+              return h("div", { class: "row", style: "gap:.6rem;flex-wrap:nowrap" }, h("span", { class: "num small", style: "width:6.5rem", text: new Date(d + "T12:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }) }),
+                h("div", { class: "load" + (pct > 1 ? " over" : pct > 0.85 ? " hi" : ""), style: "flex:1;height:10px" }, h("i", { style: `width:${Math.min(100, pct * 100)}%` })), h("span", { class: "num small", style: "width:3.5rem;text-align:right", text: fmtN(pct * 100) + " %" }));
+            }))),
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Pipeline por etapa" }), h("a", { class: "link small", href: "#pipeline" }, "Tablero →")),
+            h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Etapa" }), h("th", { class: "r", text: "Oportunidades" }), h("th", { class: "r", text: "Valor" }), h("th", { class: "r", text: "Ponderado" }))),
+              h("tbody", {}, OPP_STAGES.map((s) => { const xs = opps.filter((o) => o.etapa === s.id); return h("tr", {}, h("td", { text: s.name }), h("td", { class: "r num", text: fmtN(xs.length) }), h("td", { class: "r money", text: moneyK(xs.reduce((a, o) => a + oppValue(o), 0)) }), h("td", { class: "r money", text: moneyK(xs.reduce((a, o) => a + weighted(o), 0)) })); })))))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Mis tareas" }), h("a", { class: "link small", href: "#tareas" }, "Todas →")),
+            myTasks.length ? h("ul", { class: "log" }, myTasks.slice(0, 8).map((t) => taskItem(t))) : h("p", { class: "muted small", text: "No tienes tareas pendientes." })),
+          h("div", { class: "card" }, h("h2", { text: "Atención en planta" }),
+            lateOts.length || active.some((o) => o.arte?.estado === "cambios") ? h("ul", { class: "log" },
+              lateOts.map((o) => h("li", {}, h("time", { class: "due-late", text: fmtDate(o.fechaCompromiso) }), h("a", { href: "#ot/" + o.id }, `${o.id} · ${o.clienteNombre || cuentaName(o.cuentaId)} · ${stageName(OT_STAGES, o.etapa)}`))),
+              active.filter((o) => o.arte?.estado === "cambios").map((o) => h("li", {}, h("time", { text: "Arte" }), h("a", { href: "#ot/" + o.id }, `${o.id}: el cliente pidió cambios`))))
+              : h("p", { class: "muted small", text: "Nada atrasado. Las OT con fecha vencida o cambios de arte aparecen aquí." }))))
+    );
+  }
+  function taskItem(t) {
+    const o = t.oportunidadId ? byId("oportunidades", t.oportunidadId) : null;
+    return h("li", {}, h("time", { class: dueClass(t.fecha), text: t.fecha ? fmtDate(t.fecha) : "Sin fecha" }),
+      h("div", { class: "row between", style: "flex-wrap:nowrap;align-items:start" },
+        h("div", {}, h("b", { text: t.tipo ? t.tipo + ": " : "" }), t.texto, o ? h("div", {}, h("a", { class: "small muted", href: "#oportunidad/" + o.id }, `${o.titulo} · ${cuentaName(o.cuentaId)}`)) : null),
+        h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha")));
+  }
+
+  /* ---------------- inbox: requests from the website ---------------- */
+  function viewInbox() {
+    let filter = viewInbox.f || "nueva";
+    const all = list("solicitudes").sort((a, b) => (b.recibida || b.createdAt || "").localeCompare(a.recibida || a.createdAt || ""));
+    const rows = all.filter((s) => filter === "todas" || s.estado === filter);
+    const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${id === "todas" ? all.length : all.filter((s) => s.estado === id).length})`);
+    return h("div", {},
+      top("Del cotizador del sitio", "Solicitudes", h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas"))),
+      rows.length ? h("div", { class: "grid" }, rows.map((s) => inboxCard(s)))
+        : h("div", { class: "empty", text: filter === "nueva" ? "No hay solicitudes nuevas. Cada vez que alguien envía el cotizador del sitio, aparece aquí con su folio." : "Nada en esta vista." }));
+  }
+  function inboxCard(s) {
+    const contact = s.contacto || "";
+    const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
+    return h("article", { class: "card" },
+      h("div", { class: "row between" }, h("div", { class: "row" }, h("span", { class: "num", text: s.id }), h("span", { class: "pill " + (s.estado === "nueva" ? "p-acc" : s.estado === "convertida" ? "p-ok" : "p-mut"), text: s.estado }), h("span", { class: "muted small", text: fmtDT(s.recibida || s.createdAt) })),
+        h("span", { class: "label", text: s.tipoNombre || segName(s.tipo) })),
+      h("div", { class: "grid g4" },
+        h("div", {}, h("div", { class: "label", text: "Contacto" }), h("b", { text: s.nombre }), h("div", { class: "small", text: s.empresa }), h("div", { class: "small mono", text: contact })),
+        h("div", {}, h("div", { class: "label", text: "Prenda" }), h("div", { text: s.prenda || "—" }), h("div", { class: "small muted", text: (s.tecnicas || []).join(", ") })),
+        h("div", {}, h("div", { class: "label", text: "Piezas" }), h("b", { class: "num", text: fmtN(piezas) })),
+        h("div", {}, h("div", { class: "label", text: "Para el" }), h("div", { text: s.fechaNecesaria ? fmtDate(s.fechaNecesaria) : "Flexible" }), h("div", { class: "small muted", text: s.asesor ? "Asesora: " + s.asesor : "" }))),
+      s.modelos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Modelos del catálogo" }), h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.modelos.map((m) => h("li", { text: `${m.titulo}${m.modelos?.length ? " (" + m.modelos.join(", ") + ")" : ""} — ${fmtN(m.piezas)} pzas${m.color ? " · " + m.color : ""} · ${m.catalogo} p. ${m.pagina}` })))) : null,
+      s.notas ? h("p", { class: "small", style: "white-space:pre-wrap", text: s.notas }) : null,
+      h("div", { class: "row" },
+        s.estado === "nueva" ? h("button", { class: "btn accent", type: "button", onclick: () => convertRequest(s) }, "Convertir en oportunidad") : s.oportunidadId ? h("a", { class: "btn ghost", href: "#oportunidad/" + s.oportunidadId }, "Ver oportunidad") : null,
+        isPhone(contact) ? h("a", { class: "btn ghost", href: waLink(contact, `Hola ${s.nombre.split(" ")[0]}, soy ${S.name} de Chilian. Recibimos tu solicitud ${s.id}. `), target: "_blank", rel: "noopener" }, "WhatsApp") : null,
+        isEmail(contact) ? h("button", { class: "btn ghost", type: "button", onclick: () => copy(contact) }, "Copiar correo") : null,
+        s.estado === "nueva" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "descartada" }); rerender(); } }, "Descartar")
+          : s.estado === "descartada" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "nueva" }); rerender(); } }, "Recuperar") : null));
+  }
+  async function convertRequest(s) {
+    // Reuse the account if one already has this company or contact.
+    const key = (s.empresa || s.nombre || "").trim().toLowerCase();
+    let cuenta = list("cuentas").find((c) => c.nombre.trim().toLowerCase() === key || (c.contactos || []).some((x) => x.contacto && x.contacto === s.contacto));
+    if (!cuenta) cuenta = await save("cuentas", { nombre: s.empresa || s.nombre, segmento: s.tipo || "marca", fuente: "Sitio web", contactos: [{ nombre: s.nombre, puesto: "", contacto: s.contacto }], notas: "" }, { quiet: true });
+    const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
+    const opp = await save("oportunidades", {
+      titulo: `${s.prenda || "Pedido"} · ${fmtN(piezas)} pzas`, cuentaId: cuenta.id, segmento: s.tipo || cuenta.segmento, etapa: "nuevo", probabilidad: stageProb("nuevo"),
+      valor: estimateValue(piezas), piezasAnio: piezas, asesor: s.asesor || S.name, origen: "Sitio web", solicitudId: s.id, fechaNecesaria: s.fechaNecesaria,
+      proximaAccion: { texto: "Contactar y calificar (volumen, fechas, quién decide)", fecha: localDate() }, score: { fecha: !!s.fechaNecesaria && s.fechaNecesaria <= addDays(localDate(), 90), volumen: piezas >= 10000 },
+      actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Solicitud ${s.id} del sitio web.`, por: S.name }], solicitud: s
+    }, { quiet: true });
+    await save("tareas", { tipo: "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
+    await save("solicitudes", { ...s, estado: "convertida", oportunidadId: opp.id, cuentaId: cuenta.id }, { quiet: true });
+    toast(`Oportunidad creada para ${cuenta.nombre}.`);
+    go("oportunidad/" + opp.id);
+  }
+  // A first value from the pieces: an average decorated garment price, editable later.
+  const estimateValue = (pzs) => Math.round((+pzs || 0) * 160);
+
+  /* ---------------- pipeline (kanban) ---------------- */
+  function viewPipeline() {
+    const f = viewPipeline.f ||= { seg: "", asesor: "", q: "" };
+    let opps = list("oportunidades");
+    if (f.seg) opps = opps.filter((o) => o.segmento === f.seg);
+    if (f.asesor) opps = opps.filter((o) => o.asesor === f.asesor);
+    if (f.q) { const q = f.q.toLowerCase(); opps = opps.filter((o) => (o.titulo + " " + cuentaName(o.cuentaId)).toLowerCase().includes(q)); }
+    const lanes = OPP_STAGES.map((s) => {
+      const xs = opps.filter((o) => (o.etapa || "nuevo") === s.id).sort((a, b) => scoreOf(b) - scoreOf(a) || oppValue(b) - oppValue(a));
+      const lane = h("section", { class: "lane", "data-stage": s.id },
+        h("header", {}, h("b", { text: s.name }), h("span", { class: "num small muted", text: `${xs.length} · ${moneyK(xs.reduce((a, o) => a + oppValue(o), 0))}` })),
+        xs.map((o) => {
+          const sc = scoreOf(o), card = h("article", { class: "opp", draggable: "true", "data-id": o.id, onclick: () => go("oportunidad/" + o.id) },
+            h("div", { class: "row between", style: "flex-wrap:nowrap;align-items:start" }, h("span", { class: "t", text: o.titulo }), h("span", { class: "tier " + tierOf(sc), title: `Ajuste high-ticket: ${sc}/100`, text: tierOf(sc) })),
+            h("span", { class: "small", text: cuentaName(o.cuentaId) }),
+            h("div", { class: "m" }, h("span", { text: segName(o.segmento) }), h("span", { class: "money", text: moneyK(oppValue(o)) })),
+            o.proximaAccion?.texto ? h("div", { class: "m" }, h("span", { class: dueClass(o.proximaAccion.fecha), text: (o.proximaAccion.fecha ? fmtDate(o.proximaAccion.fecha) + " · " : "") + o.proximaAccion.texto })) : null);
+          card.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", o.id); card.classList.add("drag"); });
+          card.addEventListener("dragend", () => card.classList.remove("drag"));
+          return card;
+        }));
+      lane.addEventListener("dragover", (e) => { e.preventDefault(); lane.classList.add("drop"); });
+      lane.addEventListener("dragleave", () => lane.classList.remove("drop"));
+      lane.addEventListener("drop", async (e) => {
+        e.preventDefault(); lane.classList.remove("drop");
+        const o = byId("oportunidades", e.dataTransfer.getData("text/plain"));
+        if (o && o.etapa !== s.id) await moveOpp(o, s.id);
+      });
+      return lane;
+    });
+    return h("div", {},
+      top("CRM · arrastra para cambiar de etapa", "Oportunidades",
+        h("input", { class: "i search", type: "search", placeholder: "Buscar oportunidad o cuenta", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewPipeline.t); viewPipeline.t = setTimeout(rerender, 250); } }),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.seg = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los segmentos" }), SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: f.seg === s.id }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.asesor = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: f.asesor === n }))),
+        h("button", { class: "btn accent", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),
+      h("div", { class: "board" }, lanes));
+  }
+  async function moveOpp(o, etapa) {
+    let extra = {};
+    if (etapa === "perdido") {
+      const why = await askText("¿Por qué se perdió?", ["Precio", "Tiempo de entrega", "Eligió a otro proveedor", "Cancelado por el cliente", "Sin respuesta", "Otra"]);
+      if (why == null) return;
+      extra = { perdidaRazon: why, cerradaEn: new Date().toISOString() };
+    }
+    if (etapa === "ganado") extra = { cerradaEn: new Date().toISOString() };
+    await save("oportunidades", { ...o, etapa, probabilidad: stageProb(etapa), ...extra, actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `Etapa: ${stageName(OPP_STAGES, etapa)}${extra.perdidaRazon ? " (" + extra.perdidaRazon + ")" : ""}`, por: S.name }] }, { quiet: true });
+    toast(`Movida a ${stageName(OPP_STAGES, etapa)}.`);
+    rerender();
+  }
+  function askText(title, options) {
+    return new Promise((resolve) => {
+      let done = false;
+      const sel = h("select", { class: "i" }, options.map((o) => h("option", { value: o, text: o })));
+      const note = h("input", { class: "i", placeholder: "Detalle (opcional)" });
+      const m = modal(title, h("form", { class: "grid", onsubmit: (e) => { e.preventDefault(); done = true; closeModal(); resolve(sel.value + (note.value ? ": " + note.value : "")); } },
+        sel, note, h("div", { class: "row" }, h("button", { class: "btn accent", type: "submit" }, "Guardar"), h("button", { class: "btn ghost", type: "button", onclick: () => closeModal() }, "Cancelar"))));
+      m.addEventListener("close", () => { if (!done) resolve(null); }, { once: true });
+    });
+  }
+
+  function newOppModal(prefill = {}) {
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(f));
+      let cuentaId = fd.cuentaId;
+      if (!cuentaId) {
+        if (!fd.nuevaCuenta.trim()) return toast("Elige una cuenta o escribe el nombre de una nueva.", true);
+        cuentaId = (await save("cuentas", { nombre: fd.nuevaCuenta.trim(), segmento: fd.segmento, fuente: fd.origen, contactos: fd.contacto ? [{ nombre: fd.contactoNombre, puesto: "", contacto: fd.contacto }] : [] }, { quiet: true })).id;
+      }
+      const o = await save("oportunidades", { titulo: fd.titulo, cuentaId, segmento: fd.segmento, etapa: "nuevo", probabilidad: stageProb("nuevo"), valor: +fd.valor || 0, piezasAnio: +fd.piezasAnio || 0, asesor: fd.asesor, origen: fd.origen,
+        proximaAccion: { texto: "Llamada de descubrimiento", fecha: localDate() }, score: {}, actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: "Oportunidad creada.", por: S.name }] }, { quiet: true });
+      closeModal(); toast("Oportunidad creada."); go("oportunidad/" + o.id);
+    } },
+      h("label", { class: "f full" }, h("span", { text: "Qué se vende" }), h("input", { class: "i", name: "titulo", required: true, placeholder: "Ej. Programa anual de playeras para tiendas", value: prefill.titulo || "" })),
+      h("label", { class: "f" }, h("span", { text: "Cuenta existente" }), h("select", { class: "i", name: "cuentaId" }, h("option", { value: "", text: "— Nueva cuenta —" }), list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre)).map((c) => h("option", { value: c.id, text: c.nombre, selected: prefill.cuentaId === c.id })))),
+      h("label", { class: "f" }, h("span", { text: "O nueva cuenta (empresa)" }), h("input", { class: "i", name: "nuevaCuenta" })),
+      h("label", { class: "f" }, h("span", { text: "Contacto (nombre)" }), h("input", { class: "i", name: "contactoNombre" })),
+      h("label", { class: "f" }, h("span", { text: "WhatsApp o correo" }), h("input", { class: "i", name: "contacto" })),
+      h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: prefill.segmento === s.id })))),
+      h("label", { class: "f" }, h("span", { text: "Origen" }), h("select", { class: "i", name: "origen" }, SOURCES.map((s) => h("option", { value: s, text: s, selected: s === "Prospección" })))),
+      h("label", { class: "f" }, h("span", { text: "Valor estimado (MXN)" }), h("input", { class: "i", name: "valor", type: "number", min: "0", step: "100" })),
+      h("label", { class: "f" }, h("span", { text: "Piezas al año" }), h("input", { class: "i", name: "piezasAnio", type: "number", min: "0", step: "100" })),
+      h("label", { class: "f" }, h("span", { text: "Responsable" }), h("select", { class: "i", name: "asesor" }, S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: n === S.name })))),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Crear oportunidad")));
+    modal("Nueva oportunidad", f);
+  }
+
+  /* ---------------- one opportunity ---------------- */
+  function viewOpp(id) {
+    const o = byId("oportunidades", id);
+    if (!o) return h("div", { class: "empty", text: "No encontramos esta oportunidad." });
+    const cuenta = byId("cuentas", o.cuentaId), sc = scoreOf(o), contact = cuenta?.contactos?.[0];
+    const quotes = list("cotizaciones").filter((c) => c.oportunidadId === o.id);
+    const tasks = list("tareas").filter((t) => t.oportunidadId === o.id).sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
+    const upd = async (patch, msg) => { await save("oportunidades", { ...o, ...patch }, { quiet: !msg }); if (msg) toast(msg); rerender(); };
+    const vars = { n: contact?.nombre?.split(" ")[0] || "", e: cuenta?.nombre || "", a: S.name, c: quotes[0]?.id || "" };
+    return h("div", {},
+      top(`${segName(o.segmento)} · ${o.origen || ""}`, o.titulo,
+        h("select", { class: "i", style: "width:auto", onchange: (e) => moveOpp(o, e.target.value) }, OPP_STAGES.map((s) => h("option", { value: s.id, text: s.name, selected: o.etapa === s.id }))),
+        h("button", { class: "btn accent", type: "button", onclick: () => newQuote(o) }, "+ Cotización")),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Datos" }),
+            h("div", { class: "grid g3" },
+              field("Cuenta", h("a", { href: "#cuenta/" + o.cuentaId, text: cuenta?.nombre || "—" })),
+              inputField("Valor estimado (MXN)", o.valor, "number", (v) => upd({ valor: +v || 0 })),
+              inputField("Piezas al año", o.piezasAnio, "number", (v) => upd({ piezasAnio: +v || 0 })),
+              selectField("Responsable", o.asesor, S.settings.equipo, (v) => upd({ asesor: v })),
+              selectField("Segmento", o.segmento, SEGMENTS.map((s) => [s.id, s.name]), (v) => upd({ segmento: v })),
+              inputField("Probabilidad (%)", o.probabilidad ?? stageProb(o.etapa), "number", (v) => upd({ probabilidad: Math.max(0, Math.min(100, +v || 0)) })),
+              inputField("Fecha que lo necesita", o.fechaNecesaria, "date", (v) => upd({ fechaNecesaria: v })),
+              field("Valor ponderado", h("span", { class: "money", text: money(weighted(o)) })),
+              field("Contacto", contact ? h("span", {}, contact.nombre, h("br"), h("span", { class: "mono small", text: contact.contacto })) : "—"))),
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Siguiente paso" }), h("span", { class: dueClass(o.proximaAccion?.fecha), text: o.proximaAccion?.fecha ? fmtDate(o.proximaAccion.fecha) : "" })),
+            h("form", { class: "grid g3", onsubmit: async (e) => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); await upd({ proximaAccion: { texto: fd.texto, fecha: fd.fecha } }, "Siguiente paso guardado."); } },
+              h("label", { class: "f", style: "grid-column:span 2" }, h("span", { text: "Qué sigue" }), h("input", { class: "i", name: "texto", value: o.proximaAccion?.texto || "", required: true })),
+              h("label", { class: "f" }, h("span", { text: "Cuándo" }), h("input", { class: "i", name: "fecha", type: "date", value: o.proximaAccion?.fecha || localDate(), required: true })),
+              h("div", { class: "row full" }, h("button", { class: "btn", type: "submit" }, "Guardar siguiente paso"),
+                h("button", { class: "btn ghost", type: "button", onclick: () => startCadence(o) }, "Iniciar cadencia de 21 días")))),
+          h("div", { class: "card" }, h("h2", { text: "Actividad" }),
+            h("form", { class: "grid g3", onsubmit: async (e) => {
+              e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target));
+              await upd({ actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: fd.tipo, texto: fd.texto, por: S.name }], etapa: o.etapa === "nuevo" && fd.tipo !== "Nota" ? "contactado" : o.etapa }, "Actividad registrada.");
+            } },
+              h("select", { class: "i", name: "tipo" }, TIPOS_ACT.map((x) => h("option", { value: x, text: x }))),
+              h("input", { class: "i", name: "texto", placeholder: "Qué pasó (resultado, acuerdo, objeción)", required: true, style: "grid-column:span 2" }),
+              h("div", { class: "row full" }, h("button", { class: "btn", type: "submit" }, "Registrar"))),
+            h("ul", { class: "log" }, [...(o.actividad || [])].reverse().map((a) => h("li", {}, h("time", { text: fmtDT(a.fecha) }), h("div", {}, h("b", { text: a.tipo + " · " }), a.texto, h("span", { class: "muted small", text: " — " + (a.por || "") })))))),
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Cotizaciones" }), h("button", { class: "btn sm", type: "button", onclick: () => newQuote(o) }, "+ Cotización")),
+            quotes.length ? quoteTable(quotes) : h("p", { class: "muted small", text: "Aún no hay cotizaciones para esta oportunidad." }))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Ajuste high-ticket" }), h("span", { class: "row" }, h("span", { class: "tier " + tierOf(sc), text: tierOf(sc) }), h("b", { class: "num", text: sc + "/100" }))),
+            h("p", { class: "hint", text: "A (70+): prioridad, propuesta de programa y visita a planta. B (40–69): cadencia completa. C: nutrir con contenido, sin descuentos." }),
+            h("div", { class: "grid", style: "gap:.35rem" }, SCORE.map((s) => h("label", { class: "row", style: "flex-wrap:nowrap;gap:.5rem;cursor:pointer" },
+              h("input", { type: "checkbox", checked: !!o.score?.[s.id], onchange: (e) => upd({ score: { ...(o.score || {}), [s.id]: e.target.checked } }) }),
+              h("span", { class: "small", style: "flex:1", text: s.text }), h("span", { class: "num small muted", text: "+" + s.pts }))))),
+          h("div", { class: "card" }, h("h2", { text: "Tareas" }),
+            tasks.length ? h("ul", { class: "log" }, tasks.filter((t) => !t.hecha).map(taskItem)) : h("p", { class: "muted small", text: "Sin tareas. Inicia la cadencia o agrega una." }),
+            h("form", { class: "grid g2", onsubmit: async (e) => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); await save("tareas", { tipo: fd.tipo, texto: fd.texto, fecha: fd.fecha, oportunidadId: o.id, cuentaId: o.cuentaId, asesor: o.asesor || S.name, hecha: false }); rerender(); } },
+              h("select", { class: "i", name: "tipo" }, TIPOS_ACT.map((x) => h("option", { value: x, text: x }))), h("input", { class: "i", name: "fecha", type: "date", value: addDays(localDate(), 2) }),
+              h("input", { class: "i full", name: "texto", placeholder: "Nueva tarea", required: true }), h("button", { class: "btn sm full", type: "submit" }, "Agregar tarea"))),
+          h("div", { class: "card" }, h("h2", { text: "Mensajes listos" }),
+            h("p", { class: "hint", text: "Con el nombre del contacto, la empresa y tu nombre ya puestos." }),
+            TEMPLATES.map((tp) => {
+              const txt = fill(tp.text, vars);
+              return h("details", {}, h("summary", { class: "small", style: "cursor:pointer", text: tp.name }), h("div", { class: "copybox", text: txt }),
+                h("div", { class: "row", style: "margin-top:.4rem" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(txt) }, "Copiar"),
+                  isPhone(contact?.contacto) ? h("a", { class: "btn sm ghost", href: waLink(contact.contacto, txt), target: "_blank", rel: "noopener" }, "Abrir WhatsApp") : null));
+            })),
+          o.solicitud ? h("div", { class: "card" }, h("h2", { text: "Solicitud original" }), h("div", { class: "copybox", text: requestText(o.solicitud) })) : null,
+          h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox("¿Borrar esta oportunidad? Sus tareas también se borran."))) return; for (const t of tasks) await remove("tareas", t.id); await remove("oportunidades", o.id); toast("Oportunidad borrada."); go("pipeline"); } }, "Borrar oportunidad")))
+    );
+  }
+  const requestText = (s) => [`${s.id} · ${fmtDT(s.recibida)}`, `${s.nombre} · ${s.empresa || ""} · ${s.contacto}`, `Prenda: ${s.prenda} · ${fmtN(s.piezas)} pzas`, `Técnicas: ${(s.tecnicas || []).join(", ")}`, ...(s.modelos || []).map((m) => `– ${m.titulo} (${(m.modelos || []).join(", ")}) · ${fmtN(m.piezas)} pzas · ${m.color || ""}`), s.notas || ""].filter(Boolean).join("\n");
+  function confirmBox(text) {
+    return new Promise((resolve) => {
+      let done = false;
+      const m = modal("Confirmar", h("div", { class: "grid" }, h("p", { text }), h("div", { class: "row" },
+        h("button", { class: "btn danger", type: "button", onclick: () => { done = true; closeModal(); resolve(true); } }, "Sí, continuar"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => closeModal() }, "Cancelar"))));
+      m.addEventListener("close", () => { if (!done) resolve(false); }, { once: true });
+    });
+  }
+  async function startCadence(o) {
+    const start = localDate();
+    for (const c of CADENCE) await save("tareas", { tipo: c.tipo, texto: c.texto, fecha: addDays(start, c.d), oportunidadId: o.id, cuentaId: o.cuentaId, asesor: o.asesor || S.name, hecha: false, cadencia: true }, { quiet: true });
+    await save("oportunidades", { ...o, proximaAccion: { texto: CADENCE[0].texto, fecha: start }, actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: "Cadencia de 8 toques en 21 días iniciada.", por: S.name }] }, { quiet: true });
+    toast("Cadencia creada: 8 tareas en 21 días.");
+    rerender();
+  }
+  const field = (label, value) => h("div", {}, h("div", { class: "label", text: label }), h("div", {}, value ?? "—"));
+  function inputField(label, value, type, onSave) {
+    return h("label", { class: "f" }, h("span", { text: label }), h("input", { class: "i", type, value: value ?? "", onchange: (e) => onSave(e.target.value) }));
+  }
+  function selectField(label, value, options, onSave) {
+    return h("label", { class: "f" }, h("span", { text: label }), h("select", { class: "i", onchange: (e) => onSave(e.target.value) }, options.map((o) => { const [v, t] = Array.isArray(o) ? o : [o, o]; return h("option", { value: v, text: t, selected: v === value }); })));
+  }
+
+  /* ---------------- tasks ---------------- */
+  function viewTasks() {
+    const f = viewTasks.f ||= { who: S.name, show: "pendientes" };
+    let ts = list("tareas");
+    if (f.who) ts = ts.filter((t) => t.asesor === f.who || !t.asesor);
+    ts = ts.filter((t) => (f.show === "pendientes" ? !t.hecha : t.hecha)).sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
+    const groups = [["Atrasadas", ts.filter((t) => t.fecha && t.fecha < localDate())], ["Hoy", ts.filter((t) => t.fecha === localDate())], ["Próximas", ts.filter((t) => !t.fecha || t.fecha > localDate())]];
+    return h("div", {},
+      top("Lo que sigue con cada cuenta", "Tareas",
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), S.settings.equipo.map((n) => h("option", { value: n, text: n, selected: f.who === n }))),
+        h("div", { class: "chips" }, ["pendientes", "hechas"].map((x) => h("button", { type: "button", class: "chip" + (f.show === x ? " on" : ""), onclick: () => { f.show = x; rerender(); } }, x)))),
+      f.show === "hechas" ? (ts.length ? h("div", { class: "card" }, h("ul", { class: "log" }, ts.slice(0, 200).map((t) => h("li", {}, h("time", { text: fmtDate(t.fecha) }), h("span", { text: `${t.tipo}: ${t.texto}` }))))) : h("div", { class: "empty", text: "No hay tareas hechas aún." }))
+        : h("div", { class: "grid g3" }, groups.map(([name, xs]) => h("div", { class: "card" }, h("h2", { text: `${name} (${xs.length})` }), xs.length ? h("ul", { class: "log" }, xs.map(taskItem)) : h("p", { class: "muted small", text: "Nada aquí." })))));
+  }
+
+  /* ---------------- accounts ---------------- */
+  function viewAccounts() {
+    const f = viewAccounts.f ||= { q: "", seg: "" };
+    let cs = list("cuentas");
+    if (f.seg) cs = cs.filter((c) => c.segmento === f.seg);
+    if (f.q) { const q = f.q.toLowerCase(); cs = cs.filter((c) => [c.nombre, c.ciudad, ...(c.contactos || []).map((x) => x.nombre + " " + x.contacto)].join(" ").toLowerCase().includes(q)); }
+    cs.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const oppsOf = (id) => list("oportunidades").filter((o) => o.cuentaId === id);
+    return h("div", {},
+      top(`${list("cuentas").length} cuentas`, "Cuentas",
+        h("input", { class: "i search", type: "search", placeholder: "Buscar empresa, ciudad o contacto", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewAccounts.t); viewAccounts.t = setTimeout(rerender, 250); } }),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.seg = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los segmentos" }), SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: f.seg === s.id }))),
+        h("button", { class: "btn ghost", type: "button", onclick: importModal }, "Importar CSV"),
+        h("button", { class: "btn accent", type: "button", onclick: () => accountModal() }, "+ Cuenta")),
+      cs.length ? h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Empresa", "Segmento", "Ciudad", "Contacto principal", "Oportunidades", "Valor abierto"].map((x, i) => h("th", { class: i > 3 ? "r" : "", text: x })))),
+        h("tbody", {}, cs.map((c) => { const os = oppsOf(c.id), open = os.filter((o) => !["ganado", "perdido"].includes(o.etapa)); return h("tr", { class: "click", onclick: () => go("cuenta/" + c.id) },
+          h("td", {}, h("b", { text: c.nombre })), h("td", { text: segName(c.segmento) }), h("td", { text: [c.ciudad, c.pais].filter(Boolean).join(", ") }),
+          h("td", { class: "small", text: c.contactos?.[0] ? `${c.contactos[0].nombre} · ${c.contactos[0].contacto}` : "—" }), h("td", { class: "r num", text: os.length }), h("td", { class: "r money", text: moneyK(open.reduce((a, o) => a + oppValue(o), 0)) })); }))))
+        : h("div", { class: "empty", text: "Aún no hay cuentas. Agrega prospectos uno por uno o importa una lista en CSV desde Prospección." }));
+  }
+  function accountModal(c = {}) {
+    const contacts = c.contactos?.length ? c.contactos : [{ nombre: "", puesto: "", contacto: "" }];
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault(); const fd = new FormData(f);
+      const cts = $$(".ct", f).map((row) => ({ nombre: $(".cn", row).value.trim(), puesto: $(".cp", row).value.trim(), contacto: $(".cc", row).value.trim() })).filter((x) => x.nombre || x.contacto);
+      const saved = await save("cuentas", { ...c, nombre: fd.get("nombre").trim(), segmento: fd.get("segmento"), ciudad: fd.get("ciudad"), pais: fd.get("pais"), sitio: fd.get("sitio"), fuente: fd.get("fuente"), notas: fd.get("notas"), contactos: cts });
+      closeModal(); go("cuenta/" + saved.id);
+    } },
+      h("label", { class: "f full" }, h("span", { text: "Empresa" }), h("input", { class: "i", name: "nombre", required: true, value: c.nombre || "" })),
+      h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: c.segmento === s.id })))),
+      h("label", { class: "f" }, h("span", { text: "Origen" }), h("select", { class: "i", name: "fuente" }, SOURCES.map((s) => h("option", { value: s, text: s, selected: (c.fuente || "Prospección") === s })))),
+      h("label", { class: "f" }, h("span", { text: "Ciudad" }), h("input", { class: "i", name: "ciudad", value: c.ciudad || "" })),
+      h("label", { class: "f" }, h("span", { text: "País" }), h("input", { class: "i", name: "pais", value: c.pais || "México" })),
+      h("label", { class: "f full" }, h("span", { text: "Sitio o red social" }), h("input", { class: "i", name: "sitio", value: c.sitio || "" })),
+      h("div", { class: "full grid", style: "gap:.4rem" }, h("span", { class: "label", text: "Contactos" }), h("div", { class: "grid", id: "cts", style: "gap:.4rem" }, contacts.map(contactRow)),
+        h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => $("#cts").append(contactRow({})) }, "+ Contacto")),
+      h("label", { class: "f full" }, h("span", { text: "Notas" }), h("textarea", { class: "i", name: "notas", text: c.notas || "" })),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Guardar cuenta")));
+    modal(c.id ? "Editar cuenta" : "Nueva cuenta", f);
+  }
+  const contactRow = (x) => h("div", { class: "ct grid g3" }, h("input", { class: "i cn", placeholder: "Nombre", value: x.nombre || "" }), h("input", { class: "i cp", placeholder: "Puesto", value: x.puesto || "" }), h("input", { class: "i cc", placeholder: "WhatsApp o correo", value: x.contacto || "" }));
+  function viewAccount(id) {
+    const c = byId("cuentas", id);
+    if (!c) return h("div", { class: "empty", text: "No encontramos esta cuenta." });
+    const os = list("oportunidades").filter((o) => o.cuentaId === id), qs = list("cotizaciones").filter((q) => q.cuentaId === id), ots = list("ots").filter((o) => o.cuentaId === id);
+    return h("div", {},
+      top(`${segName(c.segmento)} · ${c.fuente || ""}`, c.nombre, h("button", { class: "btn ghost", type: "button", onclick: () => accountModal(c) }, "Editar"), h("button", { class: "btn accent", type: "button", onclick: () => newOppModal({ cuentaId: c.id, segmento: c.segmento }) }, "+ Oportunidad")),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Oportunidades" }), os.length ? h("div", { class: "tbl" }, h("table", {}, h("tbody", {}, os.map((o) => h("tr", { class: "click", onclick: () => go("oportunidad/" + o.id) }, h("td", { text: o.titulo }), h("td", { text: stageName(OPP_STAGES, o.etapa) }), h("td", { class: "r money", text: moneyK(oppValue(o)) })))))) : h("p", { class: "muted small", text: "Sin oportunidades." })),
+          h("div", { class: "card" }, h("h2", { text: "Cotizaciones" }), qs.length ? quoteTable(qs) : h("p", { class: "muted small", text: "Sin cotizaciones." })),
+          h("div", { class: "card" }, h("h2", { text: "Órdenes de trabajo" }), ots.length ? otTable(ots) : h("p", { class: "muted small", text: "Sin órdenes." }))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Contactos" }), (c.contactos || []).length ? h("ul", { class: "log" }, c.contactos.map((x) => h("li", {}, h("time", { text: x.puesto || "Contacto" }), h("div", {}, h("b", { text: x.nombre }), h("div", { class: "mono small", text: x.contacto }),
+            h("div", { class: "row", style: "margin-top:.3rem" }, isPhone(x.contacto) ? h("a", { class: "btn sm ghost", href: waLink(x.contacto, `Hola ${x.nombre.split(" ")[0]}, soy ${S.name} de Chilian.`), target: "_blank", rel: "noopener" }, "WhatsApp") : null, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(x.contacto) }, "Copiar")))))) : h("p", { class: "muted small", text: "Sin contactos." })),
+          h("div", { class: "card" }, h("h2", { text: "Datos" }), field("Ciudad", [c.ciudad, c.pais].filter(Boolean).join(", ") || "—"), field("Sitio", c.sitio ? h("a", { href: /^https?:/.test(c.sitio) ? c.sitio : "https://" + c.sitio, target: "_blank", rel: "noopener", text: c.sitio }) : "—"), c.notas ? h("p", { class: "small", style: "white-space:pre-wrap", text: c.notas }) : null))));
+  }
+  function importModal() {
+    const ta = h("textarea", { class: "i", style: "min-height:180px", placeholder: "empresa,segmento,ciudad,contacto,puesto,whatsapp_o_correo,sitio\nMarca Uno,marca,CDMX,Ana López,Compras,5512345678,marcauno.mx" });
+    const out = h("p", { class: "hint" });
+    const f = h("form", { class: "grid", onsubmit: async (e) => {
+      e.preventDefault();
+      const rows = parseCSV(ta.value).filter((r) => r.some(Boolean));
+      if (!rows.length) return toast("Pega al menos una fila.", true);
+      const head = rows[0].map((x) => x.toLowerCase());
+      const hasHead = head.includes("empresa");
+      const idx = (name, def) => (hasHead ? head.findIndex((x) => x.startsWith(name)) : def);
+      const I = { e: idx("empresa", 0), s: idx("segmento", 1), c: idx("ciudad", 2), n: idx("contacto", 3), p: idx("puesto", 4), w: idx("whats", 5), x: idx("sitio", 6) };
+      let n = 0;
+      for (const r of rows.slice(hasHead ? 1 : 0)) {
+        const nombre = (r[I.e] || "").trim(); if (!nombre) continue;
+        const seg = SEGMENTS.find((s) => s.id === (r[I.s] || "").trim().toLowerCase() || s.name.toLowerCase() === (r[I.s] || "").trim().toLowerCase())?.id || "marca";
+        await save("cuentas", { nombre, segmento: seg, ciudad: r[I.c] || "", pais: "México", sitio: r[I.x] || "", fuente: "Prospección", contactos: r[I.n] || r[I.w] ? [{ nombre: r[I.n] || "", puesto: r[I.p] || "", contacto: r[I.w] || "" }] : [] }, { quiet: true });
+        n++; out.textContent = `Importando… ${n}`;
+      }
+      closeModal(); toast(`${n} cuentas importadas.`); go("cuentas");
+    } }, h("p", { class: "small", text: "Pega filas en CSV (exportadas de Excel, Google Sheets, LinkedIn o un directorio). Columnas: empresa, segmento, ciudad, contacto, puesto, WhatsApp o correo, sitio. La primera fila puede ser el encabezado." }), ta, out,
+      h("div", { class: "row" }, h("button", { class: "btn accent", type: "submit" }, "Importar")));
+    modal("Importar prospectos", f);
+  }
+  function parseCSV(text) {
+    const rows = []; let row = [], cell = "", q = false;
+    const sep = (text.split("\n")[0].match(/;/g) || []).length > (text.split("\n")[0].match(/,/g) || []).length ? ";" : ",";
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+      else if (ch === '"') q = true; else if (ch === sep) { row.push(cell.trim()); cell = ""; }
+      else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell.trim()); rows.push(row); row = []; cell = ""; }
+      else cell += ch;
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
+    return rows;
+  }
+
+  /* ---------------- prospecting playbook ---------------- */
+  function viewPlaybook() {
+    const counts = SEGMENTS.map((s) => ({ s, n: list("cuentas").filter((c) => c.segmento === s.id).length, open: list("oportunidades").filter((o) => o.segmento === s.id && !["ganado", "perdido"].includes(o.etapa)) }));
+    return h("div", {},
+      top("Cómo conseguir cuentas que llenen la planta", "Prospección", h("button", { class: "btn ghost", type: "button", onclick: importModal }, "Importar lista CSV"), h("button", { class: "btn accent", type: "button", onclick: () => accountModal() }, "+ Prospecto")),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Cuenta high-ticket" }),
+            h("p", { text: "Una cuenta que vale la pena perseguir compra volumen y repite. Califícala con los 7 puntos del ajuste (en cada oportunidad): A va primero, con propuesta de programa y visita a planta." }),
+            h("ul", { style: "margin:0;padding-left:1.1rem;display:grid;gap:.3rem" }, SCORE.map((s) => h("li", { class: "small", text: `${s.text} · ${s.pts} pts` })))),
+          h("div", { class: "card" }, h("h2", { text: "Dónde encontrarlas" }),
+            h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Segmento" }), h("th", { text: "Fuentes" }))), h("tbody", {}, PROSPECT_SOURCES.map((p) => h("tr", {}, h("td", {}, h("b", { text: p.seg })), h("td", { class: "small", text: p.where }))))))),
+          h("div", { class: "card" }, h("h2", { text: "Cadencia de 21 días" }), h("p", { class: "hint", text: "Se crea sola en cada oportunidad con el botón «Iniciar cadencia». Ocho toques; ninguno pide el pedido antes de la muestra." }),
+            h("ul", { class: "log" }, CADENCE.map((c) => h("li", {}, h("time", { text: "Día " + c.d }), h("span", {}, h("b", { text: c.tipo + ": " }), c.texto)))))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Cobertura por segmento" }),
+            h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Segmento" }), h("th", { class: "r", text: "Cuentas" }), h("th", { class: "r", text: "Abiertas" }), h("th", { class: "r", text: "Valor" }))),
+              h("tbody", {}, counts.map(({ s, n, open }) => h("tr", {}, h("td", { text: s.name }), h("td", { class: "r num", text: n }), h("td", { class: "r num", text: open.length }), h("td", { class: "r money", text: moneyK(open.reduce((a, o) => a + oppValue(o), 0)) }))))))),
+          h("div", { class: "card" }, h("h2", { text: "Reglas del juego" }), h("ul", { style: "margin:0;padding-left:1.1rem;display:grid;gap:.35rem", class: "small" },
+            h("li", { text: "Toda solicitud recibe respuesta el mismo día hábil." }), h("li", { text: "Ninguna oportunidad sin siguiente paso con fecha." }),
+            h("li", { text: "Cuentas A: visita o videollamada desde la planta antes de cotizar." }), h("li", { text: "Distribuidores: nunca venderle directo a su cliente." }),
+            h("li", { text: "Campañas 2027: anticipo de 50–100 % y mismas condiciones para todas las fuerzas." }), h("li", { text: "Cada cotización enviada tiene seguimiento a los 2 días." }))))));
+  }
+
+  /* ---------------- quotes ---------------- */
+  function quoteTable(qs) {
+    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Folio", "Cuenta", "Estado", "Piezas", "Total", "Margen"].map((x, i) => h("th", { class: i > 2 ? "r" : "", text: x })))),
+      h("tbody", {}, qs.sort((a, b) => b.id.localeCompare(a.id)).map((q) => { const c = calcCot(q); return h("tr", { class: "click", onclick: () => go("cotizacion/" + q.id) },
+        h("td", { class: "num", text: q.id }), h("td", { text: cuentaName(q.cuentaId) }), h("td", {}, quotePill(q.estado)), h("td", { class: "r num", text: fmtN(c.piezas) }), h("td", { class: "r money", text: money(c.total) }), h("td", { class: "r num", text: fmtN(c.margen * 100) + " %" })); }))));
+  }
+  const quotePill = (e) => h("span", { class: "pill " + ({ borrador: "p-mut", enviada: "p-info", aceptada: "p-ok", rechazada: "p-bad" }[e] || "p-mut"), text: e || "borrador" });
+  function viewQuotes() {
+    const qs = list("cotizaciones");
+    return h("div", {}, top(`${qs.length} cotizaciones`, "Cotizaciones"), qs.length ? quoteTable(qs) : h("div", { class: "empty", text: "Las cotizaciones se crean desde una oportunidad (botón «+ Cotización»)." }));
+  }
+  async function newQuote(o) {
+    const s = o.solicitud;
+    const lineas = s?.modelos?.length
+      ? s.modelos.map((m) => ({ id: rid(), descripcion: m.titulo, modelo: (m.modelos || []).join(", "), color: m.color, piezas: m.piezas, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }))
+      : [{ id: rid(), descripcion: s?.prenda || "Playera", modelo: "", color: "", piezas: s?.piezas || o.piezasAnio || 0, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }];
+    const q = await save("cotizaciones", { oportunidadId: o.id, cuentaId: o.cuentaId, estado: "borrador", lineas, envio: 0, anticipo: T().anticipo, vigencia: T().vigencia, entregaDias: 15, notas: (s?.tecnicas || []).length ? "Técnica: " + s.tecnicas.join(", ") : "" }, { quiet: true });
+    toast(`Cotización ${q.id} creada.`);
+    go("cotizacion/" + q.id);
+  }
+  function viewQuote(id) {
+    const q0 = byId("cotizaciones", id);
+    if (!q0) return h("div", { class: "empty", text: "No encontramos esta cotización." });
+    const q = structuredClone(q0), o = byId("oportunidades", q.oportunidadId), cuenta = byId("cuentas", q.cuentaId);
+    const totalsBox = h("div", {}), linesBox = h("div", { class: "grid" });
+    let dirty = false;
+    const saveBtn = h("button", { class: "btn accent", type: "button", onclick: () => doSave() }, "Guardar");
+    const mark = () => { dirty = true; saveBtn.textContent = "Guardar cambios"; paintTotals(); };
+    async function doSave(extra = {}) {
+      Object.assign(q, extra);
+      const saved = await save("cotizaciones", q, { quiet: true }); Object.assign(q, saved); dirty = false; saveBtn.textContent = "Guardar"; toast("Cotización guardada.");
+      return saved;
+    }
+    function paintTotals() {
+      const c = calcCot(q);
+      totalsBox.replaceChildren(h("div", { class: "totals" },
+        h("span", { text: "Piezas" }), h("span", { class: "num", text: fmtN(c.piezas) }),
+        h("span", { text: "Subtotal (con pantallas y envío)" }), h("span", { class: "money", text: money(c.sub) }),
+        h("span", { text: q.sinIva ? "IVA (no aplica)" : `IVA ${T().iva} %` }), h("span", { class: "money", text: money(c.iva) }),
+        h("span", { class: "grand", text: "Total" }), h("span", { class: "grand money", text: money(c.total) }),
+        h("span", { class: "muted", text: "Costo estimado (prenda + pulpo)" }), h("span", { class: "money muted", text: money(c.costo) }),
+        h("span", { class: "muted", text: "Margen estimado" }), h("span", { class: "num " + (c.margen < 0.2 ? "due-late" : ""), text: fmtN(c.margen * 100, 1) + " %" }),
+        h("span", { class: "muted", text: "Tiempo de pulpo" }), h("span", { class: "num muted", text: `${fmtN(c.minutos)} min (${fmtN(c.minutos / 60, 1)} h)` }),
+        h("span", { class: "muted", text: `Anticipo ${q.anticipo} %` }), h("span", { class: "money muted", text: money(c.total * (q.anticipo / 100)) })));
+      $$("[data-unit]", linesBox).forEach((el) => { const l = q.lineas.find((x) => x.id === el.dataset.unit); if (l) { const r = calcLinea(l); el.textContent = `${money(r.unit)} c/u · ${money(r.subtotal)} · pantallas ${money(r.pantallas)} · ${fmtN(r.minutos)} min · margen ${fmtN(r.margen * 100)} %`; } });
+    }
+    const numIn = (obj, key, attrs = {}) => h("input", { class: "i", type: "number", step: "any", min: "0", value: obj[key] ?? "", ...attrs, oninput: (e) => { obj[key] = e.target.value === "" ? "" : +e.target.value; mark(); } });
+    const txtIn = (obj, key, attrs = {}) => h("input", { class: "i", value: obj[key] ?? "", ...attrs, oninput: (e) => { obj[key] = e.target.value; mark(); } });
+    function paintLines() {
+      linesBox.replaceChildren(...q.lineas.map((l, li) => h("div", { class: "lineitem" },
+        h("div", { class: "row between" }, h("b", { text: `Partida ${li + 1}` }), h("button", { class: "x", type: "button", "aria-label": "Quitar partida", onclick: () => { q.lineas.splice(li, 1); paintLines(); mark(); } }, "×")),
+        h("div", { class: "grid g4" },
+          h("label", { class: "f", style: "grid-column:span 2" }, h("span", { text: "Prenda" }), txtIn(l, "descripcion", { list: "cat-titles", placeholder: "Busca en el catálogo o escribe" })),
+          h("label", { class: "f" }, h("span", { text: "Modelo" }), txtIn(l, "modelo")), h("label", { class: "f" }, h("span", { text: "Color de prenda" }), txtIn(l, "color")),
+          h("label", { class: "f" }, h("span", { text: "Piezas" }), numIn(l, "piezas", { step: "1" })), h("label", { class: "f" }, h("span", { text: "Costo prenda (MXN c/u)" }), numIn(l, "costoPrenda")),
+          h("label", { class: "f" }, h("span", { text: "Extra por pieza (MXN)" }), numIn(l, "extraUnit")), h("label", { class: "f" }, h("span", { text: "Precio manual c/u (opcional)" }), numIn(l, "precioManual"))),
+        h("div", { class: "grid", style: "gap:.35rem" }, h("span", { class: "label", text: "Ubicaciones de impresión" }),
+          ...(l.ubicaciones || []).map((u, ui) => h("div", { class: "ub" },
+            h("label", { class: "f" }, h("span", { text: "Ubicación" }), h("select", { class: "i", onchange: (e) => { u.nombre = e.target.value; mark(); } }, ["Frente", "Pecho izquierdo", "Espalda", "Nuca", "Manga derecha", "Manga izquierda", "Full print"].map((n) => h("option", { value: n, text: n, selected: u.nombre === n })))),
+            h("label", { class: "f" }, h("span", { text: "Colores" }), numIn(u, "colores", { step: "1", max: "14" })),
+            h("label", { class: "f" }, h("span", { text: "Tintas / Pantone" }), txtIn(u, "tintas")),
+            h("button", { class: "x", type: "button", "aria-label": "Quitar ubicación", onclick: () => { l.ubicaciones.splice(ui, 1); paintLines(); mark(); } }, "×"))),
+          h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { (l.ubicaciones ||= []).push({ nombre: "Espalda", colores: 1, tintas: "" }); paintLines(); mark(); } }, "+ Ubicación")),
+        h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !!l.sinPantallas, onchange: (e) => { l.sinPantallas = e.target.checked; mark(); } }), "Sin cargo de pantallas (reorden con pantallas guardadas)"),
+        h("p", { class: "num small muted", "data-unit": l.id }))),
+        h("button", { class: "btn ghost", type: "button", style: "justify-self:start", onclick: () => { q.lineas.push({ id: rid(), descripcion: "", piezas: 0, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }] }); paintLines(); mark(); } }, "+ Partida"));
+      paintTotals();
+    }
+    paintLines();
+    const contact = cuenta?.contactos?.find((x) => isPhone(x.contacto)) || cuenta?.contactos?.[0];
+    const sendText = () => { const c = calcCot(q); return `Hola ${contact?.nombre?.split(" ")[0] || ""}, te comparto la cotización ${q.id} de Chilian:\n${q.lineas.map((l) => `• ${l.descripcion}${l.modelo ? " (" + l.modelo + ")" : ""}: ${fmtN(l.piezas)} pzas a ${money(calcLinea(l).unit)} c/u`).join("\n")}\nTotal: ${money(c.total)} ${q.sinIva ? "" : "IVA incluido"}\nAnticipo: ${q.anticipo} % · Vigencia: ${q.vigencia} días · Entrega: ${q.entregaDias} días hábiles después de aprobar la muestra.\n— ${S.name}`; };
+    return h("div", {},
+      top(`${cuentaName(q.cuentaId)} · ${o ? o.titulo : ""}`, `Cotización ${q.id}`, quotePill(q.estado), saveBtn,
+        h("button", { class: "btn ghost", type: "button", onclick: async () => { if (dirty) await doSave(); printQuote(q); } }, "Imprimir / PDF"),
+        q.estado !== "aceptada" ? h("button", { class: "btn", type: "button", onclick: async () => { await doSave({ estado: "enviada", enviadaEn: new Date().toISOString() }); if (o && ["nuevo", "contactado", "calificado"].includes(o.etapa)) await save("oportunidades", { ...o, etapa: "cotizacion", probabilidad: stageProb("cotizacion"), valor: calcCot(q).sub, proximaAccion: { texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2) } }, { quiet: true }); await save("tareas", { tipo: "WhatsApp", texto: `Seguimiento a la cotización ${q.id}`, fecha: addDays(localDate(), 2), oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, asesor: o?.asesor || S.name, hecha: false }, { quiet: true }); rerender(); } }, "Marcar enviada") : null,
+        q.estado !== "aceptada" ? h("button", { class: "btn accent", type: "button", onclick: () => acceptQuote(q, doSave) }, "Aceptada → crear OT") : q.otId ? h("a", { class: "btn accent", href: "#ot/" + q.otId }, `Ver ${q.otId}`) : null),
+      h("datalist", { id: "cat-titles" }, (catalogTitles() || []).map((t) => h("option", { value: t }))),
+      h("div", { class: "cols" }, linesBox,
+        h("div", { class: "grid", style: "position:sticky;top:1rem" },
+          h("div", { class: "card" }, h("h2", { text: "Totales" }), totalsBox),
+          h("div", { class: "card" }, h("h2", { text: "Condiciones" }),
+            h("div", { class: "grid g2" },
+              h("label", { class: "f" }, h("span", { text: "Envío (MXN)" }), numIn(q, "envio")), h("label", { class: "f" }, h("span", { text: "Anticipo (%)" }), numIn(q, "anticipo")),
+              h("label", { class: "f" }, h("span", { text: "Vigencia (días)" }), numIn(q, "vigencia")), h("label", { class: "f" }, h("span", { text: "Entrega (días hábiles)" }), numIn(q, "entregaDias")),
+              h("label", { class: "row small full", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !!q.sinIva, onchange: (e) => { q.sinIva = e.target.checked; mark(); } }), "Sin IVA (exportación)"),
+              h("label", { class: "f full" }, h("span", { text: "Notas para el cliente" }), h("textarea", { class: "i", value: q.notas || "", oninput: (e) => { q.notas = e.target.value; mark(); } }))),
+            T().ejemplo ? h("p", { class: "hint", text: "Las tarifas son valores de ejemplo. Ajústalas en Ajustes → Tarifas con los costos reales de Chilian." }) : null),
+          h("div", { class: "card" }, h("h2", { text: "Enviar" }), h("div", { class: "copybox", text: sendText() }),
+            h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(sendText()) }, "Copiar"),
+              isPhone(contact?.contacto) ? h("a", { class: "btn sm ghost", href: waLink(contact.contacto, sendText()), target: "_blank", rel: "noopener" }, "Abrir WhatsApp") : null)),
+          h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox(`¿Borrar la cotización ${q.id}?`))) return; await remove("cotizaciones", q.id); go(o ? "oportunidad/" + o.id : "cotizaciones"); } }, "Borrar cotización"))));
+  }
+  let CATALOG = null;
+  function catalogTitles() {
+    if (CATALOG) return CATALOG;
+    fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => { CATALOG = [...new Set(d.map((e) => `${e.title}${e.models?.length ? " · " + e.models.slice(0, 2).join("/") : ""} (${e.cat})`))]; const dl = $("#cat-titles"); if (dl) dl.replaceChildren(...CATALOG.map((t) => h("option", { value: t }))); }).catch(() => {});
+    return [];
+  }
+  async function acceptQuote(q, doSave) {
+    const c = calcCot(q), due = workDays(q.entregaDias || 15).pop();
+    const ot = await save("ots", {
+      cotizacionId: q.id, oportunidadId: q.oportunidadId, cuentaId: q.cuentaId, clienteNombre: cuentaName(q.cuentaId), etapa: "arte", prioridad: "normal",
+      fechaCompromiso: due, tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(),
+      lineas: q.lineas.map((l) => ({ ...l, tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })), total: c.total, anticipo: q.anticipo,
+      arte: { estado: "pendiente", archivos: [] }, programacion: [], merma: [], historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: S.name, nota: `Creada desde ${q.id}` }]
+    }, { quiet: true });
+    await doSave({ estado: "aceptada", aceptadaEn: new Date().toISOString(), otId: ot.id });
+    const o = byId("oportunidades", q.oportunidadId);
+    if (o) await save("oportunidades", { ...o, etapa: "ganado", probabilidad: 100, valor: c.sub, cerradaEn: new Date().toISOString(), actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `${q.id} aceptada. ${ot.id} creada.`, por: S.name }] }, { quiet: true });
+    toast(`${ot.id} creada.`);
+    go("ot/" + ot.id);
+  }
+  function printQuote(q) {
+    const c = calcCot(q), cuenta = byId("cuentas", q.cuentaId), ct = cuenta?.contactos?.[0];
+    $("#print").replaceChildren(h("div", { class: "doc" },
+      h("div", { class: "hdr" }, h("div", {}, h("h1", { text: "Cotización" }), h("div", { text: `${q.id} · ${fmtDate(localDate())}` }), h("div", { text: `Vigencia: ${q.vigencia} días` })),
+        h("div", { style: "text-align:right" }, h("b", { text: "Grupo Chilian · Chilian Screen Printing" }), h("div", { text: "Tlacomulco No. 2, San Pablo Ahuatempan, Santa Isabel Cholula, Pue." }), h("div", { text: "WhatsApp 222 692 5404 · grupochilian.com.mx" }), h("div", { text: `Atiende: ${S.name}` }))),
+      h("p", {}, h("b", { text: "Para: " }), `${cuenta?.nombre || ""}${ct ? " · " + ct.nombre + " · " + ct.contacto : ""}`),
+      h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", "Impresión", "Piezas", "Precio c/u", "Pantallas", "Importe"].map((x) => h("th", { text: x })))),
+        h("tbody", {}, q.lineas.map((l) => { const r = calcLinea(l); return h("tr", {}, h("td", {}, h("b", { text: l.descripcion }), l.modelo ? " · " + l.modelo : "", l.color ? h("div", { text: "Color: " + l.color }) : null),
+          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} color(es)${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), h("td", { text: fmtN(l.piezas) }), h("td", { text: money(r.unit) }), h("td", { text: money(r.pantallas) }), h("td", { text: money(r.subtotal) })); }))),
+      h("table", { style: "width:50%;margin-left:auto;margin-top:8pt" }, h("tbody", {},
+        +q.envio ? h("tr", {}, h("td", { text: "Envío" }), h("td", { text: money(q.envio) })) : null,
+        h("tr", {}, h("td", { text: "Subtotal" }), h("td", { text: money(c.sub) })), h("tr", {}, h("td", { text: q.sinIva ? "IVA" : `IVA ${T().iva} %` }), h("td", { text: q.sinIva ? "No aplica" : money(c.iva) })),
+        h("tr", {}, h("td", {}, h("b", { text: "Total MXN" })), h("td", {}, h("b", { text: money(c.total) }))), h("tr", {}, h("td", { text: `Anticipo ${q.anticipo} %` }), h("td", { text: money(c.total * q.anticipo / 100) })))),
+      q.notas ? h("p", { style: "white-space:pre-wrap;margin-top:8pt", text: q.notas }) : null,
+      h("div", { class: "foot" }, h("p", { text: `Entrega: ${q.entregaDias} días hábiles después de aprobar la muestra física y recibir el anticipo. Los colores finales se aprueban en la muestra. Planta auditada: Disney FAMA, SMETA, Walmart, WRAP, VF y C&A.` }))));
+    setTimeout(() => print(), 50);
+  }
+
+  /* ---------------- work orders ---------------- */
+  const otPill = (e) => h("span", { class: "pill " + ({ entregada: "p-ok", embarcada: "p-ok", impresion: "p-acc", calidad: "p-info", empaque: "p-info", aprobacion: "p-warn", arte: "p-warn" }[e] || "p-mut"), text: stageName(OT_STAGES, e) });
+  function otTable(ots) {
+    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Pulpo", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
+      h("tbody", {}, ots.sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9")).map((o) => h("tr", { class: "click", onclick: () => go("ot/" + o.id) },
+        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, otPill(o.etapa)),
+        h("td", {}, h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[o.arte?.estado] || "p-mut"), text: o.arte?.estado || "pendiente" })),
+        h("td", { class: "r num", text: fmtN((o.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0)) }),
+        h("td", { class: "small", text: (o.programacion || []).map((p) => `${S.settings.pulpos.find((x) => x.id === p.pulpo)?.nombre || p.pulpo} · ${fmtDate(p.fecha)}`).join("; ") || "—" }),
+        h("td", { class: o.etapa !== "entregada" && o.etapa !== "embarcada" ? dueClass(o.fechaCompromiso) : "", text: fmtDate(o.fechaCompromiso) }))))));
+  }
+  function viewOTs() {
+    const f = viewOTs.f ||= { etapa: "activas", q: "" };
+    let ots = list("ots");
+    if (f.etapa === "activas") ots = ots.filter((o) => o.etapa !== "entregada"); else if (f.etapa) ots = ots.filter((o) => o.etapa === f.etapa);
+    if (f.q) { const q = f.q.toLowerCase(); ots = ots.filter((o) => (o.id + " " + (o.clienteNombre || "")).toLowerCase().includes(q)); }
+    return h("div", {},
+      top(`${list("ots").filter((o) => o.etapa !== "entregada").length} activas`, "Órdenes de trabajo",
+        h("input", { class: "i search", type: "search", placeholder: "Buscar OT o cliente", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewOTs.t); viewOTs.t = setTimeout(rerender, 250); } }),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.etapa = e.target.value; rerender(); } }, h("option", { value: "activas", text: "Activas" }), h("option", { value: "", text: "Todas", selected: f.etapa === "" }), OT_STAGES.map((s) => h("option", { value: s.id, text: s.name, selected: f.etapa === s.id }))),
+        h("button", { class: "btn ghost", type: "button", onclick: () => manualOT() }, "+ OT sin cotización")),
+      h("div", { class: "kpis" }, OT_STAGES.map((s) => h("a", { class: "kpi", href: "#ots", onclick: () => { f.etapa = s.id; } }, h("span", { class: "label", text: s.name }), h("strong", { text: list("ots").filter((o) => o.etapa === s.id).length })))),
+      ots.length ? otTable(ots) : h("div", { class: "empty", text: "No hay órdenes en esta vista. Una OT nace cuando se acepta una cotización." }));
+  }
+  async function manualOT() {
+    const cs = list("cuentas");
+    if (!cs.length) return toast("Primero crea la cuenta del cliente.", true);
+    const sel = h("select", { class: "i", name: "cuenta" }, cs.sort((a, b) => a.nombre.localeCompare(b.nombre)).map((c) => h("option", { value: c.id, text: c.nombre })));
+    modal("OT sin cotización", h("form", { class: "grid", onsubmit: async (e) => {
+      e.preventDefault(); closeModal();
+      const ot = await save("ots", { cuentaId: sel.value, clienteNombre: cuentaName(sel.value), etapa: "arte", prioridad: "normal", fechaCompromiso: workDays(15).pop(), tokenCliente: rid() + rid() + rid(),
+        lineas: [{ id: rid(), descripcion: "Playera", piezas: 0, costoPrenda: 0, ubicaciones: [{ nombre: "Frente", colores: 1, tintas: "" }], tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) }],
+        arte: { estado: "pendiente", archivos: [] }, programacion: [], merma: [], historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: S.name, nota: "Creada sin cotización" }] }, { quiet: true });
+      go("ot/" + ot.id);
+    } }, h("label", { class: "f" }, h("span", { text: "Cliente" }), sel), h("button", { class: "btn accent", type: "submit" }, "Crear OT")));
+  }
+  function setStage(ot, etapa, nota, por = S.name) {
+    return { ...ot, etapa, historial: [...(ot.historial || []), { etapa, fecha: new Date().toISOString(), por, nota }] };
+  }
+  function viewOT(id) {
+    const ot0 = byId("ots", id);
+    if (!ot0) return h("div", { class: "empty", text: "No encontramos esta OT." });
+    const ot = structuredClone(ot0), cuenta = byId("cuentas", ot.cuentaId), idx = OT_STAGES.findIndex((s) => s.id === ot.etapa);
+    const piezas = ot.lineas.reduce((a, l) => a + (+l.piezas || 0), 0), minutos = otMinutes(ot);
+    const mermaTotal = (ot.merma || []).reduce((a, m) => a + (+m.cantidad || 0), 0);
+    const base = location.origin, linkAprob = `${base}/aprobar?t=${ot.tokenCliente}`, linkSeg = `${base}/pedido?t=${ot.tokenCliente}`;
+    const contact = cuenta?.contactos?.find((x) => isPhone(x.contacto)) || cuenta?.contactos?.[0];
+    const persist = async (patch, msg) => { await save("ots", { ...ot, ...patch }, { quiet: !msg }); if (msg) toast(msg); rerender(); };
+    let dirty = false;
+    const saveLines = h("button", { class: "btn sm accent", type: "button", hidden: true, onclick: () => persist({ lineas: ot.lineas }, "Partidas guardadas.") }, "Guardar partidas");
+    const mark = () => { if (!dirty) { dirty = true; saveLines.hidden = false; } };
+    const files = ot.arte?.archivos || [];
+    const fileUrl = (p) => `/api/archivo?path=${encodeURIComponent(p)}&s=${encodeURIComponent(S.token)}`;
+    return h("div", {},
+      top(`${ot.clienteNombre || cuentaName(ot.cuentaId)}${ot.cotizacionId ? " · " + ot.cotizacionId : ""}`, `Orden ${ot.id}`, otPill(ot.etapa),
+        h("button", { class: "btn ghost", type: "button", onclick: () => printTraveler(ot) }, "Hoja viajera"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => printPacking(ot) }, "Lista de empaque")),
+      h("div", { class: "steps", style: "margin-bottom:1rem" }, OT_STAGES.map((s, i) => h("button", { type: "button", class: i < idx ? "done" : i === idx ? "now" : "", title: "Mover a " + s.name, onclick: () => persist(setStage(ot, s.id, "Cambio manual"), `Etapa: ${s.name}.`) }, (i < idx ? "✓ " : "") + s.name))),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Partidas y tallas" }), saveLines),
+            ...ot.lineas.map((l) => h("div", { class: "lineitem" },
+              h("div", { class: "row between" }, h("b", { text: `${l.descripcion}${l.modelo ? " · " + l.modelo : ""}${l.color ? " · " + l.color : ""}` }), h("span", { class: "num", text: fmtN(l.piezas) + " pzas" })),
+              h("div", { class: "small muted", text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} col.${u.tintas ? " (" + u.tintas + ")" : ""}`).join(" · ") }),
+              h("div", { class: "grid", style: `grid-template-columns:repeat(${SIZES.length},minmax(0,1fr));gap:.35rem` }, SIZES.map((sz) => h("label", { class: "f" }, h("span", { text: sz }), h("input", { class: "i", type: "number", min: "0", step: "1", value: l.tallas?.[sz] || "", oninput: (e) => { (l.tallas ||= {})[sz] = +e.target.value || 0; mark(); sumNote.textContent = tallaNote(l); } })))),
+              ((sumNote) => sumNote)(h("p", { class: "small", text: tallaNote(l) }))))),
+          h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Arte y aprobación del cliente" }), h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[ot.arte?.estado] || "p-mut"), text: ot.arte?.estado || "pendiente" })),
+            files.length ? h("div", { class: "thumbs" }, files.map((a) => h("a", { href: fileUrl(a.path), target: "_blank", rel: "noopener" }, a.type?.startsWith("image/") ? h("img", { src: fileUrl(a.path), alt: a.name, loading: "lazy" }) : h("div", { style: "height:110px;display:grid;place-items:center;color:#333", text: "PDF" }), h("span", { text: a.name })))) : h("p", { class: "muted small", text: "Sube el mockup (desde Estampa tu idea) y las separaciones para que el cliente las apruebe." }),
+            h("label", { class: "btn ghost", style: "justify-self:start" }, "Subir arte o mockup", h("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/svg+xml,application/pdf", multiple: true, hidden: true, onchange: async (e) => {
+              const added = [];
+              for (const file of e.target.files) {
+                if (file.size > 4_200_000) { toast(`${file.name} pasa de 4 MB.`, true); continue; }
+                try { added.push(await api("POST", `/api/archivo?ot=${encodeURIComponent(ot.id)}&name=${encodeURIComponent(file.name)}`, undefined, { body: file, type: file.type || "application/octet-stream" })); } catch (err) { if (err.message !== "401") toast(err.message, true); }
+              }
+              if (added.length) await persist({ arte: { ...(ot.arte || {}), archivos: [...files, ...added] } }, `${added.length} archivo(s) subido(s).`);
+            } })),
+            ot.arte?.aprobadoPor ? h("p", { class: "small", text: `${ot.arte.estado === "aprobada" ? "Aprobado" : "Cambios pedidos"} por ${ot.arte.aprobadoPor} · ${fmtDT(ot.arte.fecha)}${ot.arte.comentario ? " · “" + ot.arte.comentario + "”" : ""}` }) : null,
+            h("div", { class: "grid", style: "gap:.4rem" }, h("span", { class: "label", text: "Enlace de aprobación para el cliente" }), h("div", { class: "copybox", text: linkAprob }),
+              h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(linkAprob) }, "Copiar enlace"),
+                isPhone(contact?.contacto) ? h("a", { class: "btn sm ghost", href: waLink(contact.contacto, `Hola ${contact.nombre?.split(" ")[0] || ""}, aquí puedes revisar y aprobar el arte de tu pedido ${ot.id}: ${linkAprob}`), target: "_blank", rel: "noopener", onclick: () => { if (ot.arte?.estado === "pendiente") persist({ ...setStage(ot, ot.etapa === "arte" ? "aprobacion" : ot.etapa, "Arte enviado al cliente"), arte: { ...(ot.arte || {}), estado: "enviada", enviadaEn: new Date().toISOString() } }); } }, "Enviar por WhatsApp") : null,
+                ot.arte?.estado !== "aprobada" ? h("button", { class: "btn sm ghost", type: "button", onclick: async () => { const who = await askText("¿Quién aprobó el arte?", [contact?.nombre || "El cliente", "Por WhatsApp", "En persona"]); if (who) persist({ ...setStage(ot, idx < 2 ? "compra" : ot.etapa, "Arte aprobado (registrado por el equipo)"), arte: { ...(ot.arte || {}), estado: "aprobada", aprobadoPor: who, fecha: new Date().toISOString() } }, "Aprobación registrada."); } }, "Registrar aprobación manual") : null))),
+          h("div", { class: "card" }, h("h2", { text: "Calidad y merma" }),
+            h("p", { class: "small", text: `Merma registrada: ${fmtN(mermaTotal)} piezas (${piezas ? fmtN((mermaTotal / piezas) * 100, 2) : 0} %). Meta: 1.5 % o menos.` }),
+            (ot.merma || []).length ? h("ul", { class: "log" }, ot.merma.map((m) => h("li", {}, h("time", { text: fmtDT(m.fecha) }), h("span", { text: `${m.cantidad} pzas · ${m.causa}${m.nota ? " · " + m.nota : ""} · ${m.por}` })))) : null,
+            mermaForm(ot, persist)),
+          h("div", { class: "card" }, h("h2", { text: "Historial" }), h("ul", { class: "log" }, [...(ot.historial || [])].reverse().map((x) => h("li", {}, h("time", { text: fmtDT(x.fecha) }), h("span", {}, h("b", { text: stageName(OT_STAGES, x.etapa) }), ` · ${x.por || ""}${x.nota ? " · " + x.nota : ""}`)))))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Código de la orden" }), h("div", { class: "barcode", html: code128svg(ot.id) }), h("p", { class: "num small", text: ot.id + " · escanéalo en cada estación" })),
+          h("div", { class: "card" }, h("h2", { text: "Fechas y prioridad" }),
+            h("div", { class: "grid g2" }, inputField("Compromiso de entrega", ot.fechaCompromiso, "date", (v) => persist({ fechaCompromiso: v }, "Fecha guardada.")),
+              selectField("Prioridad", ot.prioridad || "normal", [["normal", "Normal"], ["alta", "Alta"], ["urgente", "Urgente"]], (v) => persist({ prioridad: v }, "Prioridad guardada."))),
+            h("p", { class: "small muted", text: `${fmtN(piezas)} piezas · ${fmtN(minutos)} min estimados de pulpo` })),
+          h("div", { class: "card" }, h("h2", { text: "Programación" }), scheduleForm(ot, minutos, persist)),
+          h("div", { class: "card" }, h("h2", { text: "Embarque" }), shipForm(ot, persist, contact, linkSeg)),
+          h("div", { class: "card" }, h("h2", { text: "Seguimiento del cliente" }), h("p", { class: "small", text: "El cliente ve la etapa de su pedido y la guía de envío en este enlace." }), h("div", { class: "copybox", text: linkSeg }),
+            h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(linkSeg) }, "Copiar"), h("a", { class: "btn sm ghost", href: linkSeg, target: "_blank", rel: "noopener" }, "Ver como cliente"))),
+          h("button", { class: "btn danger", type: "button", onclick: async () => { if (!(await confirmBox(`¿Borrar la orden ${ot.id}? No se puede deshacer.`))) return; await remove("ots", ot.id); go("ots"); } }, "Borrar OT"))));
+  }
+  const tallaNote = (l) => { const sum = Object.values(l.tallas || {}).reduce((a, b) => a + (+b || 0), 0); return sum === (+l.piezas || 0) ? `Tallas completas: ${fmtN(sum)}` : `Tallas: ${fmtN(sum)} de ${fmtN(l.piezas)} piezas`; };
+  function mermaForm(ot, persist) {
+    return h("form", { class: "grid g3", onsubmit: async (e) => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); if (!(+fd.cantidad > 0)) return toast("Escribe cuántas piezas.", true);
+      await persist({ merma: [...(ot.merma || []), { cantidad: +fd.cantidad, causa: fd.causa, nota: fd.nota, fecha: new Date().toISOString(), por: S.name }] }, "Merma registrada."); } },
+      h("input", { class: "i", name: "cantidad", type: "number", min: "1", placeholder: "Piezas" }), h("select", { class: "i", name: "causa" }, MERMA_CAUSAS.map((c) => h("option", { value: c, text: c }))),
+      h("input", { class: "i", name: "nota", placeholder: "Nota (opcional)" }), h("button", { class: "btn sm full", type: "submit" }, "Registrar merma"));
+  }
+  function scheduleForm(ot, minutos, persist) {
+    const sug = suggestPress(ot), cur = ot.programacion?.[0];
+    const sel = h("select", { class: "i" }, S.settings.pulpos.map((p) => h("option", { value: p.id, text: `${p.nombre} · ${p.paletas}p/${p.colores}c`, selected: (cur?.pulpo || sug?.id) === p.id })));
+    const date = h("input", { class: "i", type: "date", value: cur?.fecha || workDays(3).pop() });
+    const mins = h("input", { class: "i", type: "number", min: "1", value: Math.round(cur?.minutos || minutos) });
+    const info = h("p", { class: "small muted" });
+    const paint = () => { const used = loadOn(sel.value, date.value, ot.id).reduce((a, x) => a + x.min, 0), cap = dayCapacity(); info.textContent = `Ese día el pulpo ya tiene ${fmtN(used)} de ${fmtN(cap)} min; con esta OT quedaría al ${fmtN(((used + (+mins.value || 0)) / cap) * 100)} %.`; };
+    [sel, date, mins].forEach((x) => x.addEventListener("input", paint)); paint();
+    return h("div", { class: "grid", style: "gap:.5rem" },
+      h("p", { class: "hint", text: `Sugerido: ${sug?.nombre || "—"} (colores y tiraje).` }),
+      h("label", { class: "f" }, h("span", { text: "Pulpo" }), sel), h("div", { class: "grid g2" }, h("label", { class: "f" }, h("span", { text: "Día" }), date), h("label", { class: "f" }, h("span", { text: "Minutos" }), mins)), info,
+      h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", onclick: () => persist({ ...(["arte", "aprobacion", "compra", "pantallas"].includes(ot.etapa) && ot.arte?.estado === "aprobada" ? setStage(ot, "programada", `Programada en ${S.settings.pulpos.find((p) => p.id === sel.value)?.nombre}`) : {}), programacion: [{ pulpo: sel.value, fecha: date.value, minutos: +mins.value || Math.round(minutos) }] }, "Programación guardada.") }, cur ? "Reprogramar" : "Programar"),
+        cur ? h("button", { class: "btn sm ghost", type: "button", onclick: () => persist({ programacion: [] }, "Programación quitada.") }, "Quitar") : null));
+  }
+  function shipForm(ot, persist, contact, linkSeg) {
+    const e = ot.embarque || {};
+    const CARRIERS = { Estafeta: "https://www.estafeta.com/Herramientas/Rastreo", DHL: "https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=", FedEx: "https://www.fedex.com/fedextrack/?trknbr=", UPS: "https://www.ups.com/track?tracknum=", Paquetexpress: "https://www.paquetexpress.com.mx/rastreo/", "Flete propio": "", "Recoge en planta": "" };
+    const f = h("form", { class: "grid g2", onsubmit: async (ev) => {
+      ev.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      const base = CARRIERS[fd.paqueteria] || "", rastreoUrl = fd.rastreoUrl || (base && fd.guia ? (base.endsWith("=") ? base + encodeURIComponent(fd.guia) : base) : "");
+      const emb = { paqueteria: fd.paqueteria, guia: fd.guia, rastreoUrl, cajas: +fd.cajas || 0, fecha: fd.fecha, destino: fd.destino };
+      const next = fd.marcar ? setStage(ot, "embarcada", `${fd.paqueteria}${fd.guia ? " · guía " + fd.guia : ""}`) : ot;
+      await persist({ ...next, embarque: emb }, fd.marcar ? "Embarque registrado." : "Datos de envío guardados.");
+    } },
+      h("label", { class: "f" }, h("span", { text: "Paquetería" }), h("select", { class: "i", name: "paqueteria" }, Object.keys(CARRIERS).map((c) => h("option", { value: c, text: c, selected: e.paqueteria === c })))),
+      h("label", { class: "f" }, h("span", { text: "Número de guía" }), h("input", { class: "i", name: "guia", value: e.guia || "" })),
+      h("label", { class: "f" }, h("span", { text: "Cajas" }), h("input", { class: "i", name: "cajas", type: "number", min: "0", value: e.cajas || "" })),
+      h("label", { class: "f" }, h("span", { text: "Fecha de envío" }), h("input", { class: "i", name: "fecha", type: "date", value: e.fecha || localDate() })),
+      h("label", { class: "f full" }, h("span", { text: "Destino" }), h("input", { class: "i", name: "destino", value: e.destino || "" })),
+      h("label", { class: "f full" }, h("span", { text: "Enlace de rastreo (si la paquetería no lo arma sola)" }), h("input", { class: "i", name: "rastreoUrl", value: e.rastreoUrl || "" })),
+      h("label", { class: "row small full", style: "gap:.4rem" }, h("input", { type: "checkbox", name: "marcar", checked: ot.etapa !== "embarcada" && ot.etapa !== "entregada" }), "Marcar la OT como embarcada"),
+      h("div", { class: "row full" }, h("button", { class: "btn sm", type: "submit" }, "Guardar envío"),
+        e.guia && isPhone(contact?.contacto) ? h("a", { class: "btn sm ghost", href: waLink(contact.contacto, `Hola ${contact.nombre?.split(" ")[0] || ""}, tu pedido ${ot.id} salió por ${e.paqueteria} con la guía ${e.guia}. Sigue el estado aquí: ${linkSeg}`), target: "_blank", rel: "noopener" }, "Avisar al cliente") : null));
+    return f;
+  }
+  function printTraveler(ot) {
+    $("#print").replaceChildren(h("div", { class: "doc" },
+      h("div", { class: "hdr" }, h("div", {}, h("h1", { text: "Hoja viajera" }), h("div", { style: "font-size:16pt;font-weight:700", text: ot.id }), h("div", { text: `${ot.clienteNombre || ""} · compromiso ${fmtDate(ot.fechaCompromiso)} · prioridad ${ot.prioridad || "normal"}` })),
+        h("div", { style: "width:70mm", html: code128svg(ot.id) })),
+      h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", "Ubicaciones y tintas", ...SIZES, "Total"].map((x) => h("th", { text: x })))),
+        h("tbody", {}, ot.lineas.map((l) => h("tr", {}, h("td", {}, h("b", { text: l.descripcion }), l.modelo ? " · " + l.modelo : "", l.color ? h("div", { text: l.color }) : null),
+          h("td", { text: (l.ubicaciones || []).map((u) => `${u.nombre}: ${u.colores} col.${u.tintas ? " (" + u.tintas + ")" : ""}`).join("; ") }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
+      h("table", { style: "margin-top:10pt" }, h("thead", {}, h("tr", {}, ["Estación", "Inicio", "Fin", "Firma", "Notas"].map((x) => h("th", { text: x })))), h("tbody", {}, STATIONS.slice(0, 5).map((s) => h("tr", { style: "height:22pt" }, h("td", { text: s.name }), h("td"), h("td"), h("td"), h("td")))))));
+    setTimeout(() => print(), 50);
+  }
+  function printPacking(ot) {
+    $("#print").replaceChildren(h("div", { class: "doc" },
+      h("div", { class: "hdr" }, h("div", {}, h("h1", { text: "Lista de empaque" }), h("div", { text: `${ot.id} · ${ot.clienteNombre || ""}` }), ot.embarque?.guia ? h("div", { text: `${ot.embarque.paqueteria} · guía ${ot.embarque.guia} · ${ot.embarque.cajas || ""} caja(s)` }) : null), h("div", { style: "width:60mm", html: code128svg(ot.id) })),
+      h("table", {}, h("thead", {}, h("tr", {}, ["Prenda", ...SIZES, "Total"].map((x) => h("th", { text: x })))),
+        h("tbody", {}, ot.lineas.map((l) => h("tr", {}, h("td", { text: `${l.descripcion}${l.color ? " · " + l.color : ""}` }), ...SIZES.map((s) => h("td", { text: l.tallas?.[s] || "" })), h("td", { text: fmtN(l.piezas) }))))),
+      h("p", { class: "foot", text: "Revisado, doblado y empacado por Chilian Screen Printing. Recibí completo: ____________________  Fecha: ________" })));
+    setTimeout(() => print(), 50);
+  }
+
+  /* ---------------- press schedule ---------------- */
+  function viewSchedule() {
+    const days = workDays(viewSchedule.n || 10, viewSchedule.from || localDate()), cap = dayCapacity();
+    const queue = list("ots").filter((o) => !(o.programacion || []).length && !["embarcada", "entregada", "impresion", "calidad", "empaque"].includes(o.etapa)).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
+    const dragJob = (el, otId) => { el.draggable = true; el.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", otId)); };
+    const cell = (p, d) => {
+      const jobs = loadOn(p.id, d), used = jobs.reduce((a, x) => a + x.min, 0), pct = cap ? used / cap : 0;
+      const slot = h("div", { class: "slot" }, h("div", { class: "load" + (pct > 1 ? " over" : pct > 0.85 ? " hi" : "") }, h("i", { style: `width:${Math.min(100, pct * 100)}%` })),
+        h("span", { class: "num small muted", text: used ? `${fmtN(used)}/${fmtN(cap)} min` : "" }),
+        jobs.map(({ ot, min }) => { const j = h("div", { class: "job" + (ot.fechaCompromiso && ot.fechaCompromiso < d ? " late" : ""), title: `${ot.id} · ${ot.clienteNombre} · ${fmtN(min)} min · compromiso ${fmtDate(ot.fechaCompromiso)}`, onclick: () => go("ot/" + ot.id) }, `${ot.id} · ${ot.clienteNombre || ""}`); dragJob(j, ot.id); return j; }));
+      slot.addEventListener("dragover", (e) => { e.preventDefault(); slot.classList.add("drop"); });
+      slot.addEventListener("dragleave", () => slot.classList.remove("drop"));
+      slot.addEventListener("drop", async (e) => {
+        e.preventDefault(); slot.classList.remove("drop");
+        const id = e.dataTransfer.getData("text/plain"); if (!byId("ots", id)) return;
+        const ot = await fresh("ots", id);
+        const min = ot.programacion?.[0]?.minutos || Math.round(otMinutes(ot));
+        const staged = ["arte", "aprobacion", "compra", "pantallas"].includes(ot.etapa) && ot.arte?.estado === "aprobada" ? setStage(ot, "programada", `Programada en ${p.nombre}`) : ot;
+        await save("ots", { ...staged, programacion: [{ pulpo: p.id, fecha: d, minutos: min }] }, { quiet: true });
+        toast(`${ot.id} → ${p.nombre}, ${fmtDate(d)}.`); rerender();
+      });
+      return h("td", {}, slot);
+    };
+    return h("div", {},
+      top(`Capacidad por pulpo y día: ${fmtN(cap)} min`, "Programación",
+        h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = addDays(days[0], -7); rerender(); } }, "← Semana"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = localDate(); rerender(); } }, "Hoy"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { viewSchedule.from = addDays(days[0], 7); rerender(); } }, "Semana →")),
+      h("div", { class: "cols", style: "grid-template-columns:minmax(0,1fr) 260px" },
+        h("div", { class: "sched" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Pulpo" }), days.map((d) => { const dt = new Date(d + "T12:00"); return h("th", { class: d === localDate() ? "today" : "" }, dt.toLocaleDateString("es-MX", { weekday: "short" }), h("br"), h("b", { class: "num", text: dt.toLocaleDateString("es-MX", { day: "numeric", month: "short" }) })); }))),
+          h("tbody", {}, S.settings.pulpos.map((p) => h("tr", {}, h("td", {}, h("b", { class: "small", text: p.nombre }), h("div", { class: "num small muted", text: `${p.paletas} paletas · ${p.colores} colores` })), days.map((d) => cell(p, d))))))),
+        h("div", { class: "card" }, h("h2", { text: `Por programar (${queue.length})` }), h("p", { class: "hint", text: "Arrastra cada OT a un pulpo y día. Rojo: después del compromiso de entrega." }),
+          queue.length ? h("div", { class: "queue" }, queue.map((o) => { const j = h("div", { class: "job" + (o.arte?.estado === "aprobada" ? "" : " late"), onclick: () => go("ot/" + o.id) }, h("b", { text: o.id }), h("div", { text: o.clienteNombre }), h("div", { class: "muted", text: `${fmtN(otMinutes(o))} min · ${fmtDate(o.fechaCompromiso)} · arte ${o.arte?.estado || "pendiente"}` })); dragJob(j, o.id); return j; }))
+            : h("p", { class: "muted small", text: "Todas las OT activas están programadas." }))));
+  }
+
+  /* ---------------- scan station ---------------- */
+  function viewScan() {
+    const st = store.get("chilian-os-station") || "impresion";
+    const result = h("div", {});
+    const input = h("input", { class: "i big", id: "scan-in", placeholder: "Escanea o escribe la OT", autocomplete: "off", autocapitalize: "characters", spellcheck: "false" });
+    const station = h("select", { class: "i", onchange: (e) => { store.set("chilian-os-station", e.target.value); input.focus(); } }, STATIONS.map((s) => h("option", { value: s.id, text: s.name, selected: s.id === st })));
+    async function handle(code) {
+      code = code.trim().toUpperCase(); if (!code) return;
+      await loadAll(true);   // the freshest status before moving anything
+      const ot = byId("ots", code) || list("ots").find((o) => o.id.toUpperCase() === code);
+      if (!ot) { result.replaceChildren(h("div", { class: "card", style: "border-color:var(--bad)" }, h("h2", { text: "No se encontró " + code }), h("p", { class: "small", text: "Revisa que la etiqueta sea de una OT activa." }))); return; }
+      const sid = station.value, name = stageName(STATIONS, sid);
+      const saved = await save("ots", setStage(ot, sid, `Escaneo en ${name}`), { quiet: true });
+      const card = h("div", { class: "card flash" }, h("div", { class: "row between" }, h("h2", { text: `${saved.id} → ${stageName(OT_STAGES, sid)}` }), otPill(saved.etapa)),
+        h("p", { text: `${saved.clienteNombre || ""} · ${fmtN(saved.lineas.reduce((a, l) => a + (+l.piezas || 0), 0))} piezas · compromiso ${fmtDate(saved.fechaCompromiso)}` }),
+        saved.arte?.estado !== "aprobada" && ["impresion", "pantallas"].includes(sid) ? h("p", { class: "due-late", text: "Atención: el arte de esta OT no está aprobado." }) : null,
+        sid === "calidad" ? mermaForm(saved, async (patch, msg) => { await save("ots", { ...saved, ...patch }, { quiet: true }); toast(msg); }) : null,
+        h("a", { class: "link small", href: "#ot/" + saved.id }, "Abrir la OT"));
+      result.replaceChildren(card);
+      toast(`${saved.id}: ${name} ✓`);
+    }
+    input.addEventListener("keydown", async (e) => { if (e.key === "Enter") { e.preventDefault(); const v = input.value; input.value = ""; await handle(v); input.focus(); } });
+    const camBox = h("div", {});
+    const camBtn = "BarcodeDetector" in window ? h("button", { class: "btn ghost", type: "button", onclick: () => startCamera(camBox, (code) => handle(code)) }, "Usar la cámara") : null;
+    setTimeout(() => input.focus(), 50);
+    return h("div", {}, top("Lector de código de barras o cámara", "Escaneo"),
+      h("div", { class: "scan" },
+        h("div", { class: "card" }, h("label", { class: "f" }, h("span", { text: "Estación" }), station), h("label", { class: "f" }, h("span", { text: "Código de la OT" }), input),
+          h("p", { class: "hint", text: "Un lector USB o Bluetooth escribe el código y presiona Enter solo. Cada escaneo mueve la OT a esta estación y queda en su historial con tu nombre." }), camBtn, camBox),
+        result));
+  }
+  async function startCamera(box, onCode) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const video = h("video", { class: "cam", autoplay: true, playsinline: true, muted: true }); video.srcObject = stream;
+      const stop = h("button", { class: "btn sm ghost", type: "button", onclick: () => { stream.getTracks().forEach((t) => t.stop()); box.replaceChildren(); } }, "Apagar cámara");
+      box.replaceChildren(video, stop);
+      const det = new BarcodeDetector({ formats: ["code_128"] });
+      let last = "", lastAt = 0;
+      const tick = async () => {
+        if (!video.isConnected) { stream.getTracks().forEach((t) => t.stop()); return; }
+        try { const codes = await det.detect(video); const c = codes[0]?.rawValue; if (c && (c !== last || Date.now() - lastAt > 4000)) { last = c; lastAt = Date.now(); await onCode(c); } } catch {}
+        setTimeout(tick, 350);
+      };
+      video.addEventListener("loadeddata", tick, { once: true });
+    } catch { toast("No se pudo abrir la cámara. Usa el lector o escribe la OT.", true); }
+  }
+
+  /* ---------------- shipping ---------------- */
+  function viewShipping() {
+    const ready = list("ots").filter((o) => ["empaque", "calidad"].includes(o.etapa));
+    const sent = list("ots").filter((o) => o.etapa === "embarcada").sort((a, b) => (b.embarque?.fecha || "").localeCompare(a.embarque?.fecha || ""));
+    return h("div", {}, top("Listas para salir y en camino", "Embarques"),
+      h("div", { class: "grid" },
+        h("div", { class: "card" }, h("h2", { text: `Por embarcar (${ready.length})` }), ready.length ? otTable(ready) : h("p", { class: "muted small", text: "Nada en calidad o empaque." })),
+        h("div", { class: "card" }, h("h2", { text: `En camino (${sent.length})` }), sent.length ? h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Paquetería", "Guía", "Enviado", ""].map((x) => h("th", { text: x })))),
+          h("tbody", {}, sent.map((o) => h("tr", {}, h("td", {}, h("a", { href: "#ot/" + o.id, class: "num", text: o.id })), h("td", { text: o.clienteNombre }), h("td", { text: o.embarque?.paqueteria || "—" }), h("td", { class: "num", text: o.embarque?.guia || "—" }), h("td", { text: fmtDate(o.embarque?.fecha) }),
+            h("td", {}, o.embarque?.rastreoUrl ? h("a", { class: "btn sm ghost", href: o.embarque.rastreoUrl, target: "_blank", rel: "noopener" }, "Rastrear") : null, h("button", { class: "btn sm", type: "button", onclick: async () => { await save("ots", setStage(o, "entregada", "Entrega confirmada"), { quiet: true }); toast(`${o.id} entregada.`); rerender(); } }, "Entregada"))))))) : h("p", { class: "muted small", text: "Nada en camino." }))));
+  }
+
+  /* ---------------- settings ---------------- */
+  function viewSettings() {
+    const st = structuredClone(S.settings);
+    const saveAll = async () => { const saved = await save("ajustes", { ...st, id: "general" }); S.settings = mergeSettings(saved); toast("Ajustes guardados."); rerender(); };
+    const num = (obj, key, label, step = "any") => h("label", { class: "f" }, h("span", { text: label }), h("input", { class: "i", type: "number", step, value: obj[key], oninput: (e) => { obj[key] = +e.target.value; } }));
+    return h("div", {}, top("Valores que usa todo el sistema", "Ajustes", h("button", { class: "btn accent", type: "button", onclick: saveAll }, "Guardar ajustes")),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Tarifas de cotización" }),
+            h("p", { class: "hint", text: "Precio por color en cada impresión, según el tiraje. Los valores iniciales son ejemplos: cámbialos por los de Chilian." }),
+            h("div", { class: "grid g2" }, st.tarifas.tramos.map((t) => h("div", { class: "grid g2" }, num(t, "min", "Desde (piezas)", "1"), num(t, "porColor", "MXN por color")))),
+            h("div", { class: "grid g3" }, num(st.tarifas, "basePorUbicacion", "Base por ubicación (MXN)"), num(st.tarifas, "costoPantalla", "Pantalla (MXN por color)"), num(st.tarifas, "margenPrenda", "Margen sobre prenda (%)"),
+              num(st.tarifas, "costoMinPulpo", "Costo minuto de pulpo (MXN)"), num(st.tarifas, "iva", "IVA (%)"), num(st.tarifas, "anticipo", "Anticipo (%)"), num(st.tarifas, "vigencia", "Vigencia (días)")),
+            h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !st.tarifas.ejemplo, onchange: (e) => { st.tarifas.ejemplo = !e.target.checked; } }), "Estas tarifas ya son las reales de Chilian")),
+          h("div", { class: "card" }, h("h2", { text: "Tiempos de planta" }),
+            h("div", { class: "grid g3" }, num(st.tarifas, "minPantalla", "Minutos por pantalla"), num(st.tarifas, "transicion", "Minutos entre trabajos"), num(st.tarifas, "impHora", "Impresiones por hora"),
+              num(st.turno, "horas", "Horas por turno"), num(st.turno, "turnos", "Turnos", "1"), num(st.turno, "uso", "Tiempo disponible usado (%)")),
+            h("div", { class: "chips" }, ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((d, i) => h("button", { type: "button", class: "chip" + (st.turno.dias.includes(i) ? " on" : ""), onclick: (e) => { st.turno.dias = st.turno.dias.includes(i) ? st.turno.dias.filter((x) => x !== i) : [...st.turno.dias, i].sort(); e.target.classList.toggle("on"); } }, d))))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Pulpos" }), h("div", { class: "grid", style: "gap:.4rem" }, st.pulpos.map((p, i) => h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) 70px 70px 2rem;gap:.35rem;align-items:end" },
+            h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } })), num(p, "paletas", "Paletas", "1"), num(p, "colores", "Colores", "1"),
+            h("button", { class: "x", type: "button", "aria-label": "Quitar pulpo", onclick: (e) => { st.pulpos.splice(i, 1); e.target.closest(".grid").remove(); } }, "×")))),
+            h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.pulpos.push({ id: "p" + rid(), nombre: "Pulpo nuevo", paletas: 12, colores: 8 }); saveAll(); } }, "+ Pulpo")),
+          h("div", { class: "card" }, h("h2", { text: "Equipo" }), h("p", { class: "hint", text: "Nombres para responsables y tareas, uno por línea." }),
+            h("textarea", { class: "i", style: "min-height:150px", value: st.equipo.join("\n"), oninput: (e) => { st.equipo = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean); } })),
+          h("div", { class: "card" }, h("h2", { text: "Acceso" }), h("p", { class: "small", text: "La contraseña del equipo vive en Vercel (proyecto chilian → Settings → Environment Variables → OPS_PASSWORD). Cámbiala ahí y vuelve a desplegar; las sesiones abiertas duran 14 días." })))));
+  }
+
+  /* ---------------- start ---------------- */
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal" || e.target.closest("[data-close]")) closeModal(); });
+  // Other people (and clients approving art) change records too: refresh before
+  // showing a view when what we hold is more than a few seconds old.
+  addEventListener("hashchange", async () => { if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
+  addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
+  // keep data fresh while the app is open (other people are working too)
+  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select")) { await loadAll(true); rerender(); } }, 90_000);
+  (async () => {
+    try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token) { S.token = s.token; S.name = s.name; } } catch {}
+    if (!S.token) return renderLogin();
+    $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
+    try { await loadAll(); render(); } catch { /* 401 handled in api() */ }
+  })();
+})();
