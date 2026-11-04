@@ -127,10 +127,15 @@ export async function deleteDoc(col, id) {
   const doc = await getDoc(col, id);
   if (col === "ots" && doc?.tokenCliente) await removePath(`idx/token/${safeId(doc.tokenCliente)}.json`).catch(() => {});
   await removePath(docPath(col, id));
+  // An OT's artwork goes with it, so a folio used again never inherits old files.
+  if (col === "ots") for (const { pathname } of await listPaths(`files/${safeId(id)}/`)) await removePath(pathname).catch(() => {});
 }
 export async function otByToken(token) {
   const idx = await readPath(`idx/token/${safeId(token)}.json`);
-  return idx ? getDoc("ots", idx.ot) : null;
+  if (!idx) return null;
+  const ot = await getDoc("ots", idx.ot);
+  // The index can outlive a change of token; the order itself must still carry it.
+  return ot && ot.tokenCliente && ot.tokenCliente === String(token) ? ot : null;
 }
 
 /* Files (artwork, mockups): files/<OT>/<time>-<name>. */
