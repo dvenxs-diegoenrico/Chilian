@@ -130,6 +130,9 @@ export async function deleteDoc(col, id) {
   // An OT's artwork goes with it, so a folio used again never inherits old files.
   if (col === "ots") for (const { pathname } of await listPaths(`files/${safeId(id)}/`)) await removePath(pathname).catch(() => {});
 }
+// Small lookups (e.g. an Instagram conversation -> its request): idx/<kind>/<key>.json
+export const getIndex = (kind, key) => readPath(`idx/${safeId(kind)}/${safeId(key)}.json`);
+export const setIndex = (kind, key, value) => writePath(`idx/${safeId(kind)}/${safeId(key)}.json`, value);
 export async function otByToken(token) {
   const idx = await readPath(`idx/token/${safeId(token)}.json`);
   if (!idx) return null;

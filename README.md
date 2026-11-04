@@ -334,3 +334,10 @@ Sistema interno en `chilian.vercel.app/ops`. Cada persona entra con su usuario y
 ### Estampa tu idea (cliente)
 
 El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y color primero; cada archivo subido queda en «Tus archivos» para usarlo en otra sección sin volver a subirlo; el fondo blanco se quita solo cuando el archivo lo tiene; se puede pegar una imagen (Ctrl+V); el ancho se ajusta con un deslizador o la rueda; «Quitar gráfico» se puede deshacer; la prenda queda a la vista mientras se eligen opciones y «Cotizar con este diseño» siempre está visible.
+
+### Solicitudes: fuente, mercancía y pre-cotización; Instagram
+
+- Cada solicitud llega al OS con **por dónde llegó** (Instagram, Facebook, Google, TikTok, WhatsApp, directo… desde `utm_source`, el navegador de la app o el referente), qué usó (cotizador, catálogo, Estampa tu idea) y cómo se envió (WhatsApp, copiada, Instagram Direct, registrada por el equipo), y si pidió **mercancía específica** del catálogo.
+- Si pidió modelos del catálogo, el OS crea sola una **pre-cotización** con esos modelos, piezas y colores, con los precios que el equipo ya cotizó; al convertir la solicitud queda ligada a la oportunidad.
+- Estampa tu idea pide **cuántas piezas** (atajos de 50 a 5,000); abierto desde un modelo del catálogo, lo agrega a la cotización con esas piezas y el color elegido.
+- **Instagram**: enlaces para bio e historias (`/?utm_source=instagram&utm_medium=bio#cotizar`), registro manual de DMs (Solicitudes → + Solicitud) y webhook `/api/instagram` (API de Instagram con inicio de sesión de Instagram, campo `messages`, firma `X-Hub-Signature-256`): cada conversación es una solicitud con su hilo y se responde desde el OS. Variables: `IG_VERIFY_TOKEN` (ya creada), `IG_APP_SECRET`, `IG_ACCESS_TOKEN`. Pasos en Ajustes → Instagram.

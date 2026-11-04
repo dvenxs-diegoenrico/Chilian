@@ -644,6 +644,10 @@
   .st-range input { grid-column: 1 / -1; width: 100%; }
   .st-range output { font: 500 .8rem var(--f-mono); }
   .st-actions { display: grid; gap: .6rem; padding-top: .4rem; border-top: 1px solid var(--rule); }
+  .st-qty { padding-top: .6rem; }
+  .st-qty-in { display: inline-flex; align-items: center; gap: .6rem; font-size: .9rem; }
+  .st-qty-in input { width: 8.5rem; padding: .6rem .75rem; border: 1.5px solid var(--rule); background: var(--card); font: 500 1rem var(--f-mono); color: var(--ink); }
+  .st-qty-in input:focus { outline: 2px solid var(--magenta); outline-offset: 1px; }
   /* The main action never scrolls away: quoting with this design is always one tap. */
   .st-actions #st-quote { position: sticky; bottom: .6rem; z-index: 2; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
   .st-library { display: grid; gap: .4rem; }
@@ -1687,6 +1691,11 @@
         <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
       <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size">Talla del molde</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
       <div class="st-actions">
+        <fieldset class="st-step st-qty"><legend data-en="How many pieces are you interested in?">¿Cuántas piezas te interesan?</legend>
+          <div class="chips" id="st-qty-chips"></div>
+          <label class="st-qty-in"><input id="st-qty" type="number" inputmode="numeric" min="1" step="1" aria-label="Piezas"><span data-en="pieces">piezas</span></label>
+          <span class="st-color-name" id="st-qty-note"></span>
+        </fieldset>
         <button class="btn btn-accent" type="button" id="st-quote"><span data-en="Quote with this design">Cotizar con este diseño</span> <span class="arrow" aria-hidden="true">→</span></button>
         <button class="btn btn-ghost" type="button" id="st-download" data-en="Download mockup">Descargar mockup</button>
         <button class="btn btn-ghost" type="button" id="st-production" hidden data-en="Download production file (marker)">Descargar archivo de producción (trazo)</button>
@@ -2099,13 +2108,30 @@
   // Every request also lands in the team's system (Chilian OS) with a folio,
   // so nothing depends on a WhatsApp chat being read. Same request twice = one folio.
   let filed = { key: "", id: "" };
+  const quoteTools = new Set();
+  // Where this visit came from: UTM (link in the Instagram bio, ads), the in-app browser or the referrer.
+  const ORIGIN = (() => {
+    const k = "chilian-origen";
+    try { const o = JSON.parse(sessionStorage.getItem(k) || "null"); if (o) return o; } catch (e) {}
+    const u = new URL(location.href), ref = document.referrer || "", ua = navigator.userAgent || "";
+    const utm = (u.searchParams.get("utm_source") || u.searchParams.get("src") || "").toLowerCase().trim();
+    const auto = /Instagram/.test(ua) || /instagram\.com/.test(ref) ? "instagram" : /FBAN|FBAV/.test(ua) || /facebook\.com|fb\.me/.test(ref) ? "facebook"
+      : /tiktok\.com/.test(ref) || /musical_ly|TikTok/.test(ua) ? "tiktok" : /google\./.test(ref) ? "google" : /whatsapp|wa\.me/.test(ref) ? "whatsapp"
+      : ref && !ref.includes(location.host) ? "otro sitio" : "directo";
+    const o = { fuente: utm || auto, medio: (u.searchParams.get("utm_medium") || "").slice(0, 40), campana: (u.searchParams.get("utm_campaign") || "").slice(0, 60), llegada: ref.slice(0, 200) };
+    try { sessionStorage.setItem(k, JSON.stringify(o)); } catch (e) {}
+    return o;
+  })();
   function fileRequest(canal) {
     const s = summary();
     const payload = {
       tipo: s.ty.id, tipoNombre: t(s.ty.label), asesor: s.advisor.name, prenda: s.garment, piezas: s.qty, tecnicas: s.techs, fecha: s.date,
       nombre: s.name, empresa: s.company, contacto: s.contact, notas: s.notes, idioma: lang, canal,
       modelos: picked.map((p) => ({ id: p.id, titulo: p.title, modelos: p.models, piezas: p.qty || 0, color: p.color || "", catalogo: p.cat, pagina: p.page, tipo: p.kind || "" })),
-      pagina: location.href.slice(0, 300), referencia: document.referrer.slice(0, 300), web: ($("#q-web") || {}).value || ""
+      pagina: location.href.slice(0, 300), referencia: (ORIGIN.llegada || document.referrer).slice(0, 300), web: ($("#q-web") || {}).value || "",
+      fuente: ORIGIN.fuente, medio: ORIGIN.medio, campana: ORIGIN.campana,
+      herramientas: ["cotizador", ...(picked.length ? ["catalogo"] : []), ...quoteTools],
+      mockup: (s.notes.split("\n").find((l) => l.startsWith("Mockup: ")) || "").slice(8)
     };
     const key = JSON.stringify({ ...payload, canal: "", pagina: "" });
     if (key === filed.key) { if (filed.id) showFolio(filed.id); return; }
@@ -2775,11 +2801,13 @@
     updateSizeLabel();
   }
 
-  async function openStudio() {
+  async function openStudio(model = null) {
+    st.model = model && model.id ? model : null;
     // The sample design shows only the first time; once removed it stays removed.
     if (!st.sampled) { st.sampled = true; if (!Object.values(st.prints).some((p) => p && p.art)) setSource("front", await sampleArt(), "sample"); }
     renderStudio(); drawStudio();
     $("#studio").showModal();
+    $("#studio").dispatchEvent(new Event("studio:open"));
   }
 
   function initStudio() {
@@ -3007,9 +3035,24 @@
     });
 
     // Quote: carry garment, sections and sizes into the form.
+    const QTY_CHIPS = [50, 100, 300, 500, 1000, 5000];
+    const stQty = $("#st-qty");
+    const paintQty = () => {
+      const v = parseInt(stQty.value, 10) || 0;
+      stChips($("#st-qty-chips"), "st-qn", QTY_CHIPS.map((x) => fmt(x)), (i) => QTY_CHIPS[i] === v, (i) => { stQty.value = QTY_CHIPS[i]; paintQty(); });
+      $("#st-qty-note").textContent = st.model ? L(`Se agrega a tu cotización: ${st.model.title}.`, `Added to your quote: ${st.model.title}.`)
+        : v ? (v >= 300 ? L("Desde 300 piezas el precio por pieza baja bastante.", "From 300 pieces the price per piece drops a lot.") : L("Producimos desde pocas piezas; el precio baja con el volumen.", "We produce small runs too; price drops with volume.")) : "";
+    };
+    stQty.addEventListener("input", paintQty);
+    $("#studio").addEventListener("studio:open", () => { if (!stQty.value) stQty.value = (picked.length ? picked[picked.length - 1].qty : parseInt($("#q-qty").value, 10)) || 300; paintQty(); });
     $("#st-quote").addEventListener("click", () => {
+      const qty = parseInt(stQty.value, 10) || 0;
+      if (!(qty > 0)) { stQty.focus(); $("#st-qty-note").textContent = L("Escribe cuántas piezas te interesan.", "Write how many pieces you need."); return; }
       $("#q-garment").selectedIndex = garment().quote;
-      const notes = $("#q-notes"), line = "Mockup: " + studioSummary();
+      if (st.model) addPick(st.model, qty, t(STUDIO.colors[st.color].name));
+      else if (!picked.length) $("#q-qty").value = qty;
+      quoteTools.add("estudio");
+      const notes = $("#q-notes"), line = "Mockup: " + studioSummary() + ` · ${fmt(qty)} ${L("piezas", "pieces")}`;
       notes.value = notes.value.split("\n").filter((l) => !l.startsWith("Mockup: ")).concat(line).filter(Boolean).join("\n");
       updateTicket();
       $("#ticket-note").textContent = L("Los datos de tu mockup ya están en la solicitud. Adjunta tus archivos de diseño en WhatsApp.", "Your mockup details are in the request. Attach your design files in WhatsApp.");
@@ -3314,7 +3357,7 @@
     $("#cv-studio").addEventListener("click", async () => {
       const e = catList[cvIndex];
       closeDialog($("#cat-view"));
-      await openStudio();
+      await openStudio(e);
       st.g = e.kind === "sudadera" ? STUDIO.garments.findIndex((g) => g.id === "hoodie") : e.kind === "polo" ? STUDIO.garments.findIndex((g) => g.id === "polo")
         : e.who.includes("dama") && !e.who.includes("caballero") ? STUDIO.garments.findIndex((g) => g.id === "dama") : 0;
       if (st.g < 0) st.g = 0;

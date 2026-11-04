@@ -34,7 +34,7 @@
   ];
   const MERMA_CAUSAS = ["Pelusa", "Registro", "Tensión de malla", "Curado", "Prenda defectuosa", "Tinta / color", "Manejo", "Otra"];
   const SIZES = ["CH", "M", "G", "EG", "2EG", "3EG"];
-  const TIPOS_ACT = ["Llamada", "WhatsApp", "Correo", "Visita", "Muestra", "Reunión", "Nota"];
+  const TIPOS_ACT = ["Llamada", "WhatsApp", "Correo", "Visita", "Muestra", "Reunión", "Nota", "Instagram"];
 
   // High-ticket fit: the accounts that fill the plant. Points add to 100.
   const SCORE = [
@@ -166,6 +166,7 @@
     const me = S.users.find((u) => u.username === S.usuario);
     if (me && (me.name !== S.name || me.role !== S.role)) { S.name = me.name; S.role = me.role; persistSession(); }
     S.loadedAt = Date.now();
+    ensurePreQuotes();
   }
   const mergeSettings = (st) => {
     const d = structuredClone(DEFAULT_SETTINGS);
@@ -256,7 +257,7 @@
   const go = (hash) => { if (location.hash === "#" + hash) render(); else location.hash = hash; };
 
   function shell() {
-    const newReq = list("solicitudes").filter((s) => s.estado === "nueva").length;
+    const newReq = list("solicitudes").filter((s) => s.estado === "nueva" || s.nuevoMensaje).length;
     const late = list("tareas").filter((t) => !t.hecha && t.fecha && t.fecha <= localDate() && (!t.asesor || t.asesor === S.name)).length;
     const counts = { solicitudes: newReq, tareas: late };
     const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
@@ -364,51 +365,155 @@
         h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha")));
   }
 
-  /* ---------------- inbox: requests from the website ---------------- */
+  // Where a request came from: the traffic source and the channel it was sent by.
+  const FUENTES = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google", whatsapp: "WhatsApp", directo: "Directo", "otro sitio": "Otro sitio",
+    telefono: "Teléfono", correo: "Correo", visita: "Visita a planta", feria: "Feria o evento", referido: "Referido", distribuidor: "Distribuidor" };
+  const fuenteName = (f) => FUENTES[f] || (f ? f.charAt(0).toUpperCase() + f.slice(1) : "Directo");
+  const CANALES = { whatsapp: "enviada por WhatsApp", copiada: "copiada (WhatsApp o correo)", instagram: "Instagram Direct", manual: "registrada por el equipo", web: "sitio" };
+  const HERR = { cotizador: "cotizador", catalogo: "catálogo", estudio: "Estampa tu idea" };
+  const specific = (s) => !!(s.modelos && s.modelos.length);
+  function arrivedBy(s) {
+    if (s.canal === "instagram") return "Instagram Direct (mensaje directo)";
+    if (s.canal === "manual") return `${fuenteName(s.fuente)} · registrada por ${s.registradaPor || "el equipo"}`;
+    const tools = (s.herramientas && s.herramientas.length ? s.herramientas : ["cotizador"]).map((x) => HERR[x] || x).join(" + ");
+    return `${fuenteName(s.fuente)}${s.campana ? " (" + s.campana + ")" : ""} → sitio web · ${tools} · ${CANALES[s.canal] || s.canal || "sitio"}`;
+  }
+
+  /* ---------------- inbox: requests from the website, Instagram and the team ---------------- */
   function viewInbox() {
     let filter = viewInbox.f || "nueva";
-    const all = list("solicitudes").sort((a, b) => (b.recibida || b.createdAt || "").localeCompare(a.recibida || a.createdAt || ""));
-    const rows = all.filter((s) => filter === "todas" || s.estado === filter);
-    const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${id === "todas" ? all.length : all.filter((s) => s.estado === id).length})`);
+    const src = viewInbox.src || "";
+    const all = list("solicitudes").sort((a, b) => (b.ultimoMensaje || b.recibida || b.createdAt || "").localeCompare(a.ultimoMensaje || a.recibida || a.createdAt || ""));
+    const bySrc = all.filter((s) => !src || (src === "especifica" ? specific(s) : src === "general" ? !specific(s) : src === "instagram" ? s.fuente === "instagram" || s.canal === "instagram" : src === "manual" ? s.canal === "manual" : s.canal !== "manual" && s.canal !== "instagram"));
+    const rows = bySrc.filter((s) => filter === "todas" || s.estado === filter || (filter === "nueva" && s.nuevoMensaje));
+    const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${id === "todas" ? bySrc.length : bySrc.filter((s) => s.estado === id || (id === "nueva" && s.nuevoMensaje)).length})`);
     return h("div", {},
-      top("Del cotizador del sitio", "Solicitudes", h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas"))),
+      top("Del sitio, de Instagram y del equipo", "Solicitudes",
+        h("select", { class: "i", style: "width:auto", "aria-label": "Fuente", onchange: (e) => { viewInbox.src = e.target.value; rerender(); } },
+          [["", "Todas las fuentes"], ["web", "Sitio web"], ["instagram", "Instagram"], ["manual", "Registradas por el equipo"], ["especifica", "Con mercancía específica"], ["general", "Sin mercancía específica"]].map(([v, t]) => h("option", { value: v, text: t, selected: src === v }))),
+        h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas")),
+        h("button", { class: "btn accent", type: "button", onclick: () => manualRequestModal() }, "+ Solicitud")),
       rows.length ? h("div", { class: "grid" }, rows.map((s) => inboxCard(s)))
-        : h("div", { class: "empty", text: filter === "nueva" ? "No hay solicitudes nuevas. Cada vez que alguien envía el cotizador del sitio, aparece aquí con su folio." : "Nada en esta vista." }));
+        : h("div", { class: "empty", text: filter === "nueva" ? "No hay solicitudes nuevas. Llegan del cotizador y el catálogo del sitio, de Instagram Direct y de las que registra el equipo (+ Solicitud)." : "Nada en esta vista." }));
   }
   function inboxCard(s) {
     const contact = s.contacto || "";
     const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
-    return h("article", { class: "card" },
-      h("div", { class: "row between" }, h("div", { class: "row" }, h("span", { class: "num", text: s.id }), h("span", { class: "pill " + (s.estado === "nueva" ? "p-acc" : s.estado === "convertida" ? "p-ok" : "p-mut"), text: s.estado }), h("span", { class: "muted small", text: fmtDT(s.recibida || s.createdAt) })),
+    const pre = s.preCotizacionId ? byId("cotizaciones", s.preCotizacionId) : null, preC = pre ? calcCot(pre) : null;
+    const ig = s.canal === "instagram" || s.igId;
+    return h("article", { class: "card" + (s.nuevoMensaje ? " flash" : "") },
+      h("div", { class: "row between" }, h("div", { class: "row" }, h("span", { class: "num", text: s.id }), h("span", { class: "pill " + (s.estado === "nueva" ? "p-acc" : s.estado === "convertida" ? "p-ok" : "p-mut"), text: s.estado }),
+          s.nuevoMensaje ? h("span", { class: "pill p-bad", text: "mensaje nuevo" }) : null, h("span", { class: "muted small", text: fmtDT(s.ultimoMensaje || s.recibida || s.createdAt) })),
         h("span", { class: "label", text: s.tipoNombre || segName(s.tipo) })),
+      h("div", { class: "row", style: "gap:.4rem" },
+        h("span", { class: "pill " + (s.fuente === "instagram" || ig ? "p-acc" : "p-info"), text: fuenteName(ig ? "instagram" : s.fuente) }),
+        h("span", { class: "pill " + (specific(s) ? "p-ok" : "p-mut"), text: specific(s) ? `Mercancía específica · ${s.modelos.length} modelo(s)` : "Sin mercancía específica" }),
+        (s.herramientas || []).includes("estudio") ? h("span", { class: "pill p-info", text: "Usó Estampa tu idea" }) : null),
+      h("p", { class: "small muted", style: "margin:0" }, h("b", { text: "Llegó por: " }), arrivedBy(s)),
       h("div", { class: "grid g4" },
         h("div", {}, h("div", { class: "label", text: "Contacto" }), h("b", { text: s.nombre }), h("div", { class: "small", text: s.empresa }), h("div", { class: "small mono", text: contact })),
         h("div", {}, h("div", { class: "label", text: "Prenda" }), h("div", { text: s.prenda || "—" }), h("div", { class: "small muted", text: (s.tecnicas || []).join(", ") })),
-        h("div", {}, h("div", { class: "label", text: "Piezas" }), h("b", { class: "num", text: fmtN(piezas) })),
+        h("div", {}, h("div", { class: "label", text: "Piezas" }), h("b", { class: "num", text: piezas ? fmtN(piezas) : "—" })),
         h("div", {}, h("div", { class: "label", text: "Para el" }), h("div", { text: s.fechaNecesaria ? fmtDate(s.fechaNecesaria) : "Flexible" }), h("div", { class: "small muted", text: s.asesor ? "Asesora: " + s.asesor : "" }))),
-      s.modelos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Modelos del catálogo" }), h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.modelos.map((m) => h("li", { text: `${m.titulo}${m.modelos?.length ? " (" + m.modelos.join(", ") + ")" : ""} — ${fmtN(m.piezas)} pzas${m.color ? " · " + m.color : ""} · ${m.catalogo} p. ${m.pagina}` })))) : null,
-      s.notas ? h("p", { class: "small", style: "white-space:pre-wrap", text: s.notas }) : null,
+      s.modelos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Mercancía que pidió (catálogo)" }), h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.modelos.map((m) => h("li", { text: `${m.titulo}${m.modelos?.length ? " (" + m.modelos.join(", ") + ")" : ""} — ${fmtN(m.piezas)} pzas${m.color ? " · " + m.color : ""}${m.catalogo ? " · " + m.catalogo + " p. " + m.pagina : ""}` })))) : null,
+      pre ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" },
+        h("span", { class: "small" }, h("b", { text: "Pre-cotización " + pre.id }), preC.total > 0 ? ` · ${money(preC.total)} estimado con precios anteriores` : " · lista para poner precios"),
+        h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
+      s.mockup ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Mockup: " }), s.mockup) : null,
+      ((n) => n && !ig ? h("p", { class: "small", style: "white-space:pre-wrap", text: n }) : null)((s.notas || "").split("\n").filter((l) => !(s.mockup && l.startsWith("Mockup: "))).join("\n").trim()),
+      ig ? igThread(s) : null,
       h("div", { class: "row" },
         s.estado === "nueva" ? h("button", { class: "btn accent", type: "button", onclick: () => convertRequest(s) }, "Convertir en oportunidad") : s.oportunidadId ? h("a", { class: "btn ghost", href: "#oportunidad/" + s.oportunidadId }, "Ver oportunidad") : null,
         isPhone(contact) ? h("a", { class: "btn ghost", href: waLink(contact, `Hola ${s.nombre.split(" ")[0]}, soy ${S.name} de Chilian. Recibimos tu solicitud ${s.id}. `), target: "_blank", rel: "noopener" }, "WhatsApp") : null,
+        s.igUser ? h("a", { class: "btn ghost", href: "https://ig.me/m/" + encodeURIComponent(s.igUser), target: "_blank", rel: "noopener" }, "Abrir en Instagram") : null,
         isEmail(contact) ? h("button", { class: "btn ghost", type: "button", onclick: () => copy(contact) }, "Copiar correo") : null,
-        s.estado === "nueva" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "descartada" }); rerender(); } }, "Descartar")
+        s.nuevoMensaje ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, nuevoMensaje: false }, { quiet: true }); rerender(); } }, "Marcar leído") : null,
+        s.estado === "nueva" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "descartada", nuevoMensaje: false }); rerender(); } }, "Descartar")
           : s.estado === "descartada" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "nueva" }); rerender(); } }, "Recuperar") : null));
+  }
+  // The Instagram conversation, with a reply box (works once Instagram is connected in Ajustes).
+  function igThread(s) {
+    const msgs = (s.mensajes || []).slice(-8);
+    const box = h("textarea", { class: "i", rows: "2", placeholder: "Responder por Instagram…" });
+    return h("div", { class: "grid", style: "gap:.4rem" },
+      h("div", { class: "label", text: `Conversación de Instagram · ${(s.mensajes || []).length} mensaje(s)` }),
+      h("ul", { class: "log" }, msgs.map((m) => h("li", {}, h("time", { text: fmtDT(m.fecha) }), h("span", {}, h("b", { text: m.de === "cliente" ? s.nombre + ": " : (m.por || "Chilian") + ": " }), h("span", { style: "white-space:pre-wrap", text: m.texto }))))),
+      s.igId ? h("form", { class: "row", style: "flex-wrap:nowrap;align-items:end", onsubmit: async (e) => {
+        e.preventDefault(); const texto = box.value.trim(); if (!texto) return;
+        const btn = e.target.querySelector("button"); btn.disabled = true;
+        try { const { doc } = await api("POST", "/api/instagram", { accion: "responder", id: s.id, texto }); S.data.solicitudes.set(doc.id, doc); toast("Enviado por Instagram."); rerender(); }
+        catch (err) { if (err.message !== "401") toast(err.message, true); btn.disabled = false; }
+      } }, box, h("button", { class: "btn", type: "submit" }, "Enviar")) : null);
+  }
+  // Requests that arrive by Instagram DM, phone, e-mail, a visit or a fair: the team files them here.
+  async function manualRequestModal() {
+    await CZ.ready();
+    const garments = CZ.garments();
+    const rowsBox = h("div", { class: "grid", style: "gap:.35rem" });
+    const addRow = () => rowsBox.append(h("div", { class: "grid mrow", style: "grid-template-columns:minmax(0,1fr) 90px 120px 2rem;gap:.35rem" },
+      h("select", { class: "i m-id", "aria-label": "Modelo" }, h("option", { value: "", text: "— Modelo del catálogo —" }), ["g-basica", "g-clasica", "g-premium"].map((c) => h("optgroup", { label: { "g-basica": "Línea básica", "g-clasica": "Línea clásica", "g-premium": "Línea premium" }[c] }, garments.filter((g) => g.cat === c).map((g) => h("option", { value: g.catId, text: g.name }))))),
+      h("input", { class: "i m-q", type: "number", min: "1", placeholder: "Piezas", "aria-label": "Piezas" }), h("input", { class: "i m-c", placeholder: "Color", "aria-label": "Color" }),
+      h("button", { class: "x", type: "button", "aria-label": "Quitar", onclick: (e) => e.currentTarget.parentNode.remove() }, "×")));
+    const f = h("form", { class: "grid g2", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f));
+      const modelos = $$(".mrow", rowsBox).map((r) => { const id = $(".m-id", r).value, g = garments.find((x) => x.catId === id); return g ? { id, titulo: g.name.split(" · ")[0], modelos: [], piezas: +$(".m-q", r).value || 0, color: $(".m-c", r).value.trim(), catalogo: g.catalog, pagina: g.page, tipo: g.kind } : null; }).filter(Boolean);
+      const seg = SEGMENTS.find((x) => x.id === fd.tipo);
+      const saved = await save("solicitudes", { estado: "nueva", canal: "manual", fuente: fd.fuente, registradaPor: S.name, tipo: fd.tipo, tipoNombre: seg ? seg.name : "", asesor: fd.asesor,
+        nombre: fd.nombre.trim(), empresa: fd.empresa.trim(), contacto: fd.contacto.trim(), prenda: fd.prenda.trim(), piezas: modelos.length ? modelos.reduce((a, m) => a + m.piezas, 0) : +fd.piezas || 0,
+        fechaNecesaria: fd.fecha, notas: fd.notas.trim(), modelos, especifica: modelos.length > 0, herramientas: [], recibida: new Date().toISOString() }, { quiet: true });
+      closeModal(); toast(`Solicitud ${saved.id} registrada.`); await ensurePreQuotes(); rerender();
+    } },
+      h("label", { class: "f" }, h("span", { text: "Llegó por" }), h("select", { class: "i", name: "fuente" }, [["instagram", "Instagram Direct"], ["facebook", "Facebook / Messenger"], ["whatsapp", "WhatsApp"], ["telefono", "Teléfono"], ["correo", "Correo"], ["visita", "Visita a planta"], ["feria", "Feria o evento"], ["referido", "Referido"], ["distribuidor", "Distribuidor"]].map(([v, t]) => h("option", { value: v, text: t })))),
+      h("label", { class: "f" }, h("span", { text: "Tipo de proyecto" }), h("select", { class: "i", name: "tipo" }, SEGMENTS.map((x) => h("option", { value: x.id, text: x.name })))),
+      h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", name: "nombre", required: true })),
+      h("label", { class: "f" }, h("span", { text: "Empresa o marca" }), h("input", { class: "i", name: "empresa" })),
+      h("label", { class: "f" }, h("span", { text: "Contacto (@usuario, WhatsApp o correo)" }), h("input", { class: "i", name: "contacto", required: true })),
+      h("label", { class: "f" }, h("span", { text: "Responsable" }), h("select", { class: "i", name: "asesor" }, team().map((n) => h("option", { value: n, text: n, selected: n === S.name })))),
+      h("label", { class: "f" }, h("span", { text: "Prenda o producto" }), h("input", { class: "i", name: "prenda", placeholder: "Ej. Playeras con logo al frente" })),
+      h("label", { class: "f" }, h("span", { text: "Piezas (si no eligió modelos)" }), h("input", { class: "i", name: "piezas", type: "number", min: "0" })),
+      h("label", { class: "f" }, h("span", { text: "Para cuándo" }), h("input", { class: "i", name: "fecha", type: "date" })),
+      h("div", { class: "full grid", style: "gap:.35rem" }, h("span", { class: "label", text: "Mercancía específica (opcional): crea la pre-cotización" }), rowsBox,
+        h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: addRow }, "+ Modelo")),
+      h("label", { class: "f full" }, h("span", { text: "Lo que pidió (pega el mensaje)" }), h("textarea", { class: "i", name: "notas" })),
+      h("div", { class: "row full" }, h("button", { class: "btn accent", type: "submit" }, "Registrar solicitud")));
+    modal("Nueva solicitud", f);
+  }
+  // A request for specific catalog merchandise gets a draft quote in the OS right away,
+  // priced with what the team quoted before. One per request, even if two people are online.
+  let preBusy = false;
+  async function ensurePreQuotes() {
+    if (preBusy || !S.token) return; preBusy = true;
+    let made = 0;
+    try {
+      const todo = list("solicitudes").filter((s) => specific(s) && !s.preCotizacionId && s.estado !== "descartada");
+      for (const s of todo) {
+        const doc = await CZ.newDoc({ cliente: s.cuentaId ? "" : s.empresa || s.nombre, cuentaId: s.cuentaId || "", oportunidadId: s.oportunidadId || "", solicitud: s });
+        Object.assign(doc, { estado: "pre", solicitudId: s.id });
+        const q = await save("cotizaciones", doc, { quiet: true });
+        try { await save("solicitudes", { ...byId("solicitudes", s.id), preCotizacionId: q.id }, { quiet: true }); made++; }
+        catch { await remove("cotizaciones", q.id).catch(() => {}); }
+      }
+    } catch (e) { console.error(e); }
+    finally { preBusy = false; }
+    if (made && !(window.__czDirty && window.__czDirty()) && route().r === "solicitudes") rerender();
   }
   async function convertRequest(s) {
     // Reuse the account if one already has this company or contact.
     const key = (s.empresa || s.nombre || "").trim().toLowerCase();
+    const src = s.canal === "instagram" || s.fuente === "instagram" ? "Redes sociales" : s.canal === "manual" ? ({ referido: "Referido", feria: "Feria", distribuidor: "Distribuidor" }[s.fuente] || "Prospección") : "Sitio web";
     let cuenta = list("cuentas").find((c) => c.nombre.trim().toLowerCase() === key || (c.contactos || []).some((x) => x.contacto && x.contacto === s.contacto));
-    if (!cuenta) cuenta = await save("cuentas", { nombre: s.empresa || s.nombre, segmento: s.tipo || "marca", fuente: "Sitio web", contactos: [{ nombre: s.nombre, puesto: "", contacto: s.contacto }], notas: "" }, { quiet: true });
+    if (!cuenta) cuenta = await save("cuentas", { nombre: s.empresa || s.nombre, segmento: s.tipo || "marca", fuente: src, responsable: s.asesor && team().includes(s.asesor) ? s.asesor : S.name, contactos: [{ nombre: s.nombre, puesto: "", contacto: s.contacto }], notas: "" }, { quiet: true });
     const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
+    const pre = s.preCotizacionId ? byId("cotizaciones", s.preCotizacionId) : null, preC = pre ? calcCot(pre) : null;
     const opp = await save("oportunidades", {
-      titulo: `${s.prenda || "Pedido"} · ${fmtN(piezas)} pzas`, cuentaId: cuenta.id, segmento: s.tipo || cuenta.segmento, etapa: "nuevo", probabilidad: stageProb("nuevo"),
-      valor: estimateValue(piezas), piezasAnio: piezas, asesor: s.asesor || S.name, origen: "Sitio web", solicitudId: s.id, fechaNecesaria: s.fechaNecesaria,
+      titulo: `${s.prenda || (specific(s) ? s.modelos[0].titulo : "Pedido")} · ${fmtN(piezas)} pzas`, cuentaId: cuenta.id, segmento: s.tipo || cuenta.segmento, etapa: "nuevo", probabilidad: stageProb("nuevo"),
+      valor: preC && preC.sub > 0 ? Math.round(preC.sub) : estimateValue(piezas), piezasAnio: piezas, asesor: s.asesor && team().includes(s.asesor) ? s.asesor : S.name, origen: `${fuenteName(s.canal === "instagram" ? "instagram" : s.fuente)} · ${src}`, solicitudId: s.id, fechaNecesaria: s.fechaNecesaria,
       proximaAccion: { texto: "Contactar y calificar (volumen, fechas, quién decide)", fecha: localDate() }, score: { fecha: !!s.fechaNecesaria && s.fechaNecesaria <= addDays(localDate(), 90), volumen: piezas >= 10000 },
-      actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Solicitud ${s.id} del sitio web.`, por: S.name }], solicitud: s
+      actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Solicitud ${s.id}: ${arrivedBy(s)}.${pre ? " Pre-cotización " + pre.id + "." : ""}`, por: S.name }], solicitud: s
     }, { quiet: true });
-    await save("tareas", { tipo: "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
-    await save("solicitudes", { ...s, estado: "convertida", oportunidadId: opp.id, cuentaId: cuenta.id }, { quiet: true });
+    if (pre) await save("cotizaciones", { ...pre, oportunidadId: opp.id, cuentaId: cuenta.id, cliente: "" }, { quiet: true });
+    await save("tareas", { tipo: s.canal === "instagram" ? "Instagram" : "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}${pre ? " (revisar la pre-cotización " + pre.id + ")" : ""}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
+    await save("solicitudes", { ...byId("solicitudes", s.id), estado: "convertida", nuevoMensaje: false, oportunidadId: opp.id, cuentaId: cuenta.id }, { quiet: true });
     toast(`Oportunidad creada para ${cuenta.nombre}.`);
     go("oportunidad/" + opp.id);
   }
@@ -746,7 +851,7 @@
         h("td", { class: "num", text: q.id }), h("td", { text: CZ.clientOf(q) || "—" }), h("td", {}, quotePill(q.estado)), h("td", { class: "r num", text: fmtN(c.piezas) }), h("td", { class: "r money", text: money(c.total) }),
         h("td", { class: "r num", text: c.margen == null ? "—" : fmtN(c.margen * 100) + " %" })); }))));
   }
-  const quotePill = (e) => h("span", { class: "pill " + ({ borrador: "p-mut", enviada: "p-info", aceptada: "p-ok", rechazada: "p-bad" }[e] || "p-mut"), text: e || "borrador" });
+  const quotePill = (e) => h("span", { class: "pill " + ({ pre: "p-acc", borrador: "p-mut", enviada: "p-info", aceptada: "p-ok", rechazada: "p-bad" }[e] || "p-mut"), text: e === "pre" ? "pre-cotización" : e || "borrador" });
   function viewQuotes() {
     const f = viewQuotes.f ||= { estado: "", q: "" };
     let qs = list("cotizaciones");
@@ -754,7 +859,7 @@
     if (f.q) { const k = f.q.toLowerCase(); qs = qs.filter((q) => (q.id + " " + CZ.clientOf(q) + " " + (q.lineas || []).map((l) => l.concepto || l.descripcion).join(" ")).toLowerCase().includes(k)); }
     return h("div", {}, top(`${list("cotizaciones").length} cotizaciones · solo equipo`, "Cotizaciones",
       h("input", { class: "i search", type: "search", placeholder: "Buscar folio, cliente o producto", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewQuotes.t); viewQuotes.t = setTimeout(rerender, 250); } }),
-      h("select", { class: "i", style: "width:auto", onchange: (e) => { f.estado = e.target.value; rerender(); } }, [["", "Todas"], ["borrador", "Borrador"], ["enviada", "Enviadas"], ["aceptada", "Aceptadas"], ["rechazada", "Rechazadas"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.estado === v }))),
+      h("select", { class: "i", style: "width:auto", onchange: (e) => { f.estado = e.target.value; rerender(); } }, [["", "Todas"], ["pre", "Pre-cotizaciones"], ["borrador", "Borrador"], ["enviada", "Enviadas"], ["aceptada", "Aceptadas"], ["rechazada", "Rechazadas"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.estado === v }))),
       h("button", { class: "btn accent", type: "button", onclick: () => newQuoteModal() }, "+ Cotización")),
       qs.length ? quoteTable(qs) : h("div", { class: "empty", text: "Crea una cotización aquí o desde una oportunidad. Cada cotización guardada enseña sus precios al cotizador." }));
   }
@@ -1244,6 +1349,27 @@
       })));
   }
 
+  function instagramCard() {
+    const status = h("div", { class: "grid", style: "gap:.35rem" }, h("p", { class: "muted small", text: "Revisando la conexión…" }));
+    const link = (medium) => `${location.origin}/?utm_source=instagram&utm_medium=${medium}#cotizar`;
+    api("GET", "/api/instagram?estado=1").then((j) => {
+      const ok = (b) => h("span", { class: "pill " + (b ? "p-ok" : "p-warn"), text: b ? "listo" : "falta" });
+      status.replaceChildren(
+        h("div", { class: "row" }, ok(j.verify), h("span", { class: "small", text: "Token de verificación (IG_VERIFY_TOKEN)" })),
+        h("div", { class: "row" }, ok(j.secret), h("span", { class: "small", text: "Secreto de la app de Meta (IG_APP_SECRET)" })),
+        h("div", { class: "row" }, ok(j.token), h("span", { class: "small", text: "Token de acceso de la cuenta de Instagram (IG_ACCESS_TOKEN)" })),
+        h("div", { class: "label", text: "URL del webhook (Callback URL)" }), h("div", { class: "copybox", text: j.webhook }),
+        j.verifyToken ? h("div", { class: "label", text: "Verify token" }) : null, j.verifyToken ? h("div", { class: "copybox", text: j.verifyToken }) : null);
+    }).catch(() => status.replaceChildren(h("p", { class: "small", text: "No se pudo revisar la conexión." })));
+    return h("div", { class: "card" }, h("h2", { text: "Instagram" }),
+      h("p", { class: "small", text: "1. Enlace de la bio y de historias: las solicitudes que llegan por aquí salen marcadas como Instagram." }),
+      h("div", { class: "label", text: "Bio" }), h("div", { class: "copybox", text: link("bio") }), h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(link("bio")) }, "Copiar enlace de la bio"),
+      h("div", { class: "label", text: "Historias y anuncios" }), h("div", { class: "copybox", text: link("historia") }), h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(link("historia")) }, "Copiar enlace de historias"),
+      h("p", { class: "small", text: "2. Mensajes directos: mientras no esté conectada la API, regístralos en Solicitudes → + Solicitud (Llegó por: Instagram Direct)." }),
+      h("p", { class: "small", text: "3. Conexión automática: cada DM a la cuenta de Chilian llega solo a Solicitudes y se responde desde aquí. En developers.facebook.com crea una app (tipo Empresa) con el producto «Instagram» → «API con inicio de sesión de Instagram», conecta la cuenta profesional de Chilian, genera su token, pega la URL y el verify token de abajo en Webhooks y suscríbete al campo «messages». Luego agrega IG_APP_SECRET e IG_ACCESS_TOKEN en Vercel (proyecto chilian → Settings → Environment Variables) y vuelve a desplegar. Para clientes fuera del equipo, Meta pide revisar la app (permiso instagram_business_manage_messages)." }),
+      status);
+  }
+
   /* ---------------- settings ---------------- */
   function viewSettings() {
     if (!isAdmin()) return h("div", { class: "empty", text: "Los ajustes los cambia la cuenta principal." });
@@ -1281,6 +1407,7 @@
             h("label", { class: "f" }, h("span", { text: "Nombre" }), h("input", { class: "i", value: p.nombre, oninput: (e) => { p.nombre = e.target.value; } })), num(p, "paletas", "Paletas", "1"), num(p, "colores", "Colores", "1"),
             h("button", { class: "x", type: "button", "aria-label": "Quitar pulpo", onclick: (e) => { st.pulpos.splice(i, 1); e.target.closest(".grid").remove(); } }, "×")))),
             h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.pulpos.push({ id: "p" + rid(), nombre: "Pulpo nuevo", paletas: 12, colores: 8 }); saveAll(); } }, "+ Pulpo")),
+          instagramCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));
   }

@@ -22,6 +22,10 @@ export async function POST(req) {
       fechaNecesaria: s(d.fecha, 10), nombre: s(d.nombre, 120), empresa: s(d.empresa, 160), contacto: s(d.contacto, 160),
       notas: s(d.notas, 3000), modelos, idioma: d.idioma === "en" ? "en" : "es",
       canal: s(d.canal, 20) || "web", pagina: s(d.pagina, 300), referencia: s(d.referencia, 300),
+      // where the visit came from (Instagram bio, ads, Google…) and what the visitor used on the site
+      fuente: s(d.fuente, 30).toLowerCase() || "directo", medio: s(d.medio, 40), campana: s(d.campana, 60),
+      herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
+      mockup: s(d.mockup, 600), especifica: modelos.length > 0,
       recibida: new Date().toISOString()
     };
     const saved = await saveDoc("solicitudes", doc, "Sitio web");

@@ -692,6 +692,6 @@
       return toDoc(q);
     }
 
-    return { ready, view, calc: (q) => calc(normalize(structuredClone(q))), normalize: (q) => normalize(structuredClone(q)), print: printSheet, text: (q) => asText(normalize(structuredClone(q))), newDoc, clientOf };
+    return { ready, garments: () => GARMENTS || [], view, calc: (q) => calc(normalize(structuredClone(q))), normalize: (q) => normalize(structuredClone(q)), print: printSheet, text: (q) => asText(normalize(structuredClone(q))), newDoc, clientOf };
   };
 })();
