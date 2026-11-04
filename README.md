@@ -19,7 +19,7 @@
 | `vendor/three-r128.min.js`, `vendor/three-room-env-r128.js` | three.js r128 y su estudio de reflejos RoomEnvironment (licencia MIT), servidos desde el propio sitio |
 | `blanks/` | Prendas lisas (playera, sudadera, polo; frente y espalda) generadas con Canva AI para "Estampa tu idea" |
 | `photos/opt/` | Copias WebP de cada foto a 480, 960 y 1600 px (las genera `tools/optimize_photos.py`) |
-| `catalogo/` | Catálogo navegable: 174 páginas de producto de los 8 catálogos PDF oficiales (WebP grande y miniatura) y `catalogo.json` con sus datos |
+| `catalogo/` | Catálogo navegable: 244 productos (uno por modelo) de los 8 catálogos PDF oficiales (WebP grande y miniatura) y `catalogo.json` con sus datos |
 | `fonts/` | Big Shoulders Display, Instrument Sans e IBM Plex Mono (licencia OFL), servidas desde el sitio |
 | `vercel.json` | URLs limpias y caché larga para fotos, logos, prendas, fuentes y librerías |
 
@@ -320,7 +320,7 @@ Sistema interno en `chilian.vercel.app/ops`. Cada persona entra con su usuario y
 | Solicitudes | Todo lo que se envía desde el cotizador y el catálogo del sitio llega aquí con folio `SOL-AAMM-###`, además de abrir WhatsApp. «Convertir» crea la cuenta, la oportunidad y la primera tarea. |
 | Oportunidades | Tablero por etapas (arrastrar), valor y valor ponderado, ajuste high-ticket de 7 puntos (A/B/C), siguiente paso con fecha, cadencia de 8 toques en 21 días y mensajes listos. |
 | Tareas, Cuentas, Prospección | Tareas por persona (atrasadas, hoy, próximas); cuentas con contactos e importación CSV; guía de dónde encontrar cuentas que llenen la planta. |
-| Cotizaciones (solo equipo, `ops/cotizador.js`) | Catálogo de Chilian (174 prendas y servicios de planta), productos frecuentes, precios aprendidos de cada cotización guardada con sugerencia por volumen, costeo interno (costo × factor, margen), descuento general y por volumen, cargo express, 4 formas de IVA, anticipo, entrega, condiciones, escenarios de cantidad, opciones a elegir, hoja del cliente en vivo (PDF) y texto para WhatsApp. Cotizador de serigrafía por tintas (tabla editable en Ajustes) con prenda opcional. Se guarda sola. «Aceptada» crea la OT. |
+| Cotizaciones (solo equipo, `ops/cotizador.js`) | Catálogo de Chilian (244 prendas y servicios de planta), productos frecuentes, precios aprendidos de cada cotización guardada con sugerencia por volumen, costeo interno (costo × factor, margen), descuento general y por volumen, cargo express, 4 formas de IVA, anticipo, entrega, condiciones, escenarios de cantidad, opciones a elegir, hoja del cliente en vivo (PDF) y texto para WhatsApp. Cotizador de serigrafía por tintas (tabla editable en Ajustes) con prenda opcional. Se guarda sola. «Aceptada» crea la OT. |
 | Órdenes de trabajo | Folio `OT-AAMM-###` con código de barras Code 128, tallas, arte con enlace de aprobación para el cliente, merma, historial, hoja viajera y lista de empaque. |
 | Programación | 8 pulpos × días hábiles, capacidad en minutos por día, arrastrar OT desde la fila de espera. |
 | Escaneo | Lector USB/Bluetooth (o cámara donde el navegador lo permite): cada escaneo mueve la OT a la estación. |
@@ -349,3 +349,9 @@ El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y colo
 - **OS:** Ajustes → Máquinas (tipo serigrafía, DTG o bordado) y Ajustes → DTG y bordado (tiempos y costos de ejemplo). Cada ubicación de una partida tiene técnica (colores, puntadas o prenda oscura); los minutos se calculan por técnica: DTG pieza por pieza, bordado por ciclos de 6 cabezas. Programación agrupa las máquinas por tipo y programa cada técnica de la OT en su máquina (el DTG se puede repartir entre las 2). Cotizador de bordado y DTG con precio y días de máquina.
 - **Sitio:** tabla de impresión digital y bordado en la planta, DTG como técnica y en el cotizador.
 - **WhatsApp de destino:** cada solicitud guarda a qué número de Chilian se envió (la línea del asesor del tipo de proyecto) y el OS lo muestra («Llegó al WhatsApp 220 175 9053 · Ventas uniformes…»), con filtro por número. Las registradas a mano eligen la línea; las solicitudes anteriores lo deducen del asesor. Los números se editan en Ajustes → Números de WhatsApp.
+
+### Catálogo desglosado, gráficos por modelo y Chilian Sport
+
+- **Catálogo:** `tools/catalog/3_split.py` deja un producto por ficha: las páginas MK (2–6 productos) y YBK (2 por página doble) se recortan por producto a 200 ppp; los uniformes OPT se separan en camisa y pantalón con su estilo. 174 → 244 productos. Cada ficha trae sus colores (192 de 244 los tienen en el PDF como texto), que se muestran en la ficha y se sugieren al escribir el color en el cotizador del sitio y en el del OS.
+- **Gráficos por modelo:** en el cotizador del sitio cada modelo del catálogo tiene «Adjuntar gráfico» (PNG, JPG, WebP, PDF o SVG convertido a PNG; 4 MB, hasta 6). Se suben con la solicitud y en el OS aparecen con su modelo; también generan la OT previa.
+- **Estudio:** el estampado completo existe solo como **Chilian Sport** (playera); en las demás prendas no se ofrece. Las piezas y «Cotizar» quedan fijos al pie del panel y toman la cantidad actual del modelo al abrir el estudio.

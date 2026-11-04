@@ -1,7 +1,7 @@
 /* =====================================================================
    CHILIAN OS · cotizador interno (solo equipo)
    ---------------------------------------------------------------------
-   - Catálogo de Chilian: las 174 prendas de los 8 catálogos y los servicios
+   - Catálogo de Chilian: las prendas de los 8 catálogos (una por modelo) y los servicios
      de la planta (serigrafía, bordado, DTF/DTG, sublimación, etiquetas,
      empaque, pantallas, muestras, envío).
    - Precios aprendidos: cada renglón trae lo que el equipo ya cotizó de ese
@@ -89,7 +89,7 @@
       if (ready.p) return ready.p;
       ready.p = fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => {
         GARMENTS = d.map((e) => ({
-          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page,
+          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page, colors: e.colors || [],
           name: `${e.title} · ${e.cat}${e.models && e.models.length ? " " + e.models.slice(0, 3).join("/") : ""}`,
           desc: [e.comp, e.weight ? e.weight + " g/m²" : "", e.sizes ? "tallas " + e.sizes.trim() : ""].filter((x) => x && String(x).trim()).join(" · ")
         }));
@@ -551,7 +551,8 @@
           h("label", { class: "cz-f" }, h("span", { text: "Precio unitario" }), priceIn),
           h("button", { type: "button", class: "x del", "aria-label": "Quitar " + (l.concepto || "concepto"), onclick: () => { q.lineas = q.lineas.filter((x) => x !== l); paintLines(); refresh(); } }, "×"),
           h("label", { class: "cz-f full" }, h("span", { text: "Descripción para el cliente" }), h("input", { class: "i", value: l.desc, oninput: (e) => { l.desc = e.target.value; refresh(); } })),
-          !l.nopcs ? h("label", { class: "cz-f" }, h("span", { text: "Color de la prenda" }), h("input", { class: "i", value: l.color, placeholder: "Ej. negro, marino", oninput: (e) => { l.color = e.target.value; refresh(); } })) : null,
+          !l.nopcs ? h("label", { class: "cz-f" }, h("span", { text: "Color de la prenda" }), h("input", { class: "i", value: l.color, list: (it.colors || []).length ? "czc-" + l.id : null, placeholder: (it.colors || []).length ? it.colors.slice(0, 3).join(", ") + "…" : "Ej. negro, marino", oninput: (e) => { l.color = e.target.value; refresh(); } }),
+            (it.colors || []).length ? h("datalist", { id: "czc-" + l.id }, it.colors.map((c) => h("option", { value: c }))) : null) : null,
           refs,
           h("details", { class: "cz-cost full" }, h("summary", { text: "Costeo interno (no sale en la hoja)" }),
             h("div", { class: "crow" }, field("Costo por pieza", costIn), field("Factor", factIn), marginOut,

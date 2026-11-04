@@ -475,8 +475,10 @@
         h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
       s.mockup ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Mockup: " }), s.mockup) : null,
       (s.adjuntos || []).length ? h("div", { class: "grid", style: "gap:.4rem" },
-        h("div", { class: "thumbs" }, s.adjuntos.map((a) => h("a", { href: fileHref(a.path), target: "_blank", rel: "noopener" }, h("img", { src: fileHref(a.path), alt: a.name, loading: "lazy" }), h("span", { text: (a.tipo === "mockup" ? "Mockup · " : "Diseño · ") + a.name })))),
-        s.preOtId && byId("ots", s.preOtId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "OT previa " + s.preOtId }), ` · mockup y ${s.adjuntos.filter((a) => a.tipo !== "mockup").length} archivo(s) de diseño`),
+        h("div", { class: "thumbs" }, s.adjuntos.map((a) => h("a", { href: fileHref(a.path), target: "_blank", rel: "noopener" },
+          a.type === "application/pdf" ? h("div", { style: "height:110px;display:grid;place-items:center;color:#333;font-weight:700", text: "PDF" }) : h("img", { src: fileHref(a.path), alt: a.name, loading: "lazy" }),
+          h("span", { text: (a.tipo === "mockup" ? "Mockup · " : a.tipo === "grafico" ? `Gráfico de ${(s.modelos || []).find((m) => m.id === a.modelo)?.titulo || a.modelo || "un modelo"} · ` : "Diseño · ") + a.name })))),
+        s.preOtId && byId("ots", s.preOtId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "OT previa " + s.preOtId }), ` · ${s.adjuntos.some((a) => a.tipo === "mockup") ? "mockup y " : ""}${s.adjuntos.filter((a) => a.tipo !== "mockup").length} archivo(s) de diseño`),
           h("a", { class: "btn sm", href: "#ot/" + s.preOtId }, "Abrir OT previa")) : h("p", { class: "small muted", text: "Preparando la OT previa…" })) : null,
       ((n) => n && !ig ? h("p", { class: "small", style: "white-space:pre-wrap", text: n }) : null)((s.notas || "").split("\n").filter((l) => !(s.mockup && l.startsWith("Mockup: "))).join("\n").trim()),
       ig ? igThread(s) : null,
@@ -582,9 +584,9 @@
         const saved = await save("ots", {
           previa: true, solicitudId: s.id, cuentaId: s.cuentaId || "", oportunidadId: s.oportunidadId || "", cotizacionId: s.preCotizacionId || "",
           clienteNombre: s.empresa || s.nombre, etapa: "arte", prioridad: "normal", fechaCompromiso: s.fechaNecesaria || "",
-          tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(), lineas, estudio: est, mockup: s.mockup || "",
+          tokenCliente: crypto.getRandomValues(new Uint32Array(4)).join("").slice(0, 24) + rid(), lineas, estudio: s.estudio || null, mockup: s.mockup || "",
           arte: { estado: "pendiente", archivos: files }, programacion: [], merma: [],
-          historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: "Sitio web", nota: `OT previa desde Estampa tu idea (${s.id})` }]
+          historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: "Sitio web", nota: `OT previa desde ${s.estudio ? "Estampa tu idea" : "los gráficos que el cliente adjuntó"} (${s.id})` }]
         }, { quiet: true });
         try { await save("solicitudes", { ...byId("solicitudes", s.id), preOtId: saved.id }, { quiet: true }); made++; }
         catch { await remove("ots", saved.id).catch(() => {}); }
@@ -1091,7 +1093,7 @@
         h("button", { class: "btn ghost", type: "button", onclick: () => printPacking(ot) }, "Lista de empaque")),
       ot.previa ? h("div", { class: "card", style: "border-color:var(--magenta);margin-bottom:1rem" },
         h("div", { class: "row between" }, h("div", {}, h("h2", { text: "OT previa" }),
-          h("p", { class: "small", style: "margin:0", text: `Nació de ${ot.solicitudId || "una solicitud"} con el mockup y el diseño que el cliente armó en Estampa tu idea. No entra a programación ni a planta hasta confirmarla; se confirma sola al aceptar su cotización.` })),
+          h("p", { class: "small", style: "margin:0", text: `Nació de ${ot.solicitudId || "una solicitud"} con ${ot.estudio ? "el mockup y el diseño que el cliente armó en Estampa tu idea" : "los gráficos que el cliente adjuntó a los modelos del catálogo"}. No entra a programación ni a planta hasta confirmarla; se confirma sola al aceptar su cotización.` })),
           h("div", { class: "row" }, ot.solicitudId ? h("a", { class: "btn ghost", href: "#solicitudes" }, "Ver solicitud") : null,
             h("button", { class: "btn accent", type: "button", onclick: async () => { if (!(await confirmBox(`¿Confirmar ${ot.id} como orden de trabajo? Pasará a planta en la etapa ${stageName(OT_STAGES, ot.etapa)}.`))) return; await persist({ previa: false, fechaCompromiso: ot.fechaCompromiso || workDays(15).pop(), historial: [...(ot.historial || []), { etapa: ot.etapa, fecha: new Date().toISOString(), por: S.name, nota: "OT previa confirmada" }] }, "OT confirmada."); } }, "Confirmar OT")))) : null,
       ot.estudio && (ot.estudio.secciones || []).length ? h("div", { class: "card", style: "margin-bottom:1rem" }, h("h2", { text: "Diseño del cliente (Estampa tu idea)" }),

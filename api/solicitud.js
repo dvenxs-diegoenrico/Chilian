@@ -31,6 +31,7 @@ export async function POST(req) {
       fuente: s(d.fuente, 30).toLowerCase() || "directo", medio: s(d.medio, 40), campana: s(d.campana, 60),
       herramientas: Array.isArray(d.herramientas) ? [...new Set(d.herramientas.map((x) => s(x, 20)).filter((x) => ["cotizador", "catalogo", "estudio"].includes(x)))] : ["cotizador"],
       mockup: s(d.mockup, 600), especifica: modelos.length > 0,
+      graficos: Array.isArray(d.graficos) ? d.graficos.slice(0, 12).map((g) => ({ modelo: s(g.modelo, 40), archivo: s(g.archivo, 120) })) : [],
       estudio: d.estudio && typeof d.estudio === "object" ? {
         prenda: s(d.estudio.prenda, 60), color: s(d.estudio.color, 40), tecnica: ["serigrafia", "dtg", "bordado", "sublimacion"].includes(d.estudio.tecnica) ? d.estudio.tecnica : "serigrafia", modo: d.estudio.modo === "full" ? "full" : "place", piezas: Math.max(0, parseInt(d.estudio.piezas, 10) || 0),
         secciones: Array.isArray(d.estudio.secciones) ? d.estudio.secciones.slice(0, 12).map((x) => ({ seccion: s(x.seccion, 40), lugar: s(x.lugar, 40), medida: s(x.medida, 40), archivo: s(x.archivo, 120) })) : []
@@ -38,7 +39,7 @@ export async function POST(req) {
       recibida: new Date().toISOString()
     };
     const saved = await saveDoc("solicitudes", doc, "Sitio web");
-    const subir = doc.estudio ? sign({ sol: saved.id, exp: Date.now() + 30 * 60e3 }) : undefined;
+    const subir = doc.estudio || d.adjuntar ? sign({ sol: saved.id, exp: Date.now() + 30 * 60e3 }) : undefined;
     return json({ id: saved.id, subir });
   } catch (e) { return fail(e); }
 }

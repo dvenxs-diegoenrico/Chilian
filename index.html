@@ -649,7 +649,20 @@
   .st-qty-in input { width: 8.5rem; padding: .6rem .75rem; border: 1.5px solid var(--rule); background: var(--card); font: 500 1rem var(--f-mono); color: var(--ink); }
   .st-qty-in input:focus { outline: 2px solid var(--magenta); outline-offset: 1px; }
   /* The main action never scrolls away: quoting with this design is always one tap. */
-  .st-actions #st-quote { position: sticky; bottom: .6rem; z-index: 2; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .st-cta { position: sticky; bottom: 0; z-index: 3; display: grid; gap: .55rem; padding: .7rem 0 .7rem; background: var(--paper); border-top: 1px solid var(--rule); box-shadow: 0 -10px 18px -12px rgba(0,0,0,.25); }
+  .st-cta .st-qty { padding-top: 0; gap: .4rem; }
+  .st-cta .btn { width: 100%; }
+  @media (max-width: 860px) {
+    /* phones: just the pieces and the button, in one row, so the options keep the room */
+    .st-cta { grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: .6rem; padding: .5rem 0 .6rem; }
+    .st-cta #st-qty-chips, .st-cta #st-qty-note { display: none; }
+    .st-cta .st-qty legend { font-size: .58rem; margin-bottom: .15rem; }
+    .st-cta .st-qty-in input { width: 6.2rem; padding: .55rem .6rem; }
+    .st-cta .st-qty-in span { display: none; }
+    .st-cta .btn { padding-inline: .8rem; font-size: .72rem; }
+  }
+  .st-cta .st-qty .chips { gap: .3rem; }
+  .st-cta .st-qty .chip span { padding: .3rem .6rem; font-size: .8rem; }
   .st-library { display: grid; gap: .4rem; }
   .st-lib-label { font-size: .8rem; color: var(--steel); }
   .st-lib-row { display: flex; gap: .5rem; overflow-x: auto; padding: .15rem .1rem .35rem; scroll-snap-type: x proximity; }
@@ -793,6 +806,13 @@
   .qp-row input { width: 100%; padding: .55rem .6rem; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font: 400 .9rem var(--f-body); border-radius: 2px; }
   .qp-row input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--shade); }
   .qp-row input[aria-invalid="true"] { border-color: #D2452B; }
+  .qp-files { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  .qp-attach { all: unset; cursor: pointer; font: 500 .74rem var(--f-mono); letter-spacing: .04em; color: var(--ink); border: 1px dashed var(--rule); padding: .3rem .6rem; transition: border-color .2s ease, background-color .2s ease; }
+  .qp-attach:hover, .qp-attach:focus-visible { border-color: var(--ink); background: var(--paper); }
+  .qp-files-list { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .qp-file { display: inline-flex; align-items: center; gap: .3rem; font: 400 .72rem var(--f-mono); background: var(--shade); padding: .2rem .25rem .2rem .55rem; max-width: 100%; overflow-wrap: anywhere; }
+  .qp-file button { all: unset; cursor: pointer; width: 1.2rem; height: 1.2rem; display: grid; place-items: center; border-radius: 50%; }
+  .qp-file button:hover { background: var(--ink); color: var(--paper); }
   .qp-row .qp-x { all: unset; cursor: pointer; width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 50%; font: 400 1.1rem/1 var(--f-mono); }
   @media (hover: hover) { .qp-row .qp-x:hover { background: var(--ink); color: var(--paper); } .qp-row .qp-name:hover strong { color: var(--magenta); } }
   .qp-head { display: grid; grid-template-columns: 52px minmax(0, 1.5fr) 92px minmax(0, 1fr) 2rem; gap: .6rem; padding: 0 .5rem; font: 500 .62rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--steel); }
@@ -1701,13 +1721,15 @@
       <fieldset class="st-step" id="st-step-fill" hidden><legend data-en="How the design fills the garment">Cómo llena la prenda tu diseño</legend><div class="chips" id="st-fills"></div>
         <label class="st-range" id="st-tile-wrap"><span data-en="Pattern size">Tamaño del patrón</span> <output id="st-tile-out">120 mm</output><input type="range" id="st-tile" min="40" max="320" step="10" value="120"></label></fieldset>
       <fieldset class="st-step" id="st-step-pat" hidden><legend data-en="Pattern size">Talla del molde</legend><div class="chips" id="st-pat-sizes"></div></fieldset>
+      <div class="st-cta">
+      <fieldset class="st-step st-qty"><legend data-en="How many pieces are you interested in?">¿Cuántas piezas te interesan?</legend>
+        <div class="chips" id="st-qty-chips"></div>
+        <label class="st-qty-in"><input id="st-qty" type="number" inputmode="numeric" min="1" step="1" aria-label="Piezas"><span data-en="pieces">piezas</span></label>
+        <span class="st-color-name" id="st-qty-note"></span>
+      </fieldset>
+      <button class="btn btn-accent" type="button" id="st-quote"><span data-en="Quote with this design">Cotizar con este diseño</span> <span class="arrow" aria-hidden="true">→</span></button>
+      </div>
       <div class="st-actions">
-        <fieldset class="st-step st-qty"><legend data-en="How many pieces are you interested in?">¿Cuántas piezas te interesan?</legend>
-          <div class="chips" id="st-qty-chips"></div>
-          <label class="st-qty-in"><input id="st-qty" type="number" inputmode="numeric" min="1" step="1" aria-label="Piezas"><span data-en="pieces">piezas</span></label>
-          <span class="st-color-name" id="st-qty-note"></span>
-        </fieldset>
-        <button class="btn btn-accent" type="button" id="st-quote"><span data-en="Quote with this design">Cotizar con este diseño</span> <span class="arrow" aria-hidden="true">→</span></button>
         <button class="btn btn-ghost" type="button" id="st-download" data-en="Download mockup">Descargar mockup</button>
         <button class="btn btn-ghost" type="button" id="st-production" hidden data-en="Download production file (marker)">Descargar archivo de producción (trazo)</button>
         <button class="btn btn-ghost" type="button" id="st-reset" data-en="Center the design again">Volver a centrar el diseño</button>
@@ -2125,16 +2147,19 @@
   const quoteTools = new Set();
   let studioOut = null;   // mockups, design files and specs from Estampa tu idea
   async function sendStudioFiles(id, permit) {
-    const pack = studioOut; if (!pack || !pack.files.length || !permit) return;
+    const files = [...(quoteTools.has("estudio") && studioOut ? studioOut.files : []),
+      ...picked.flatMap((p) => (pickFiles[p.id] || []).map((f) => ({ name: f.name, blob: f, tipo: "grafico", modelo: p.id })))];
+    if (!files.length || !permit) return;
     let sent = 0;
-    for (const f of pack.files) {
+    for (const f of files) {
       try {
-        const r = await fetch(`/api/adjunto?sol=${encodeURIComponent(id)}&t=${encodeURIComponent(permit)}&tipo=${f.tipo}&name=${encodeURIComponent(f.name)}`, { method: "POST", headers: { "content-type": f.blob.type }, body: f.blob });
+        const r = await fetch(`/api/adjunto?sol=${encodeURIComponent(id)}&t=${encodeURIComponent(permit)}&tipo=${f.tipo}&name=${encodeURIComponent(f.name)}${f.modelo ? "&modelo=" + encodeURIComponent(f.modelo) : ""}`, { method: "POST", headers: { "content-type": f.blob.type }, body: f.blob });
         if (r.ok) sent++;
       } catch (e) {}
     }
     const note = $("#ticket-note");
-    if (sent) note.textContent = L(`Solicitud ${id} recibida con tu mockup y ${sent} archivo(s). Tu asesora te responde hoy (días hábiles).`, `Request ${id} received with your mockup and ${sent} file(s). Your advisor will reply today (business days).`);
+    if (sent) note.textContent = L(`Solicitud ${id} recibida con ${sent} archivo(s) de diseño. Tu asesora te responde hoy (días hábiles).`, `Request ${id} received with ${sent} design file(s). Your advisor will reply today (business days).`);
+    if (sent < files.length) toast(L(`${files.length - sent} archivo(s) no se pudieron subir; mándalos por WhatsApp.`, `${files.length - sent} file(s) could not be uploaded; send them by WhatsApp.`));
   }
   // Where this visit came from: UTM (link in the Instagram bio, ads), the in-app browser or the referrer.
   const ORIGIN = (() => {
@@ -2160,7 +2185,9 @@
       fuente: ORIGIN.fuente, medio: ORIGIN.medio, campana: ORIGIN.campana,
       herramientas: ["cotizador", ...(picked.length ? ["catalogo"] : []), ...quoteTools],
       mockup: (s.notes.split("\n").find((l) => l.startsWith("Mockup: ")) || "").slice(8),
-      estudio: quoteTools.has("estudio") && studioOut ? studioOut.estudio : null
+      estudio: quoteTools.has("estudio") && studioOut ? studioOut.estudio : null,
+      adjuntar: picked.some((p) => (pickFiles[p.id] || []).length) || !!(quoteTools.has("estudio") && studioOut && studioOut.files.length),
+      graficos: picked.map((p) => (pickFiles[p.id] || []).map((f) => ({ modelo: p.id, archivo: f.name }))).flat()
     };
     const key = JSON.stringify({ ...payload, canal: "", pagina: "" });
     if (key === filed.key) { if (filed.id) showFolio(filed.id); return; }
@@ -2370,7 +2397,7 @@
      ================================================================ */
   const STUDIO = {
     garments: [
-      { id: "tee", quote: 0, pattern: "play-sport-mc", name: { es: "Playera", en: "T-shirt" },
+      { id: "tee", quote: 0, pattern: "play-sport-mc", sport: true, name: { es: "Playera", en: "T-shirt" },
         sections: ["front", "back", "nape", "sleeveR", "sleeveL"], views: {
         front: { src: "blanks/tee-front.webp", cx: 630, pxcm: 11.0, fit: [1.153, 0.824], places: [
           { id: "full", name: { es: "Frente completo", en: "Full front" }, top: 255, sizes: [20, 25, 30], maxH: 36 },
@@ -2456,7 +2483,8 @@
   const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
   const garment = () => STUDIO.garments[st.g];
   const curView = () => garment().views[st.side];
-  const hasPattern = () => !!garment().pattern;      // garments with a CAD pattern get 3D, sleeves and full print
+  const hasPattern = () => !!garment().pattern;
+  const hasSport = () => !!garment().sport;   // full print exists only as Chilian Sport (sublimated polyester tee)      // garments with a CAD pattern get 3D, sleeves and full print
   const hasPhoto = () => garment().photo !== false;
   const secDef = (id) => STUDIO.sections[id];
   const isSleeve = (id) => id === "sleeveR" || id === "sleeveL";
@@ -2685,6 +2713,7 @@
     const g = garment();
     if (!g.views[st.side]) st.side = "front";
     if (!hasPattern()) { st.mode = "place"; if (st.display !== "photo") st.display = "photo"; }
+    if (st.mode === "full" && !hasSport()) { st.mode = "place"; st.display = hasPhoto() ? "photo" : "3d"; if (isPiece(st.active) || st.active === "bg") st.active = "front"; }
     if (st.mode === "full" && st.display === "photo") st.display = "flat";
     if (st.mode === "place" && st.display === "flat") st.display = hasPhoto() ? "photo" : "3d";
     if (!sectionsNow().includes(st.active)) st.active = sectionsNow()[0];
@@ -2745,15 +2774,15 @@
     });
 
     // Print type: only garments with a CAD pattern can be fully printed.
-    $("#st-step-mode").hidden = !hasPattern();
-    stChips($("#st-modes"), "st-m", [L("Serigrafía por posición", "Placement print"), L("Estampado completo", "Full print")],
+    $("#st-step-mode").hidden = !hasSport();
+    stChips($("#st-modes"), "st-m", [L("Por posición", "Placement print"), L("Chilian Sport · estampado completo", "Chilian Sport · full print")],
       (i) => (i ? "full" : "place") === st.mode, (i) => {
         st.mode = i ? "full" : "place"; st.display = i ? "flat" : hasPhoto() ? "photo" : "3d"; st.active = i ? "bg" : "front";
         // On the pattern you build the shirt yourself: the sample design steps aside.
         if (i && st.prints.front && st.prints.front.name === "sample") delete st.prints.front;
       });
     $("#st-mode-note").textContent = st.mode === "full"
-      ? L(`Sublimación de costura a costura sobre el molde real de ${t(g.name).toLowerCase()}. El cuello es cinta de la misma tela, a 1 tono. Puedes sumar un gráfico por sección encima del fondo.`, `Seam-to-seam sublimation on the real ${t(g.name).toLowerCase()} pattern. The neck is a same-fabric binding in one tone. You can add one graphic per section over the background.`)
+      ? L("Chilian Sport: playera deportiva de poliéster sublimada de costura a costura sobre su molde real, desde 100 piezas. El cuello es cinta de la misma tela, a 1 tono. Puedes sumar un gráfico por sección encima del fondo.", "Chilian Sport: polyester sports tee sublimated seam to seam on its real pattern, from 100 pieces. The neck is a same-fabric binding in one tone. You can add one graphic per section over the background.")
       : L("Un gráfico por sección: frente, espalda, nuca y mangas.", "One graphic per section: front, back, neck and sleeves.");
     $("#st-step-tec").hidden = st.mode === "full";
     stChips($("#st-tecs"), "st-t", STUDIO_TECS.map((x) => t(x.name)), (i) => STUDIO_TECS[i].id === st.tec, (i) => { st.tec = STUDIO_TECS[i].id; });
@@ -2811,7 +2840,7 @@
   // plant), each design file and where and how big it prints.
   async function studioPack(qty) {
     const used = sectionsNow().filter((id) => st.prints[id] && st.prints[id].art && st.prints[id].name !== "sample");
-    const estudio = { prenda: t(garment().name), color: t(STUDIO.colors[st.color].name), modo: st.mode, piezas: qty, tecnica: st.mode === "full" ? "sublimacion" : st.tec,
+    const estudio = { prenda: st.mode === "full" ? L("Playera Chilian Sport", "Chilian Sport tee") : t(garment().name), color: t(STUDIO.colors[st.color].name), modo: st.mode, piezas: qty, tecnica: st.mode === "full" ? "sublimacion" : st.tec,
       secciones: used.filter((id) => id !== "bg").map((id) => {
         const pr = st.prints[id], places = placesOf(id);
         if (isPiece(id)) return { seccion: t(secDef(id).name), lugar: L("imagen de la pieza", "piece image"), medida: `${Math.round(pr.scale * 100)} %`, archivo: pr.name };
@@ -2851,7 +2880,7 @@
       return `${t(secDef(id).name)}${places.length > 1 ? ` (${t(r.place.name).toLowerCase()})` : ""} ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm${rot}`;
     });
     const head = st.mode === "full"
-      ? `${t(g.name)} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${color}${st.prints.bg && st.prints.bg.art ? ` + ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")}` : ""} · ${L("talla", "size")} ${st.pat}`
+      ? `${L("Playera Chilian Sport", "Chilian Sport tee")} · ${L("estampado completo", "full print")} · ${L("fondo", "background")} ${color}${st.prints.bg && st.prints.bg.art ? ` + ${st.fill === "repeat" ? L(`patrón de ${st.tile} mm`, `${st.tile} mm pattern`) : L("diseño cubriendo cada pieza", "design covering each piece")}` : ""} · ${L("talla", "size")} ${st.pat}`
       : `${t(g.name)} ${color} · ${t(STUDIO_TECS.find((x) => x.id === st.tec).name).toLowerCase()}`;
     return [head, ...parts].join(" · ");
   }
@@ -3135,16 +3164,22 @@
     const paintQty = () => {
       const v = parseInt(stQty.value, 10) || 0;
       stChips($("#st-qty-chips"), "st-qn", QTY_CHIPS.map((x) => fmt(x)), (i) => QTY_CHIPS[i] === v, (i) => { stQty.value = QTY_CHIPS[i]; paintQty(); });
-      $("#st-qty-note").textContent = st.model ? L(`Se agrega a tu cotización: ${st.model.title}.`, `Added to your quote: ${st.model.title}.`)
+      $("#st-qty-note").textContent = st.mode === "full" ? L("Se cotiza como Chilian Sport, desde 100 piezas.", "Quoted as Chilian Sport, from 100 pieces.")
+        : st.model ? L(`Se agrega a tu cotización: ${st.model.title}.`, `Added to your quote: ${st.model.title}.`)
         : v ? (v >= 300 ? L("Desde 300 piezas el precio por pieza baja bastante.", "From 300 pieces the price per piece drops a lot.") : L("Producimos desde pocas piezas; el precio baja con el volumen.", "We produce small runs too; price drops with volume.")) : "";
     };
     stQty.addEventListener("input", paintQty);
-    $("#studio").addEventListener("studio:open", () => { if (!stQty.value) stQty.value = (picked.length ? picked[picked.length - 1].qty : parseInt($("#q-qty").value, 10)) || 300; paintQty(); });
+    $("#studio").addEventListener("studio:open", () => {
+      const mine = st.model && picked.find((x) => x.id === st.model.id);
+      stQty.value = (mine ? mine.qty : picked.length ? picked[picked.length - 1].qty : parseInt($("#q-qty").value, 10)) || 300; paintQty();
+    });
+    // the mode or garment can change what the pieces mean: keep the note current
+    $("#studio").addEventListener("change", (e) => { if (e.target.name === "st-m" || e.target.name === "st-g") paintQty(); });
     $("#st-quote").addEventListener("click", async () => {
       const qty = parseInt(stQty.value, 10) || 0;
       if (!(qty > 0)) { stQty.focus(); $("#st-qty-note").textContent = L("Escribe cuántas piezas te interesan.", "Write how many pieces you need."); return; }
       $("#q-garment").selectedIndex = garment().quote;
-      if (st.model) addPick(st.model, qty, t(STUDIO.colors[st.color].name));
+      if (st.model && st.mode !== "full") addPick(st.model, qty, t(STUDIO.colors[st.color].name));
       else if (!picked.length) $("#q-qty").value = qty;
       quoteTools.add("estudio");
       const techBox = $("#tech-" + (st.mode === "full" ? "fullprint" : STUDIO_TECS.find((x) => x.id === st.tec).tech));
@@ -3350,7 +3385,10 @@
     media.replaceChildren(zoomBox(`catalogo/${e.id}.webp`, e.h), ...(e.pages > 1 ? [zoomBox(`catalogo/${e.id}-b.webp`, e.h)] : []));
     const rows = [[L("Línea", "Line"), `${lineName(e.line)}${e.tier ? " · " + e.tier : ""}`], [L("Prenda", "Garment"), kindName(e.kind)], [L("Para", "For"), whoNames(e.who) || "—"],
       [L("Modelo", "Model"), e.models.join(", ")], [L("Gramaje", "Weight"), e.weight ? `${e.weight} g/m²` : ""], [L("Tela", "Fabric"), e.comp], [L("Tallas", "Sizes"), e.sizes],
-      [L("Catálogo", "Catalog"), `${e.cat} · ${L("página", "page")} ${e.page}`]].filter(([, v]) => v);
+      [L("Colores", "Colors"), (e.colors || []).join(", ")], [L("Catálogo", "Catalog"), `${e.cat} · ${L("página", "page")} ${e.page}`]].filter(([, v]) => v);
+    // the colors printed for this model, as suggestions while typing
+    const cvc = $("#cv-color"), dl = $("#cv-colors") || document.body.appendChild(el("datalist", { id: "cv-colors" }));
+    dl.replaceChildren(...(e.colors || []).map((c) => el("option", { value: c }))); cvc.setAttribute("list", "cv-colors");
     const spec = $("#cv-spec"); spec.textContent = "";
     for (const [k, v] of rows) spec.append(el("tr", {}, [el("td", { text: k }), el("td", { text: v })]));
     updatePickButton();
@@ -3378,7 +3416,7 @@
   // Add a model (or update its pieces and color if it is already in the quote).
   function addPick(e, qty, color) {
     let p = picked.find((x) => x.id === e.id), isNew = !p;
-    if (!p) { p = { id: e.id, title: e.title, models: e.models, cat: e.cat, page: e.page, kind: e.kind }; picked.push(p); }
+    if (!p) { p = { id: e.id, title: e.title, models: e.models, cat: e.cat, page: e.page, kind: e.kind, colors: e.colors || [] }; picked.push(p); }
     p.qty = Math.max(0, parseInt(qty, 10) || 0) || defaultQty(); p.color = (color || "").trim();
     savePicked();
     toast(isNew ? L(`${e.title} agregado: ${fmt(p.qty)} piezas.`, `${e.title} added: ${fmt(p.qty)} pieces.`) : L("Modelo actualizado en tu cotización.", "Model updated in your quote."));
@@ -3401,6 +3439,44 @@
     renderCatalog();
     $("#catalogo").scrollIntoView({ behavior: smooth() });
   }
+  // The customer's graphics for each catalog model: they travel with the request (in memory
+  // until it is sent; a file over 4 MB or of another type is explained, never sent).
+  const pickFiles = {};
+  function pickFilesRow(p) {
+    const list = el("div", { class: "qp-files-list" });
+    const paint = () => {
+      const fs = pickFiles[p.id] || [];
+      list.replaceChildren(...fs.map((f, i) => el("span", { class: "qp-file" }, [f.name, el("button", { type: "button", "aria-label": L(`Quitar ${f.name}`, `Remove ${f.name}`), text: "×", onclick: () => { fs.splice(i, 1); paint(); updateTicket(); } })])));
+    };
+    const input = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/svg+xml,application/pdf", multiple: "", hidden: "" });
+    input.addEventListener("change", async () => {
+      const fs = (pickFiles[p.id] ||= []), notes = [];
+      for (const f of input.files) {
+        let file = f;
+        if (f.type === "image/svg+xml") file = await svgToPng(f).catch(() => null);   // SVG goes as a clean PNG
+        if (!file || !/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) { notes.push(L(`${f.name}: usa PNG, JPG, WebP, SVG o PDF.`, `${f.name}: use PNG, JPG, WebP, SVG or PDF.`)); continue; }
+        if (file.size > 4e6) { notes.push(L(`${f.name} pasa de 4 MB; mándalo por WhatsApp.`, `${f.name} is over 4 MB; send it by WhatsApp.`)); continue; }
+        if (Object.values(pickFiles).flat().length >= 6) { notes.push(L("Máximo 6 gráficos por solicitud; el resto mándalo por WhatsApp.", "Up to 6 graphics per request; send the rest by WhatsApp.")); break; }
+        fs.push(file);
+      }
+      input.value = ""; paint(); updateTicket();
+      if (notes.length) toast(notes.join(" "));
+    });
+    paint();
+    return el("div", { class: "qp-files" }, [
+      el("button", { type: "button", class: "qp-attach", onclick: () => input.click() }, [el("span", { "aria-hidden": "true", text: "＋ " }), L("Adjuntar gráfico", "Attach graphic")]), input, list]);
+  }
+  async function svgToPng(f) {
+    const url = URL.createObjectURL(f), img = new Image();
+    try {
+      img.src = url; await img.decode();
+      const k = 2000 / Math.max(img.naturalWidth || 1000, img.naturalHeight || 1000), c = document.createElement("canvas");
+      c.width = Math.round((img.naturalWidth || 1000) * k); c.height = Math.round((img.naturalHeight || 1000) * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const b = await new Promise((r) => c.toBlob(r, "image/png"));
+      return new File([b], f.name.replace(/\.svg$/i, ".png"), { type: "image/png" });
+    } finally { URL.revokeObjectURL(url); }
+  }
   function renderPicked() {
     $("#cat-picked b").textContent = picked.length;
     const box = $("#q-picked"), ul = $("#qp-list"), on = picked.length > 0;
@@ -3416,14 +3492,16 @@
       ul.dataset.ids = ids; ul.dataset.lang = lang; ul.textContent = "";
       for (const p of picked) {
         const q = el("input", { class: "qp-qty", type: "number", inputmode: "numeric", min: "1", step: "1", value: p.qty || "", "aria-label": L(`Piezas de ${p.title}`, `Pieces of ${p.title}`) });
-        const c = el("input", { class: "qp-color", type: "text", value: p.color || "", placeholder: L("Color(es)", "Color(s)"), "aria-label": L(`Color de ${p.title}`, `Color of ${p.title}`) });
+        const c = el("input", { class: "qp-color", type: "text", value: p.color || "", placeholder: (p.colors || []).length ? L(`Color(es): ${p.colors.slice(0, 3).join(", ")}…`, `Color(s): ${p.colors.slice(0, 3).join(", ")}…`) : L("Color(es)", "Color(s)"), "aria-label": L(`Color de ${p.title}`, `Color of ${p.title}`), list: "qpc-" + p.id });
+        if ((p.colors || []).length && !document.getElementById("qpc-" + p.id)) document.body.append(el("datalist", { id: "qpc-" + p.id }, p.colors.map((x) => el("option", { value: x }))));
         q.addEventListener("input", () => { p.qty = Math.max(0, parseInt(q.value, 10) || 0); q.setAttribute("aria-invalid", "false"); store.set("chilian-picked", JSON.stringify(picked)); renderPicked(); updateTicket(); });
         c.addEventListener("input", () => { p.color = c.value; store.set("chilian-picked", JSON.stringify(picked)); updateTicket(); });
         ul.append(el("li", { class: "qp-row" }, [
           el("img", { src: `catalogo/${p.id}-s.webp`, alt: "", loading: "lazy" }),
           el("button", { class: "qp-name", type: "button", onclick: () => openPicked(p.id) }, [el("strong", { text: p.title }), el("span", { text: `${p.models.slice(0, 2).join(" · ")}${p.models.length ? " — " : ""}${p.cat} ${L("pág.", "p.")} ${p.page}` })]),
           q, c,
-          el("button", { class: "qp-x", type: "button", "aria-label": L(`Quitar ${p.title}`, `Remove ${p.title}`), text: "×", onclick: () => removePick(p.id) })
+          el("button", { class: "qp-x", type: "button", "aria-label": L(`Quitar ${p.title}`, `Remove ${p.title}`), text: "×", onclick: () => removePick(p.id) }),
+          pickFilesRow(p)
         ]));
       }
     }
