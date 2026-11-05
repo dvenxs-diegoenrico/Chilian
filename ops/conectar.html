@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Conectar WhatsApp y Meta · Chilian OS</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 700 900; font-display: swap; src: url(/fonts/big-shoulders-display.woff2) format("woff2"); }
+  @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap; src: url(/fonts/instrument-sans.woff2) format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono-400.woff2) format("woff2"); }
+  :root { --paper: #F4F3F5; --card: #fff; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --shade: rgba(21,19,22,.05); --magenta: #C20E62; --ok: #1F7A4D; --warn: #9A5B00; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #FF4D9D; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; } }
+  :root[data-theme="dark"] { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #FF4D9D; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 "Instrument Sans", "Helvetica Neue", Arial, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 16px 5rem; }
+  .kicker, .mono, code, kbd { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .kicker { font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); }
+  h1 { font: 900 clamp(2.6rem, 8vw, 4.4rem)/.92 "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; margin: .4rem 0 1rem; }
+  h2 { font: 800 clamp(1.7rem, 4.5vw, 2.3rem)/1 "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; margin: 3rem 0 .8rem; display: flex; gap: .7rem; align-items: baseline; }
+  h2 .n { font: 400 .8rem "IBM Plex Mono", monospace; color: var(--magenta); letter-spacing: .1em; }
+  h3 { font: 700 1.1rem/1.3 "Instrument Sans", sans-serif; margin: 1.6rem 0 .4rem; }
+  p, li { max-width: 72ch; }
+  .lead { font-size: 1.12rem; color: var(--steel); }
+  ol, ul { padding-left: 1.3rem; } li { margin: .35rem 0; }
+  code { background: var(--shade); padding: .1rem .35rem; font-size: .86em; overflow-wrap: anywhere; }
+  .box { background: var(--card); border: 1px solid var(--rule); padding: 1rem 1.2rem; margin: 1rem 0; }
+  .box.warn { border-left: 4px solid var(--warn); } .box.ok { border-left: 4px solid var(--ok); } .box.key { border-left: 4px solid var(--magenta); }
+  .box > :first-child { margin-top: 0; } .box > :last-child { margin-bottom: 0; }
+  .toc { columns: 2; gap: 2rem; padding: 0; list-style: none; } .toc li { break-inside: avoid; margin: .25rem 0; }
+  @media (max-width: 600px) { .toc { columns: 1; } }
+  a { color: var(--ink); text-underline-offset: 3px; } a:hover { color: var(--magenta); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin: .8rem 0; }
+  th, td { text-align: left; padding: .55rem .5rem .55rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font: 400 .7rem "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .scroll { overflow-x: auto; }
+  .who { display: inline-block; font: 400 .68rem "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: .15rem .45rem; margin-right: .4rem; vertical-align: .1em; }
+  .back { display: inline-block; margin-bottom: 1.2rem; font: 400 .78rem "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/ops/#ajustes">← Volver a Chilian OS</a>
+  <p class="kicker">Chilian OS · tutorial</p>
+  <h1>Conectar WhatsApp, Instagram, Messenger y los avisos</h1>
+  <p class="lead">Al terminar, cada mensaje que llegue a cualquiera de los WhatsApp de Chilian, al Instagram o a la página de Facebook entra solo a <b>Solicitudes</b>. El equipo recibe una notificación en su teléfono y puede contestar desde el OS. Además, cada quien recibe avisos de sus tareas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar.</p>
+
+  <div class="box key">
+    <p><b>Cómo leer esto.</b> <span class="who">Cada persona</span> son pasos que hace cada miembro del equipo en su teléfono. <span class="who">Admin</span> son pasos que hace una sola vez quien administra Meta y Vercel (la cuenta principal, admin1). Calcula 1 a 2 horas para la parte de Meta, más el tiempo que tarde Meta en verificar el negocio si te lo pide.</p>
+  </div>
+
+  <ul class="toc">
+    <li><a href="#avisos">1. Activar los avisos en cada teléfono</a></li>
+    <li><a href="#antes">2. Antes de empezar con Meta</a></li>
+    <li><a href="#app">3. Crear la app de Meta</a></li>
+    <li><a href="#whatsapp">4. Conectar los WhatsApp</a></li>
+    <li><a href="#instagram">5. Conectar Instagram</a></li>
+    <li><a href="#messenger">6. Conectar Facebook Messenger</a></li>
+    <li><a href="#vercel">7. Pegar las llaves en Vercel</a></li>
+    <li><a href="#probar">8. Probar que todo llega</a></li>
+    <li><a href="#que">9. Qué avisos llegan y a quién</a></li>
+    <li><a href="#problemas">10. Si algo no funciona</a></li>
+  </ul>
+
+  <h2 id="avisos"><span class="n">01</span>Activar los avisos en cada teléfono</h2>
+  <p>Primero, una sola vez, la cuenta principal pone las llaves de los avisos en Vercel (abajo). Después cada persona los activa en su teléfono y en su computadora.</p>
+  <h3><span class="who">Admin</span>Llaves de los avisos (una sola vez, 5 minutos)</h3>
+  <ol>
+    <li>En Chilian OS → <b>Ajustes</b> → tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b> → <b>Generar llaves de avisos</b>. Se generan en tu navegador.</li>
+    <li>Copia cada una (<code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code>, <code>CRON_SECRET</code>) y agrégala en Vercel como se explica en el <a href="#vercel">paso 7</a>. Luego haz <b>Redeploy</b>.</li>
+    <li>No vuelvas a generarlas después: si cambian, cada persona tiene que activar los avisos de nuevo.</li>
+  </ol>
+  <h3><span class="who">Cada persona</span>Android o computadora (Chrome, Edge, Firefox)</h3>
+  <ol>
+    <li>Entra a <a href="/ops/">chilian.vercel.app/ops</a> con tu usuario.</li>
+    <li>Abre <b>Avisos</b> en el menú y toca <b>Activar avisos aquí</b>. Acepta cuando el navegador pregunte.</li>
+    <li>Te llega un aviso de prueba. Si no llega, revisa que el navegador tenga permiso de notificaciones en la configuración del teléfono.</li>
+  </ol>
+  <h3><span class="who">Cada persona</span>iPhone o iPad (iOS 16.4 o más reciente)</h3>
+  <ol>
+    <li>Abre <b>chilian.vercel.app/ops</b> en <b>Safari</b> (no en Chrome).</li>
+    <li>Toca <b>Compartir</b> → <b>Agregar a pantalla de inicio</b> → <b>Agregar</b>.</li>
+    <li>Cierra Safari y abre <b>Chilian OS</b> desde el ícono nuevo. Entra con tu usuario.</li>
+    <li>Ve a <b>Avisos</b> → <b>Activar avisos aquí</b> → <b>Permitir</b>.</li>
+  </ol>
+  <div class="box"><p>Actívalo en cada dispositivo que uses (teléfono y computadora). Para dejar de recibirlos en uno, toca <b>Apagar aquí</b> en ese dispositivo.</p></div>
+
+  <h2 id="antes"><span class="n">02</span>Antes de empezar con Meta</h2>
+  <p><span class="who">Admin</span>Ten a la mano:</p>
+  <ul>
+    <li>Acceso de administrador al <b>portafolio comercial de Grupo Chilian</b> en <a href="https://business.facebook.com" target="_blank" rel="noopener">business.facebook.com</a> (antes "Business Manager"), con la página de Facebook y la cuenta de Instagram dentro.</li>
+    <li>Los <b>números de WhatsApp</b> de Chilian y los teléfonos donde están, para recibir los códigos de verificación.</li>
+    <li>Acceso al proyecto <b>chilian</b> en <a href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a>.</li>
+    <li>Una tarjeta para el método de pago de WhatsApp en Meta. Contestar a un cliente dentro de las 24 horas de su último mensaje no tiene costo según la tarifa vigente de Meta. Las plantillas que tú inicias sí se cobran.</li>
+  </ul>
+  <div class="box warn">
+    <p><b>Importante sobre los WhatsApp.</b> Solo se conectan números de <b>WhatsApp Business</b> (la app verde con la "B"). Si alguno de los números está en WhatsApp normal, primero pásalo a WhatsApp Business en ese teléfono. La app hace la migración y conserva los chats.</p>
+  </div>
+
+  <h2 id="app"><span class="n">03</span>Crear la app de Meta</h2>
+  <p><span class="who">Admin</span>Es una sola app para WhatsApp, Instagram y Messenger.</p>
+  <ol>
+    <li>Entra a <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a> con tu Facebook de administrador → <b>Crear app</b>.</li>
+    <li>Nombre: <code>Chilian OS</code>. Correo de contacto: el de ventas.</li>
+    <li>Caso de uso: elige <b>Otro</b> y luego el tipo <b>Empresa (Business)</b>. Vincúlala al portafolio comercial de Grupo Chilian.</li>
+    <li>En la app, ve a <b>Configuración de la app → Básica</b>. Copia el <b>Identificador de la app</b> y, con <b>Mostrar</b>, la <b>Clave secreta de la app</b>. La clave va en Vercel como <code>META_APP_SECRET</code> (<a href="#vercel">paso 7</a>).</li>
+    <li>En esa misma pantalla llena la URL de política de privacidad (la página del aviso de privacidad de Grupo Chilian en su sitio) y la categoría. Meta las pide para publicar la app.</li>
+  </ol>
+  <div class="box">
+    <p><b>Los dos datos del webhook</b> (los vas a pegar en WhatsApp, Instagram y Messenger) están en Chilian OS → <b>Ajustes</b> → tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b>:</p>
+    <ul>
+      <li><b>URL de devolución de llamada (Callback URL):</b> <code>https://chilian.vercel.app/api/meta</code></li>
+      <li><b>Token de verificación (Verify token):</b> el que aparece en esa tarjeta.</li>
+    </ul>
+  </div>
+
+  <h2 id="whatsapp"><span class="n">04</span>Conectar los WhatsApp</h2>
+  <h3>Elige cómo conectar cada número</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Opción</th><th>Qué pasa con el teléfono</th><th>Cuándo usarla</th></tr></thead>
+    <tbody>
+      <tr><td><b>A. Coexistencia</b> (recomendada)</td><td>El número sigue en la app WhatsApp Business del teléfono, con sus chats, <b>y además</b> los mensajes llegan al OS. Lo que contestes desde el teléfono también se ve en el OS.</td><td>Las asesoras siguen usando su teléfono como hoy.</td></tr>
+      <tr><td><b>B. Solo en la plataforma</b></td><td>El número deja de funcionar en la app del teléfono. Todo se atiende desde el OS. El historial del teléfono no pasa.</td><td>Números nuevos o líneas que solo se atienden desde la computadora.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><p>La coexistencia la habilita Meta por país y por cuenta, y se activa con el flujo de registro de Meta ("Embedded Signup"). Si en el paso 4 no te aparece la opción de conectar un número que ya está en la app WhatsApp Business, hay dos caminos: pedirla a un proveedor oficial de Meta (BSP) que te dé el enlace de registro, o usar la opción B para esa línea.</p></div>
+
+  <h3><span class="who">Admin</span>Agregar WhatsApp a la app</h3>
+  <ol>
+    <li>En tu app de Meta: <b>Agregar producto</b> (o <b>Casos de uso</b>) → <b>WhatsApp</b> → <b>Configurar</b>. Elige el portafolio de Grupo Chilian. Meta crea (o te deja elegir) la <b>cuenta de WhatsApp Business</b> de Chilian.</li>
+    <li>Ve a <b>WhatsApp → Configuración de la API → Agregar número de teléfono</b>, o al <a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" rel="noopener">Administrador de WhatsApp → Números de teléfono → Agregar</a>.</li>
+    <li>Repite por cada número de Chilian:
+      <ul>
+        <li><b>Opción A (coexistencia):</b> cuando Meta pregunte, elige conectar un número que ya usas en la app WhatsApp Business. En ese teléfono, abre WhatsApp Business, ve a la notificación o a <b>Configuración → Herramientas para la empresa</b>, y acepta o escanea el código QR que te muestra Meta. Deja que la app comparta el historial.</li>
+        <li><b>Opción B:</b> escribe el número, el nombre visible ("Chilian Screen Printing" o el de la asesora) y verifícalo con el código por SMS o llamada.</li>
+      </ul>
+    </li>
+    <li>Agrega el <b>método de pago</b> en el Administrador de WhatsApp → <b>Configuración de pagos</b>.</li>
+  </ol>
+
+  <h3><span class="who">Admin</span>Webhook de WhatsApp</h3>
+  <ol>
+    <li>En la app: <b>WhatsApp → Configuración</b> → <b>Webhook → Editar</b>.</li>
+    <li>Pega la <b>URL de devolución de llamada</b> y el <b>Token de verificación</b> (<a href="#app">paso 3</a>) → <b>Verificar y guardar</b>. Si marca error, revisa que el token sea idéntico y que ya hayas hecho el <a href="#vercel">paso 7</a>.</li>
+    <li>En <b>Campos del webhook</b>, suscríbete a <code>messages</code>. Si usas coexistencia, suscríbete también a <code>smb_message_echoes</code>, para que lo que contesten desde el teléfono aparezca en el OS.</li>
+  </ol>
+
+  <h3><span class="who">Admin</span>Token permanente (para contestar desde el OS)</h3>
+  <ol>
+    <li>En <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">Configuración del negocio → Usuarios → Usuarios del sistema</a> → <b>Agregar</b>. Nombre: <code>chilian-os</code>, rol <b>Administrador</b>.</li>
+    <li>Con ese usuario: <b>Asignar activos</b> → la <b>app Chilian OS</b> (control total) y la <b>cuenta de WhatsApp Business</b> (control total).</li>
+    <li><b>Generar token</b> → app Chilian OS → caducidad <b>Nunca</b> → permisos <code>whatsapp_business_messaging</code> y <code>whatsapp_business_management</code>. Si también conectarás Messenger con este token, agrega <code>pages_messaging</code> y <code>pages_show_list</code>, y asígnale la página de Facebook.</li>
+    <li>Copia el token. Va en Vercel como <code>WA_ACCESS_TOKEN</code>. Solo se muestra una vez.</li>
+  </ol>
+  <div class="box ok"><p>En Chilian OS → <b>Ajustes → Números de WhatsApp</b>, revisa que estén todos los números con su asesora. Así cada mensaje dice a qué teléfono llegó ("WhatsApp 222 692 5404 · Carlos").</p></div>
+
+  <h2 id="instagram"><span class="n">05</span>Conectar Instagram</h2>
+  <p><span class="who">Admin</span>Requisito: la cuenta <b>@chilianestampados</b> debe ser <b>profesional</b> (Empresa o Creador). En la app de Instagram: <b>Configuración → Mensajes y respuestas a historias → Herramientas conectadas → Permitir acceso a los mensajes</b> (activado).</p>
+  <ol>
+    <li>En la app de Meta: <b>Agregar producto → Instagram → API con inicio de sesión de Instagram</b>.</li>
+    <li><b>Generar tokens de acceso → Agregar cuenta</b> → inicia sesión con la cuenta de Instagram de Chilian → copia el token. Va en Vercel como <code>IG_ACCESS_TOKEN</code>.</li>
+    <li>En esa misma pantalla, en <b>Configurar webhooks</b>: pega la URL y el token de verificación → <b>Verificar y guardar</b>. Suscríbete al campo <code>messages</code> y activa la suscripción de la cuenta (<b>Webhook subscription: On</b>).</li>
+  </ol>
+  <div class="box warn"><p>El token de Instagram dura 60 días. Meta permite renovarlo antes de que venza. Si dejan de llegar los mensajes de Instagram, genera uno nuevo y reemplázalo en Vercel.</p></div>
+
+  <h2 id="messenger"><span class="n">06</span>Conectar Facebook Messenger</h2>
+  <ol>
+    <li><span class="who">Admin</span>En la app de Meta: <b>Agregar producto → Messenger → Configuración de la API</b>.</li>
+    <li><b>Webhooks</b>: pega la URL y el token de verificación → <b>Verificar y guardar</b>.</li>
+    <li><b>Generar tokens de acceso</b> → <b>Conectar</b> la página <b>Grupo Chilian</b> → copia el token de la página. Va en Vercel como <code>META_PAGE_TOKEN</code>. Para que no caduque, genera el token con el usuario del sistema del paso 4 (con la página asignada).</li>
+    <li>En la fila de la página → <b>Agregar suscripciones</b> → marca <code>messages</code> y <code>message_echoes</code>.</li>
+  </ol>
+
+  <h3><span class="who">Admin</span>Publicar la app (para recibir mensajes de cualquier persona)</h3>
+  <ol>
+    <li>Mientras la app esté en <b>modo desarrollo</b>, Instagram y Messenger solo entregan mensajes de personas con rol en la app. En el panel de la app, completa <b>Publicar</b> o <b>Revisión de la app</b>.</li>
+    <li>Solicita <b>Acceso avanzado</b> para <code>instagram_business_manage_messages</code> (Instagram) y <code>pages_messaging</code> (Messenger). Meta puede pedir la <b>verificación del negocio</b> (RFC o acta, comprobante de domicilio) y un video corto mostrando cómo se responden los mensajes en el OS.</li>
+    <li>WhatsApp no necesita esta revisión para recibir y contestar mensajes de clientes.</li>
+  </ol>
+
+  <h2 id="vercel"><span class="n">07</span>Pegar las llaves en Vercel</h2>
+  <p><span class="who">Admin</span>En <a href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a> → proyecto <b>chilian</b> → <b>Settings → Environment Variables</b>. Agrega cada una en <b>Production</b> (y en Preview si lo usas):</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Variable</th><th>Qué es</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td><code>META_APP_SECRET</code></td><td>Clave secreta de la app de Meta (paso 3). Si Instagram está en otra app, pon las dos claves separadas por coma.</td><td>Falta</td></tr>
+      <tr><td><code>IG_VERIFY_TOKEN</code></td><td>Token de verificación del webhook (el que muestra Ajustes).</td><td>Ya está</td></tr>
+      <tr><td><code>WA_ACCESS_TOKEN</code></td><td>Token permanente del usuario del sistema (paso 4).</td><td>Falta</td></tr>
+      <tr><td><code>IG_ACCESS_TOKEN</code></td><td>Token de la cuenta de Instagram (paso 5).</td><td>Falta</td></tr>
+      <tr><td><code>META_PAGE_TOKEN</code></td><td>Token de la página de Facebook (paso 6).</td><td>Falta</td></tr>
+      <tr><td><code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code></td><td>Llaves de las notificaciones push (Ajustes → Generar llaves de avisos).</td><td>Falta</td></tr>
+      <tr><td><code>CRON_SECRET</code></td><td>Protege el resumen de cada mañana (se genera junto con las llaves).</td><td>Falta</td></tr>
+    </tbody>
+  </table></div>
+  <ol>
+    <li>Después de agregar o cambiar variables, ve a <b>Deployments</b> → el más reciente → <b>⋯ → Redeploy</b>. Sin esto no se toman los cambios.</li>
+    <li>En Chilian OS → <b>Ajustes</b>, la tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b> debe marcar <b>listo</b> en cada renglón.</li>
+  </ol>
+  <div class="box warn"><p>Los tokens y la clave secreta dan acceso a los mensajes de Chilian. Pégalos solo en Vercel. Nunca por WhatsApp, correo ni en el código.</p></div>
+
+  <h2 id="probar"><span class="n">08</span>Probar que todo llega</h2>
+  <ol>
+    <li>Desde un teléfono que no sea de Chilian, manda un WhatsApp a <b>cada número</b> de Chilian, un DM al Instagram y un mensaje a la página de Facebook.</li>
+    <li>En segundos debe aparecer en <b>Solicitudes</b>, marcada con el canal y, en WhatsApp, con el número al que llegó. Todos los que activaron avisos reciben la notificación.</li>
+    <li>Contesta desde la solicitud, en el cuadro de respuesta. El mensaje debe llegar al teléfono de prueba.</li>
+    <li>Con coexistencia: contesta desde el teléfono de la asesora. La respuesta también aparece en la conversación del OS.</li>
+  </ol>
+
+  <h2 id="que"><span class="n">09</span>Qué avisos llegan y a quién</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Aviso</th><th>Llega a</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><td>Solicitud nueva del sitio, WhatsApp, Instagram o Messenger</td><td>Todo el equipo</td><td>Al momento (push)</td></tr>
+      <tr><td>Mensaje nuevo en una conversación que ya estaba contestada</td><td>Todo el equipo</td><td>Al momento</td></tr>
+      <tr><td>Te asignaron una tarea, una oportunidad o una cuenta</td><td>La persona asignada</td><td>Al momento</td></tr>
+      <tr><td>El cliente aprobó el arte o pidió cambios</td><td>Todo el equipo</td><td>Al momento</td></tr>
+      <tr><td>Resumen de pendientes: tareas de hoy y vencidas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar</td><td>Cada persona, solo lo suyo y lo que no tiene responsable</td><td>Lunes a sábado, 8:05 a. m. (hora del centro de México)</td></tr>
+    </tbody>
+  </table></div>
+  <p>La sección <b>Avisos</b> del OS muestra la lista completa y se actualiza cada vez que entras:</p>
+  <ul>
+    <li><b>Tareas:</b> vencidas, de hoy y de mañana.</li>
+    <li><b>Prospectos nuevos:</b> solicitudes sin atender, mensajes sin responder y leads sin contactar.</li>
+    <li><b>Cotizaciones pendientes:</b> pre-cotizaciones del sitio, borradores sin enviar y enviadas sin respuesta después de 3 días.</li>
+    <li><b>Avances sin terminar:</b> seguimientos vencidos, OT atrasadas, OT sin avance en 5 días, OT previas sin confirmar y cambios de arte pedidos.</li>
+    <li><b>Información sin llenar:</b> oportunidades sin siguiente paso o sin valor, OT sin fecha compromiso o sin tallas, cotizaciones con renglones sin precio y cuentas sin teléfono ni correo.</li>
+  </ul>
+  <p>La cuenta principal puede ver los de todo el equipo. El menú marca cuántos avisos sin ver tienes. Con el OS abierto en un equipo que no tiene activado el push, el navegador también muestra los avisos nuevos.</p>
+
+  <h2 id="problemas"><span class="n">10</span>Si algo no funciona</h2>
+  <ul>
+    <li><b>"Verificar y guardar" falla en Meta:</b> el token de verificación no coincide o falta redeploy en Vercel. Copia el token desde Ajustes, sin espacios.</li>
+    <li><b>Ajustes dice "falta" en un renglón:</b> la variable no está en Vercel o no hiciste redeploy.</li>
+    <li><b>No llegan mensajes de clientes de Instagram o Messenger, pero sí los tuyos:</b> la app sigue en modo desarrollo o sin acceso avanzado (paso 6).</li>
+    <li><b>No llegan mensajes de WhatsApp:</b> revisa que el campo <code>messages</code> esté suscrito y que el número aparezca como <b>Conectado</b> en el Administrador de WhatsApp.</li>
+    <li><b>"Meta no aceptó el mensaje" al contestar:</b> pasaron más de 24 horas desde el último mensaje del cliente. Contesta desde el teléfono o con una plantilla aprobada.</li>
+    <li><b>No me llegan las notificaciones:</b> en Avisos, toca <b>Mandar aviso de prueba</b>. En iPhone, el OS debe abrirse desde el ícono de la pantalla de inicio. En Android, revisa que el navegador tenga permiso de notificaciones y no esté en ahorro de batería extremo.</li>
+  </ul>
+</main>
+</body>
+</html>

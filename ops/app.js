@@ -287,12 +287,12 @@
 
   /* =========================== VIEWS =========================== */
   const ROUTES = {
-    inicio: viewHome, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
+    inicio: viewHome, avisos: viewAlerts, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
     prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
     programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam
   };
   const NAV = [
-    ["inicio", "Tablero"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
+    ["inicio", "Tablero"], ["avisos", "Avisos"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
     ["cotizaciones", "Cotizaciones"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
     ["group", "Sistema"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
   ];
@@ -302,7 +302,7 @@
   function shell() {
     const newReq = list("solicitudes").filter((s) => s.estado === "nueva" || s.nuevoMensaje).length;
     const late = list("tareas").filter((t) => !t.hecha && t.fecha && t.fecha <= localDate() && (!t.asesor || t.asesor === S.name)).length;
-    const counts = { solicitudes: newReq, tareas: late };
+    const counts = { solicitudes: newReq, tareas: late, avisos: unseenAlerts().length };
     const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
     const side = h("aside", { class: "side", id: "side" },
       h("div", { class: "brand" }, h("i", { "aria-hidden": "true" }), h("div", {}, h("b", { text: "CHILIAN" }), h("small", { text: "OS · PEDIDOS" }))),
@@ -354,6 +354,91 @@
   function logout(msg) { Object.assign(S, { token: "", role: "", users: [] }); store.set("chilian-os", null); renderLogin(msg); }
 
   /* ---------------- home / dashboard ---------------- */
+  /* ---------------- avisos: what needs attention, per person ---------------- */
+  const seenKey = () => "chilian-os-vistos-" + S.usuario;
+  const seenSet = () => { try { return new Set(JSON.parse(store.get(seenKey()) || "[]")); } catch { return new Set(); } };
+  const saveSeen = (set) => store.set(seenKey(), JSON.stringify([...set].slice(-1500)));
+  function alertsNow(scope) {
+    const D = {}; for (const c of ["solicitudes", "cuentas", "oportunidades", "tareas", "cotizaciones", "ots"]) D[c] = list(c);
+    return window.chilianAlerts ? window.chilianAlerts(D, { name: S.name, admin: isAdmin() }, { today: localDate(), scope: scope || "mine" }) : [];
+  }
+  const unseenAlerts = () => { const seen = seenSet(); return alertsNow().filter((a) => !seen.has(a.key)); };
+  function viewAlerts() {
+    const f = viewAlerts.f ||= { scope: "mine", cat: "", seen: false };
+    const seen = seenSet(), all = alertsNow(f.scope);
+    const rows = all.filter((a) => (!f.cat || a.cat === f.cat) && (f.seen || !seen.has(a.key)));
+    const LV = { alta: "p-bad", media: "p-warn", baja: "p-mut" };
+    const cats = window.CHILIAN_ALERT_CATS || [];
+    const mark = (keys) => { const st = seenSet(); keys.forEach((k) => st.add(k)); saveSeen(st); rerender(); };
+    return h("div", {}, top(`${all.filter((a) => !seen.has(a.key)).length} sin ver · ${all.length} en total`, "Avisos",
+        isAdmin() ? h("select", { class: "i", style: "width:auto", onchange: (e) => { f.scope = e.target.value; rerender(); } }, [["mine", "Míos y sin asignar"], ["all", "Todo el equipo"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.scope === v }))) : null,
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.cat = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los tipos" }), cats.map(([v, t]) => h("option", { value: v, text: `${t} (${all.filter((a) => a.cat === v).length})`, selected: f.cat === v }))),
+        h("label", { class: "row small", style: "gap:.3rem" }, h("input", { type: "checkbox", checked: f.seen, onchange: (e) => { f.seen = e.target.checked; rerender(); } }), "Mostrar vistos"),
+        rows.some((a) => !seen.has(a.key)) ? h("button", { class: "btn ghost", type: "button", onclick: () => mark(rows.map((a) => a.key)) }, "Marcar todo como visto") : null),
+      pushCard(),
+      rows.length ? h("div", { class: "grid", style: "gap:1rem" }, cats.filter(([id]) => rows.some((a) => a.cat === id)).map(([id, name]) => h("div", { class: "card" },
+        h("h2", { text: `${name} · ${rows.filter((a) => a.cat === id).length}` }),
+        h("ul", { style: "list-style:none;padding:0;margin:0;display:grid" }, rows.filter((a) => a.cat === id).map((a) => h("li", { style: "display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--rule);align-items:start" + (seen.has(a.key) ? ";opacity:.55" : "") },
+          h("a", { href: "#" + a.href, style: "color:inherit;text-decoration:none;min-width:0", onclick: () => mark([a.key]) }, h("span", { class: "pill " + LV[a.level], style: "margin-right:.5rem", text: a.level }), h("b", { text: a.title }), h("div", { class: "small muted", text: a.detail })),
+          seen.has(a.key) ? null : h("button", { class: "btn sm ghost", type: "button", onclick: () => mark([a.key]) }, "Visto")))))))
+        : h("div", { class: "empty", text: f.seen ? "Nada pendiente. Buen trabajo." : "Todo visto. Activa «Mostrar vistos» para ver los pendientes que siguen abiertos." }));
+  }
+
+  // Push to this phone or computer, even with the OS closed.
+  const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const b64key = (s) => { const p = "=".repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...b].map((c) => c.charCodeAt(0))); };
+  const swReady = () => navigator.serviceWorker.register("/ops/sw.js", { scope: "/ops/" }).then(() => navigator.serviceWorker.ready);
+  async function currentSub() { if (!pushSupported()) return null; try { const reg = await navigator.serviceWorker.getRegistration("/ops/"); return reg ? await reg.pushManager.getSubscription() : null; } catch { return null; } }
+  function pushCard() {
+    const box = h("div", { class: "card", style: "margin-bottom:1rem" }, h("p", { class: "small muted", text: "Revisando las notificaciones de este dispositivo…" }));
+    (async () => {
+      const head = h("h2", { text: "Notificaciones en este dispositivo" });
+      if (!pushSupported()) return box.replaceChildren(head, h("p", { class: "small", text: isIOS() && !standalone()
+        ? "En iPhone: abre este OS en Safari, toca Compartir → «Agregar a pantalla de inicio», ábrelo desde ese ícono y vuelve aquí para activar los avisos (iOS 16.4 o más reciente)."
+        : "Este navegador no permite notificaciones push. Usa Chrome, Edge, Firefox o Safari actualizado." }));
+      let info = {}; try { info = await api("GET", "/api/avisos?clave=1"); } catch {}
+      const sub = await currentSub(), perm = Notification.permission;
+      const state = sub ? "Activadas aquí" : perm === "denied" ? "Bloqueadas en este navegador" : "Apagadas aquí";
+      box.replaceChildren(...[head,
+        h("p", { class: "small", text: `${state}${info.devices ? ` · ${info.devices} dispositivo(s) tuyos reciben avisos` : ""}. Te llegan solicitudes y mensajes nuevos (sitio, WhatsApp, Instagram, Messenger), tareas y oportunidades que te asignan, aprobaciones del cliente y, cada mañana, el resumen de tus pendientes.` }),
+        !info.ready ? h("p", { class: "small", style: "color:var(--bad,#D2452B)", text: "El servidor aún no tiene las llaves de notificaciones (VAPID). La cuenta principal las agrega en Vercel siguiendo el tutorial de Ajustes." }) : null,
+        perm === "denied" ? h("p", { class: "small", text: "Las bloqueaste antes: actívalas en la configuración del sitio de tu navegador (candado junto a la dirección) y recarga." }) : null,
+        h("div", { class: "row" },
+          !sub && info.ready && perm !== "denied" ? h("button", { class: "btn accent", type: "button", onclick: async () => {
+            try {
+              if (await Notification.requestPermission() !== "granted") return toast("Sin permiso no se pueden mostrar avisos.", true);
+              const reg = await swReady();
+              const s2 = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(info.publicKey) });
+              await api("POST", "/api/avisos", { accion: "suscribir", sub: s2.toJSON(), device: `${isIOS() ? "iPhone/iPad" : /Android/.test(navigator.userAgent) ? "Android" : "Computadora"} · ${new Date().toLocaleDateString("es-MX")}` });
+              await api("POST", "/api/avisos", { accion: "probar" });
+              toast("Avisos activados. Te mandamos uno de prueba."); rerender();
+            } catch (err) { toast("No se pudieron activar: " + err.message, true); }
+          } }, "Activar avisos aquí") : null,
+          sub ? h("button", { class: "btn", type: "button", onclick: async () => { try { const r = await api("POST", "/api/avisos", { accion: "probar" }); toast(r.sent ? "Aviso de prueba enviado." : "No hay dispositivos activos."); } catch (err) { toast(err.message, true); } } }, "Mandar aviso de prueba") : null,
+          sub ? h("button", { class: "btn ghost", type: "button", onclick: async () => { try { await api("POST", "/api/avisos", { accion: "quitar", endpoint: sub.endpoint }); await sub.unsubscribe(); toast("Avisos apagados en este dispositivo."); rerender(); } catch (err) { toast(err.message, true); } } }, "Apagar aquí") : null,
+          isAdmin() && info.ready ? h("button", { class: "btn ghost", type: "button", onclick: async () => { try { const r = await api("POST", "/api/avisos", { accion: "resumen" }); toast(`Resumen enviado a ${r.sent} dispositivo(s).`); } catch (err) { toast(err.message, true); } } }, "Enviar el resumen de pendientes a todos ahora") : null)].filter(Boolean));
+    })();
+    return box;
+  }
+  // With the OS open and no push on this device: the browser's own notification for anything new.
+  async function notifyLocal() {
+    const key = "chilian-os-notificados-" + S.usuario;
+    let done; try { done = new Set(JSON.parse(store.get(key) || "null")); } catch { done = null; }
+    const now = alertsNow().filter((a) => a.level !== "baja");
+    if (!done || !done.size) { store.set(key, JSON.stringify(now.map((a) => a.key))); return; }   // first time: no flood
+    const fresh = now.filter((a) => !done.has(a.key)); if (!fresh.length) return;
+    fresh.forEach((a) => done.add(a.key)); store.set(key, JSON.stringify([...done].slice(-2000)));
+    if (!("Notification" in window) || Notification.permission !== "granted" || await currentSub()) return;
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration("/ops/");
+      const show = (title, body, url) => (reg ? reg.showNotification(title, { body, icon: "/ops/icon-192.png", data: { url: "/ops/#" + url }, tag: url }) : new Notification(title, { body }));
+      if (fresh.length > 3) show(`${fresh.length} avisos nuevos en Chilian OS`, fresh.slice(0, 3).map((a) => a.title).join(" · "), "avisos");
+      else fresh.forEach((a) => show(a.title, a.detail, a.href));
+    } catch {}
+  }
+
   function viewHome() {
     const opps = list("oportunidades"), open = opps.filter((o) => !["ganado", "perdido"].includes(o.etapa));
     const ots = list("ots").filter((o) => !o.previa), active = ots.filter((o) => !["entregada"].includes(o.etapa));
@@ -366,7 +451,11 @@
     const days = workDays(10), cap = dayCapacity() * S.settings.pulpos.length;
     const loadByDay = days.map((d) => S.settings.pulpos.reduce((a, p) => a + loadOn(p.id, d).reduce((x, y) => x + y.min, 0), 0));
     const kpi = (label, value, href, alert) => h("a", { class: "kpi" + (alert ? " alert" : ""), href: "#" + href }, h("span", { class: "label", text: label }), h("strong", { text: value }));
+    const urgent = alertsNow().filter((a) => a.level === "alta");
     return h("div", {},
+      urgent.length ? h("a", { class: "card", href: "#avisos", style: "display:flex;justify-content:space-between;gap:1rem;align-items:center;border-color:var(--accent,#C20E62);margin-bottom:1rem;text-decoration:none;color:inherit" },
+        h("span", {}, h("b", { text: `${urgent.length} aviso${urgent.length > 1 ? "s" : ""} urgente${urgent.length > 1 ? "s" : ""}: ` }), urgent.slice(0, 2).map((a) => a.title).join(" · ") + (urgent.length > 2 ? "…" : "")),
+        h("span", { class: "btn sm", text: "Ver avisos" })) : null,
       top(fmtDate(localDate()), `Hola, ${S.name.split(" ")[0]}`, h("a", { class: "btn accent", href: "#solicitudes" }, "Ver solicitudes"), h("button", { class: "btn ghost", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),
       h("div", { class: "kpis" },
         kpi("Solicitudes nuevas", fmtN(newReq.length), "solicitudes", newReq.length > 0),
@@ -425,6 +514,8 @@
   const fileHref = (p) => `/api/archivo?path=${encodeURIComponent(p)}&s=${encodeURIComponent(S.token)}`;
   function arrivedBy(s) {
     if (s.canal === "instagram") return "Instagram Direct (mensaje directo)";
+    if (s.canal === "messenger") return "Facebook Messenger (mensaje a la página)";
+    if (s.canal === "whatsapp" && s.waId) return `Mensaje de WhatsApp al ${waDest(s) || s.whatsapp?.numero || "número de Chilian"}`;
     if (s.canal === "manual") return `${fuenteName(s.fuente)}${s.whatsapp?.wa ? " al " + waDest(s) : ""} · registrada por ${s.registradaPor || "el equipo"}`;
     const tools = (s.herramientas && s.herramientas.length ? s.herramientas : ["cotizador"]).map((x) => HERR[x] || x).join(" + ");
     const sent = s.canal === "whatsapp" && waOf(s) ? `enviada por WhatsApp al ${waDest(s)}` : s.canal === "copiada" && waOf(s) ? `copiada (su asesor: WhatsApp ${waDest(s)})` : CANALES[s.canal] || s.canal || "sitio";
@@ -454,12 +545,13 @@
     const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
     const pre = s.preCotizacionId ? byId("cotizaciones", s.preCotizacionId) : null, preC = pre ? calcCot(pre) : null;
     const ig = s.canal === "instagram" || s.igId;
+    const social = s.waId ? "whatsapp" : s.fbId ? "facebook" : null;
     return h("article", { class: "card" + (s.nuevoMensaje ? " flash" : "") },
       h("div", { class: "row between" }, h("div", { class: "row" }, h("span", { class: "num", text: s.id }), h("span", { class: "pill " + (s.estado === "nueva" ? "p-acc" : s.estado === "convertida" ? "p-ok" : "p-mut"), text: s.estado }),
           s.nuevoMensaje ? h("span", { class: "pill p-bad", text: "mensaje nuevo" }) : null, h("span", { class: "muted small", text: fmtDT(s.ultimoMensaje || s.recibida || s.createdAt) })),
         h("span", { class: "label", text: s.tipoNombre || segName(s.tipo) })),
       h("div", { class: "row", style: "gap:.4rem" },
-        h("span", { class: "pill " + (s.fuente === "instagram" || ig ? "p-acc" : "p-info"), text: fuenteName(ig ? "instagram" : s.fuente) }),
+        h("span", { class: "pill " + (s.fuente === "instagram" || ig ? "p-acc" : "p-info"), text: fuenteName(ig ? "instagram" : social || s.fuente) }),
         h("span", { class: "pill " + (specific(s) ? "p-ok" : "p-mut"), text: specific(s) ? `Mercancía específica · ${s.modelos.length} modelo(s)` : "Sin mercancía específica" }),
         (s.herramientas || []).includes("estudio") ? h("span", { class: "pill p-info", text: "Usó Estampa tu idea" }) : null,
         waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null),
@@ -484,7 +576,7 @@
         s.preOtId && byId("ots", s.preOtId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "OT previa " + s.preOtId }), ` · ${s.adjuntos.some((a) => a.tipo === "mockup") ? "mockup y " : ""}${s.adjuntos.filter((a) => a.tipo !== "mockup").length} archivo(s) de diseño`),
           h("a", { class: "btn sm", href: "#ot/" + s.preOtId }, "Abrir OT previa")) : h("p", { class: "small muted", text: "Preparando la OT previa…" })) : null,
       ((n) => n && !ig ? h("p", { class: "small", style: "white-space:pre-wrap", text: n }) : null)((s.notas || "").split("\n").filter((l) => !(s.mockup && l.startsWith("Mockup: "))).join("\n").trim()),
-      ig ? igThread(s) : null,
+      (s.mensajes || []).length ? igThread(s) : null,
       h("div", { class: "row" },
         s.estado === "nueva" ? h("button", { class: "btn accent", type: "button", onclick: () => convertRequest(s) }, "Convertir en oportunidad") : s.oportunidadId ? h("a", { class: "btn ghost", href: "#oportunidad/" + s.oportunidadId }, "Ver oportunidad") : null,
         isPhone(contact) ? h("a", { class: "btn ghost", href: waLink(contact, `Hola ${s.nombre.split(" ")[0]}, soy ${S.name} de Chilian. Recibimos tu solicitud ${s.id}. `), target: "_blank", rel: "noopener" }, "WhatsApp") : null,
@@ -497,14 +589,15 @@
   // The Instagram conversation, with a reply box (works once Instagram is connected in Ajustes).
   function igThread(s) {
     const msgs = (s.mensajes || []).slice(-8);
-    const box = h("textarea", { class: "i", rows: "2", placeholder: "Responder por Instagram…" });
+    const via = s.waId ? "WhatsApp" : s.fbId ? "Messenger" : "Instagram";
+    const box = h("textarea", { class: "i", rows: "2", placeholder: `Responder por ${via}…` });
     return h("div", { class: "grid", style: "gap:.4rem" },
-      h("div", { class: "label", text: `Conversación de Instagram · ${(s.mensajes || []).length} mensaje(s)` }),
+      h("div", { class: "label", text: `Conversación de ${via}${s.waId && s.whatsapp?.numero ? " (llegó al " + s.whatsapp.numero + ")" : ""} · ${(s.mensajes || []).length} mensaje(s)` }),
       h("ul", { class: "log" }, msgs.map((m) => h("li", {}, h("time", { text: fmtDT(m.fecha) }), h("span", {}, h("b", { text: m.de === "cliente" ? s.nombre + ": " : (m.por || "Chilian") + ": " }), h("span", { style: "white-space:pre-wrap", text: m.texto }))))),
-      s.igId ? h("form", { class: "row", style: "flex-wrap:nowrap;align-items:end", onsubmit: async (e) => {
+      s.igId || s.fbId || s.waId ? h("form", { class: "row", style: "flex-wrap:nowrap;align-items:end", onsubmit: async (e) => {
         e.preventDefault(); const texto = box.value.trim(); if (!texto) return;
         const btn = e.target.querySelector("button"); btn.disabled = true;
-        try { const { doc } = await api("POST", "/api/instagram", { accion: "responder", id: s.id, texto }); S.data.solicitudes.set(doc.id, doc); toast("Enviado por Instagram."); rerender(); }
+        try { const { doc } = await api("POST", "/api/meta", { accion: "responder", id: s.id, texto }); S.data.solicitudes.set(doc.id, doc); toast(`Enviado por ${via}.`); rerender(); }
         catch (err) { if (err.message !== "401") toast(err.message, true); btn.disabled = false; }
       } }, box, h("button", { class: "btn", type: "submit" }, "Enviar")) : null);
   }
@@ -605,7 +698,7 @@
   async function leadFromRequest(s) {
     // Reuse the account if one already has this company or contact.
     const key = (s.empresa || s.nombre || "").trim().toLowerCase();
-    const src = s.canal === "instagram" || s.fuente === "instagram" ? "Redes sociales" : s.canal === "manual" ? ({ referido: "Referido", feria: "Feria", distribuidor: "Distribuidor" }[s.fuente] || "Prospección") : "Sitio web";
+    const src = ["instagram", "messenger"].includes(s.canal) || s.fuente === "instagram" ? "Redes sociales" : s.canal === "manual" ? ({ referido: "Referido", feria: "Feria", distribuidor: "Distribuidor" }[s.fuente] || "Prospección") : "Sitio web";
     let cuenta = list("cuentas").find((c) => c.nombre.trim().toLowerCase() === key || (c.contactos || []).some((x) => x.contacto && x.contacto === s.contacto));
     if (!cuenta) cuenta = await save("cuentas", { nombre: s.empresa || s.nombre, segmento: s.tipo || "marca", fuente: src, responsable: s.asesor && team().includes(s.asesor) ? s.asesor : S.name, contactos: [{ nombre: s.nombre, puesto: "", contacto: s.contacto }], notas: "" }, { quiet: true });
     const piezas = s.modelos?.length ? s.modelos.reduce((a, m) => a + (m.piezas || 0), 0) : s.piezas;
@@ -617,7 +710,7 @@
       actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Solicitud ${s.id}: ${arrivedBy(s)}.${pre ? " Pre-cotización " + pre.id + "." : ""}`, por: S.name }], solicitud: s
     }, { quiet: true });
     if (pre) await save("cotizaciones", { ...pre, oportunidadId: opp.id, cuentaId: cuenta.id, cliente: "" }, { quiet: true });
-    await save("tareas", { tipo: s.canal === "instagram" ? "Instagram" : "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}${pre ? " (revisar la pre-cotización " + pre.id + ")" : ""}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
+    await save("tareas", { tipo: s.canal === "instagram" ? "Instagram" : s.waId ? "WhatsApp" : "Llamada", texto: `Responder la solicitud ${s.id} de ${s.nombre}${pre ? " (revisar la pre-cotización " + pre.id + ")" : ""}`, fecha: localDate(), oportunidadId: opp.id, cuentaId: cuenta.id, asesor: opp.asesor, hecha: false }, { quiet: true });
     await save("solicitudes", { ...byId("solicitudes", s.id), estado: "convertida", nuevoMensaje: false, oportunidadId: opp.id, cuentaId: cuenta.id }, { quiet: true });
     return opp;
   }
@@ -1607,24 +1700,43 @@
     return h("div", { class: "card" }, h("h2", { text: "Precios del cotizador web" }),
       h("p", { class: "hint", text: "Lo que ve el cliente en “Cotiza en un minuto”: precio de venta antes de IVA, por pieza, según piezas. Son de referencia: la cotización formal se hace aquí en el OS." }), box);
   }
+  // The keys for push notifications and the morning summary, made here in the browser (they never
+  // pass through the server); the main account pastes them in Vercel → Environment Variables.
+  function keysBox() {
+    const out = h("div", { class: "grid", style: "gap:.35rem" });
+    const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const row = (k, v) => h("div", { class: "grid", style: "gap:.2rem" }, h("div", { class: "label", text: k }), h("div", { class: "copybox mono", style: "overflow-wrap:anywhere", text: v }), h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => copy(v) }, "Copiar " + k));
+    return h("div", { class: "grid", style: "gap:.5rem;margin-top:.6rem" },
+      h("p", { class: "small", text: "Faltan las llaves de los avisos. Genéralas aquí y pégalas en Vercel → Settings → Environment Variables (Production), luego haz Redeploy. No las compartas por chat ni correo." }),
+      h("button", { class: "btn sm", type: "button", style: "justify-self:start", onclick: async () => {
+        const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+        const pub = b64u(await crypto.subtle.exportKey("raw", kp.publicKey)), jwk = await crypto.subtle.exportKey("jwk", kp.privateKey);
+        out.replaceChildren(row("VAPID_PUBLIC_KEY", pub), row("VAPID_PRIVATE_KEY", jwk.d), row("VAPID_SUBJECT", "mailto:ventas@grupochilian.com.mx"), row("CRON_SECRET", b64u(crypto.getRandomValues(new Uint8Array(32)))));
+      } }, "Generar llaves de avisos"), out);
+  }
   function instagramCard() {
     const status = h("div", { class: "grid", style: "gap:.35rem" }, h("p", { class: "muted small", text: "Revisando la conexión…" }));
     const link = (medium) => `${location.origin}/?utm_source=instagram&utm_medium=${medium}#cotizar`;
-    api("GET", "/api/instagram?estado=1").then((j) => {
+    api("GET", "/api/meta?estado=1").then((j) => {
       const ok = (b) => h("span", { class: "pill " + (b ? "p-ok" : "p-warn"), text: b ? "listo" : "falta" });
-      status.replaceChildren(
-        h("div", { class: "row" }, ok(j.verify), h("span", { class: "small", text: "Token de verificación (IG_VERIFY_TOKEN)" })),
-        h("div", { class: "row" }, ok(j.secret), h("span", { class: "small", text: "Secreto de la app de Meta (IG_APP_SECRET)" })),
-        h("div", { class: "row" }, ok(j.token), h("span", { class: "small", text: "Token de acceso de la cuenta de Instagram (IG_ACCESS_TOKEN)" })),
-        h("div", { class: "label", text: "URL del webhook (Callback URL)" }), h("div", { class: "copybox", text: j.webhook }),
-        j.verifyToken ? h("div", { class: "label", text: "Verify token" }) : null, j.verifyToken ? h("div", { class: "copybox", text: j.verifyToken }) : null);
+      status.replaceChildren(...[
+        h("div", { class: "row" }, ok(j.verify), h("span", { class: "small", text: "Token de verificación (META_VERIFY_TOKEN o IG_VERIFY_TOKEN)" })),
+        h("div", { class: "row" }, ok(j.secret), h("span", { class: "small", text: "Secreto de la app de Meta (META_APP_SECRET)" })),
+        h("div", { class: "row" }, ok(j.whatsapp), h("span", { class: "small", text: "WhatsApp: token del usuario del sistema (WA_ACCESS_TOKEN)" })),
+        h("div", { class: "row" }, ok(j.instagram), h("span", { class: "small", text: "Instagram: token de la cuenta (IG_ACCESS_TOKEN)" })),
+        h("div", { class: "row" }, ok(j.messenger), h("span", { class: "small", text: "Messenger: token de la página de Facebook (META_PAGE_TOKEN)" })),
+        h("div", { class: "row" }, ok(j.push), h("span", { class: "small", text: "Notificaciones push (VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY)" })),
+        h("div", { class: "row" }, ok(j.cron), h("span", { class: "small", text: "Resumen de cada mañana (CRON_SECRET)" })),
+        !j.push || !j.cron ? keysBox() : null,
+        h("div", { class: "label", text: "URL del webhook (Callback URL) para WhatsApp, Instagram y Messenger" }), h("div", { class: "copybox", text: j.webhook }),
+        j.verifyToken ? h("div", { class: "label", text: "Verify token" }) : null, j.verifyToken ? h("div", { class: "copybox", text: j.verifyToken }) : null].filter(Boolean));
     }).catch(() => status.replaceChildren(h("p", { class: "small", text: "No se pudo revisar la conexión." })));
-    return h("div", { class: "card" }, h("h2", { text: "Instagram" }),
+    return h("div", { class: "card" }, h("h2", { text: "WhatsApp, Instagram, Messenger y avisos" }),
+      h("p", { class: "small" }, "Paso a paso para conectar todo: ", h("a", { href: "/ops/conectar", target: "_blank", rel: "noopener", text: "abrir el tutorial ↗" }), ". Un solo webhook recibe los tres canales; cada conversación llega a Solicitudes y avisa al equipo."),
       h("p", { class: "small", text: "1. Enlace de la bio y de historias: las solicitudes que llegan por aquí salen marcadas como Instagram." }),
       h("div", { class: "label", text: "Bio" }), h("div", { class: "copybox", text: link("bio") }), h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(link("bio")) }, "Copiar enlace de la bio"),
       h("div", { class: "label", text: "Historias y anuncios" }), h("div", { class: "copybox", text: link("historia") }), h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(link("historia")) }, "Copiar enlace de historias"),
-      h("p", { class: "small", text: "2. Mensajes directos: mientras no esté conectada la API, regístralos en Solicitudes → + Solicitud (Llegó por: Instagram Direct)." }),
-      h("p", { class: "small", text: "3. Conexión automática: cada DM a la cuenta de Chilian llega solo a Solicitudes y se responde desde aquí. En developers.facebook.com crea una app (tipo Empresa) con el producto «Instagram» → «API con inicio de sesión de Instagram», conecta la cuenta profesional de Chilian, genera su token, pega la URL y el verify token de abajo en Webhooks y suscríbete al campo «messages». Luego agrega IG_APP_SECRET e IG_ACCESS_TOKEN en Vercel (proyecto chilian → Settings → Environment Variables) y vuelve a desplegar. Para clientes fuera del equipo, Meta pide revisar la app (permiso instagram_business_manage_messages)." }),
+      h("p", { class: "small", text: "2. Mensajes: mientras un canal no esté conectado, registra sus conversaciones en Solicitudes → + Solicitud (Llegó por). Ya conectado, cada mensaje entra solo y se responde desde la solicitud (dentro de las 24 h que da Meta)." }),
       status);
   }
 
@@ -1705,11 +1817,15 @@
   addEventListener("hashchange", async () => { if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
   addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
   // keep data fresh while the app is open (other people are working too)
-  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); } }, 90_000);
+  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); notifyLocal(); } }, 90_000);
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/ops/sw.js", { scope: "/ops/" }).catch(() => {});
+    navigator.serviceWorker.addEventListener("message", (e) => { if (e.data?.go) location.href = e.data.go; });
+  }
   (async () => {
     try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token && s.usuario) Object.assign(S, { token: s.token, name: s.name, usuario: s.usuario, role: s.role }); } catch {}
     if (!S.token) return renderLogin();
     $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
-    try { await loadAll(); render(); } catch { /* 401 handled in api() */ }
+    try { await loadAll(); render(); notifyLocal(); } catch { /* 401 handled in api() */ }
   })();
 })();

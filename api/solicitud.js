@@ -3,6 +3,7 @@
    POST { ... } -> { id, subir? }
    A request made with Estampa tu idea also gets "subir": a 30-minute permit to attach its
    mockup and design files (POST /api/adjunto), which the OS turns into a draft work order. */
+import { notifySafe } from "./_push.js";
 import { saveDoc, sign, json, fail, body } from "./_lib.js";
 
 const s = (v, n = 300) => String(v ?? "").trim().slice(0, n);
@@ -46,6 +47,10 @@ export async function POST(req) {
       recibida: new Date().toISOString()
     };
     const saved = await saveDoc("solicitudes", doc, "Sitio web");
+    const pzs = (doc.modelos || []).reduce((a, m) => a + (m.piezas || 0), 0) || doc.piezas;
+    await notifySafe("all", { title: `Solicitud nueva del sitio: ${doc.nombre}${doc.empresa ? " · " + doc.empresa : ""}`,
+      body: `${doc.prenda || "Pedido"}${pzs ? " · " + Number(pzs).toLocaleString("es-MX") + " pzas" : ""}${doc.estimados?.length ? " · cotizó en línea" : ""}${doc.whatsapp?.numero ? " · llegó al WhatsApp " + doc.whatsapp.numero : ""}`,
+      url: "#solicitudes", tag: saved.id, urgent: true });
     const subir = doc.estudio || d.adjuntar ? sign({ sol: saved.id, exp: Date.now() + 30 * 60e3 }) : undefined;
     return json({ id: saved.id, subir });
   } catch (e) { return fail(e); }

@@ -238,3 +238,6 @@ export async function body(req, limit = 200_000) {
   try { return JSON.parse(text || "{}"); } catch { throw Object.assign(new Error("JSON no válido"), { status: 400 }); }
 }
 export const token = () => crypto.randomBytes(18).toString("base64url");
+
+// Raw storage for small helpers (push subscriptions).
+export { readPath, writePath, removePath, listPaths };

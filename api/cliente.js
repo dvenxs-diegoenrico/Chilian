@@ -1,6 +1,7 @@
 /* Public, by the order's client token (the link the advisor sends):
    GET  ?t=...                                   -> what the client may see of the order
    POST { t, accion: "aprobar"|"cambios", nombre, comentario } -> records the art decision */
+import { notifySafe } from "./_push.js";
 import { otByToken, saveDoc, json, fail, body } from "./_lib.js";
 
 const ETAPAS = ["arte", "aprobacion", "compra", "pantallas", "programada", "impresion", "calidad", "empaque", "embarcada", "entregada"];
@@ -35,6 +36,7 @@ export async function POST(req) {
     if (accion === "aprobar" && ETAPAS.indexOf(ot.etapa || "arte") < ETAPAS.indexOf("compra")) ot.etapa = "compra";
     if (accion === "cambios") ot.etapa = "arte";
     const saved = await saveDoc("ots", ot, `${who} (cliente)`);
+    await notifySafe("all", { title: accion === "aprobar" ? `Arte aprobado: ${saved.id}` : `Cambios al arte: ${saved.id}`, body: `${saved.clienteNombre || "El cliente"} · ${who}${accion === "cambios" ? ": " + ot.arte.comentario : ". Pasa a compra de prenda."}`, url: "#ot/" + saved.id, tag: "arte-" + saved.id, urgent: accion === "cambios" });
     return json({ ot: view(saved) });
   } catch (e) { return fail(e); }
 }
