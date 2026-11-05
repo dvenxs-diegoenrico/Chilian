@@ -401,3 +401,16 @@ La sección `#cotizar` funciona como un configurador con precio en vivo:
 - **Toda cotización trabajada entra al CRM:** las que se crean con «+ Cotización» nacen con su oportunidad; las pre-cotizaciones del sitio y las que no tenían oportunidad se agregan solas en cuanto se editan (o con «Agregar al CRM»).
 - **¿De dónde viene el cliente?** Se pide al crear la cotización, en dos grupos: por internet (sitio web, Instagram, Facebook, WhatsApp, TikTok, Google, redes) y sin internet (cliente actual ya retenido, contacto personal, referido, llamada o visita, feria o evento, distribuidor, prospección, otro), con un detalle libre (quién lo refirió, qué feria…). Una cuenta existente propone su origen, o «cliente actual» si ya compró. Se puede cambiar arriba de cada cotización y en la oportunidad; se guarda en la cotización, la oportunidad y la cuenta.
 - **Borrar:** tareas (× en cada tarea), cotizaciones (× en la lista o «Borrar cotización») y cuentas («Borrar cuenta», solo la cuenta principal; opcionalmente con sus oportunidades, cotizaciones y tareas; las órdenes de trabajo se conservan).
+
+## Revisión de OS y CRM: agilidad y coherencia (noviembre 2026)
+
+Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, ShopVOX, YoPrint: todo el trabajo por etapas, pagos y aprobación del cliente en la orden) y los CRM de ventas (Pipedrive: oportunidades estancadas, crear rápido desde cualquier lugar):
+
+- **Buscar o crear desde cualquier pantalla:** Ctrl/⌘ K o «/» (y el botón ＋ en el teléfono). Busca clientes, contactos, oportunidades, cotizaciones, OT, solicitudes y tareas; y crea cotización, oportunidad, tarea, cuenta, solicitud u OT.
+- **Teléfono:** barra inferior con Inicio, Avisos, Solicitudes, Tareas, Planta y ＋, con contadores.
+- **Navegación:** cada detalle (oportunidad, cuenta, cotización, OT) tiene «← volver» a su lista; los diálogos se cierran al cambiar de pantalla; Ajustes tiene índice de secciones.
+- **Pipeline:** días en la etapa y aviso de oportunidad estancada (Nuevo 1 día, Contactado 4, Calificado 7, Cotización enviada 5, Negociación 10, sin siguiente paso a futuro); filtros por origen del cliente y por estancadas. También salen en Avisos.
+- **Cliente 360:** la cuenta muestra sus tareas pendientes (con alta rápida) y un historial único con solicitudes, oportunidades y su actividad, cotizaciones, movimientos de OT y tareas hechas.
+- **Tareas:** alta rápida en una línea (tipo, texto, fecha, para quién) y botón «Mañana» para pasarla al siguiente día hábil.
+- **Pagos en la OT:** total, anticipo y saldo; registro de pagos (monto, método, fecha, referencia). Pasar a compra de prenda sin anticipo cubierto y entregar con saldo pendiente avisan como proceso sin terminar; también en Avisos.
+- **Reportes:** leads, tasa de cierre, vendido, ciclo de venta, entregas a tiempo y merma; de dónde vienen los clientes (leads, ganadas, cierre, vendido, abierto por origen), embudo solicitud → lead → cotización enviada → aceptada, venta por mes y razones de pérdida.

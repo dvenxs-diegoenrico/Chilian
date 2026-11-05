@@ -203,6 +203,7 @@
   async function save(col, doc, { quiet } = {}) {
     const prev = doc.id ? byId(col, doc.id) : null;
     try {
+      if (col === "oportunidades" && (!prev || prev.etapa !== doc.etapa)) doc = { ...doc, etapaDesde: new Date().toISOString() };   // for "days in stage"
       const { doc: saved } = await api("POST", "/api/db", { col, doc, base: prev?.updatedAt });
       (S.data[col] ||= new Map()).set(saved.id, saved);
       if (!quiet) toast("Guardado.");
@@ -301,13 +302,13 @@
 
   /* =========================== VIEWS =========================== */
   const ROUTES = {
-    inicio: viewHome, avisos: viewAlerts, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
+    inicio: viewHome, avisos: viewAlerts, reportes: viewReports, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
     prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
     programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam
   };
   const NAV = [
     ["inicio", "Tablero"], ["avisos", "Avisos"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
-    ["cotizaciones", "Cotizaciones"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
+    ["cotizaciones", "Cotizaciones"], ["reportes", "Reportes"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
     ["group", "Sistema"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
   ];
   const route = () => { const [r, ...rest] = (location.hash.slice(1) || "inicio").split("/"); return { r: ROUTES[r] ? r : "inicio", arg: decodeURIComponent(rest.join("/")) }; };
@@ -320,6 +321,7 @@
     const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
     const side = h("aside", { class: "side", id: "side" },
       h("div", { class: "brand ch-logo", role: "img", "aria-label": "Chilian OS" }, h("img", { src: "/logos/chilian-icono.png", alt: "" }), h("div", {}, h("span", { class: "ch-word" }), h("span", { class: "ch-tag", text: "OS · pedidos" }))),
+      h("button", { class: "side-search", type: "button", onclick: () => openSearch() }, h("span", { text: "Buscar o crear" }), h("kbd", { text: /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K" })),
       h("nav", { class: "nav", "aria-label": "Secciones" }, NAV.filter(([id]) => isAdmin() || (id !== "equipo" && id !== "ajustes")).filter(([id], i, a) => !(id === "group" && (!a[i + 1] || a[i + 1][0] === "group"))).map(([id, label]) => id === "group" ? h("div", { class: "group", text: label })
         : h("a", { href: "#" + id, class: parent === id ? "on" : "", onclick: () => $("#side").classList.remove("open") }, label, counts[id] ? h("span", { class: "count", text: counts[id] }) : null))),
       h("div", { class: "me" }, h("span", {}, S.name, h("span", { class: "muted small", text: " · " + S.usuario })), h("span", { class: "muted small", text: `Datos de ${fmtDT(new Date(S.loadedAt).toISOString())}` }),
@@ -327,20 +329,77 @@
         h("button", { type: "button", onclick: () => myAccountModal() }, "Mi cuenta"),
         h("button", { type: "button", onclick: () => logout() }, "Salir")));
     return h("div", { class: "shell" }, side,
-      h("div", {}, h("div", { class: "mobile-bar" }, h("button", { class: "btn sm ghost", style: "color:inherit;border-color:currentColor", type: "button", onclick: () => $("#side").classList.toggle("open") }, "Menú"), h("b", { text: "CHILIAN OS" }), h("span", {})),
-        h("main", { class: "main", id: "view" })));
+      h("div", {}, h("div", { class: "mobile-bar" }, h("button", { class: "btn sm ghost", style: "color:inherit;border-color:currentColor", type: "button", onclick: () => $("#side").classList.toggle("open") }, "Menú"), h("b", { text: "CHILIAN OS" }), h("button", { class: "btn sm ghost", style: "color:inherit;border-color:currentColor", type: "button", "aria-label": "Buscar o crear", onclick: () => openSearch() }, "Buscar")),
+        h("main", { class: "main", id: "view" }),
+        // phones: the five places used all day, one tap away
+        h("nav", { class: "tabbar", "aria-label": "Accesos rápidos" }, [["inicio", "Inicio"], ["avisos", "Avisos"], ["solicitudes", "Solicitudes"], ["tareas", "Tareas"], ["ots", "Planta"]].map(([id, label]) =>
+          h("a", { href: "#" + id, class: parent === id ? "on" : "" }, label, counts[id] ? h("b", { text: counts[id] }) : null)),
+          h("button", { type: "button", onclick: () => openSearch(), "aria-label": "Buscar o crear" }, "＋"))));
   }
   function render() {
     if (!S.token) return renderLogin();
     const app = $("#app"), y = scrollY;
     app.replaceChildren(shell());
     const { r, arg } = route();
-    try { $("#view").replaceChildren(ROUTES[r](arg)); } catch (e) { console.error(e); $("#view").replaceChildren(h("div", { class: "empty", text: "Algo falló al mostrar esta vista: " + e.message })); }
+    const CRUMB = { oportunidad: ["pipeline", "Oportunidades"], cuenta: ["cuentas", "Cuentas"], cotizacion: ["cotizaciones", "Cotizaciones"], ot: ["ots", "Órdenes de trabajo"] }[r];
+    try { $("#view").replaceChildren(...[CRUMB ? h("a", { class: "crumb", href: "#" + CRUMB[0], text: "← " + CRUMB[1] }) : null, ROUTES[r](arg)].filter(Boolean)); } catch (e) { console.error(e); $("#view").replaceChildren(h("div", { class: "empty", text: "Algo falló al mostrar esta vista: " + e.message })); }
     if (render.keepScroll) scrollTo(0, y); else scrollTo(0, 0);
     render.keepScroll = false;
   }
   const rerender = () => { render.keepScroll = true; render(); };
   const top = (sub, title, ...actions) => h("div", { class: "topbar" }, h("div", {}, h("div", { class: "sub", text: sub }), h("h1", { text: title })), h("div", { class: "actions" }, actions));
+
+  /* ---------------- search everything + create anything (Ctrl/⌘ K) ---------------- */
+  const QUICK = [
+    ["Cotización", "Nueva cotización con su lead y origen", () => newQuoteModal()],
+    ["Oportunidad", "Lead nuevo en el pipeline", () => newOppModal()],
+    ["Tarea", "Para ti o para alguien del equipo", () => assignTaskModal({ asesor: S.name })],
+    ["Cuenta", "Cliente o prospecto", () => accountModal()],
+    ["Solicitud", "Llegó por teléfono, visita, feria, red social…", () => manualRequestModal()],
+    ["OT sin cotización", "Orden directa a planta", () => manualOT()]
+  ];
+  const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function searchAll(q) {
+    const k = norm(q).trim(); if (!k) return [];
+    const words = k.split(/\s+/), hit = (txt) => { const n = norm(txt); return words.every((w) => n.includes(w)); };
+    const out = [];
+    for (const c of list("cuentas")) if (hit([c.nombre, c.ciudad, ...(c.contactos || []).map((x) => x.nombre + " " + x.contacto)].join(" "))) out.push(["Cuenta", c.nombre, `${segName(c.segmento)} · ${c.responsable || "sin responsable"}`, "cuenta/" + c.id]);
+    for (const o of list("oportunidades")) if (hit(o.titulo + " " + cuentaName(o.cuentaId) + " " + (o.origen || ""))) out.push(["Oportunidad", o.titulo, `${cuentaName(o.cuentaId)} · ${stageName(OPP_STAGES, o.etapa)}`, "oportunidad/" + o.id]);
+    for (const q2 of list("cotizaciones")) if (hit(q2.id + " " + CZ.clientOf(q2) + " " + (q2.lineas || []).map((l) => l.concepto).join(" "))) out.push(["Cotización", `${q2.id} · ${CZ.clientOf(q2) || "sin cliente"}`, `${q2.estado || "borrador"} · ${money(calcCot(q2).total)}`, "cotizacion/" + q2.id]);
+    for (const ot of list("ots")) if (hit(ot.id + " " + (ot.clienteNombre || ""))) out.push(["OT", `${ot.id} · ${ot.clienteNombre || ""}`, `${ot.previa ? "previa" : stageName(OT_STAGES, ot.etapa)} · compromiso ${fmtDate(ot.fechaCompromiso)}`, "ot/" + ot.id]);
+    for (const so of list("solicitudes")) if (hit(so.id + " " + so.nombre + " " + (so.empresa || "") + " " + (so.contacto || ""))) out.push(["Solicitud", `${so.id} · ${so.nombre}`, `${so.estado} · ${so.prenda || ""}`, "solicitudes"]);
+    for (const t of list("tareas")) if (!t.hecha && hit(t.texto)) out.push(["Tarea", t.texto, `${fmtDate(t.fecha)} · ${t.asesor || "sin asignar"}`, t.oportunidadId ? "oportunidad/" + t.oportunidadId : "tareas"]);
+    return out.slice(0, 40);
+  }
+  function openSearch() {
+    if ($("#modal").open) closeModal();
+    const input = h("input", { class: "i big", type: "text", enterkeyhint: "go", placeholder: "Buscar cliente, OT, cotización, oportunidad, tarea… o crear algo", autocomplete: "off" });
+    const box = h("div", { class: "cmd-list", role: "listbox" });
+    let items = [], at = 0;
+    const paint = () => {
+      const q = input.value, res = searchAll(q);
+      const quick = QUICK.filter(([n]) => !q || norm("nueva nuevo crear " + n).includes(norm(q).trim()));
+      items = [...res.map(([kind, title, sub, href]) => ({ kind, title, sub, run: () => go(href) })), ...quick.map(([n, sub, fn]) => ({ kind: "Crear", title: "+ " + n, sub, run: fn }))];
+      at = Math.min(at, Math.max(0, items.length - 1));
+      box.replaceChildren(...(items.length ? items.map((it, i) => h("button", { type: "button", class: "cmd-item" + (i === at ? " on" : ""), role: "option", onclick: () => { closeModal(); it.run(); } },
+        h("span", { class: "pill " + (it.kind === "Crear" ? "p-acc" : "p-mut"), text: it.kind }), h("span", {}, h("b", { text: it.title }), h("small", { text: it.sub })))) : [h("p", { class: "muted small", text: "Nada con eso. Prueba con el nombre del cliente, el folio (COT-, OT-, SOL-) o una palabra del producto." })]));
+      box.querySelector(".on")?.scrollIntoView({ block: "nearest" });
+    };
+    input.addEventListener("input", () => { at = 0; paint(); });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); at = Math.min(items.length - 1, at + 1); paint(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); at = Math.max(0, at - 1); paint(); }
+      else if (e.key === "Enter" && items[at]) { e.preventDefault(); const it = items[at]; closeModal(); it.run(); }
+    });
+    modal("Buscar o crear", h("div", { class: "grid", style: "gap:.6rem" }, input, box, h("p", { class: "hint", text: "Atajos: Ctrl/⌘ K o / para abrir · ↑ ↓ para elegir · Enter para abrir." })));
+    paint(); input.focus(); setTimeout(() => input.focus(), 30);
+  }
+  addEventListener("keydown", (e) => {
+    if (!S.token) return;
+    const typing = e.target.closest?.("input, textarea, select, [contenteditable]");
+    if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) { e.preventDefault(); openSearch(); }
+    else if (e.key === "/" && !typing && !$("#modal").open) { e.preventDefault(); openSearch(); }
+  });
 
   /* ---------------- login ---------------- */
   function renderLogin(msg = "") {
@@ -454,6 +513,47 @@
     } catch {}
   }
 
+  function viewReports() {
+    const f = viewReports.f ||= { dias: "180" };
+    const since = f.dias ? new Date(Date.now() - +f.dias * 864e5).toISOString() : "";
+    const inRange = (d) => !since || String(d || "") >= since;
+    const opps = list("oportunidades").filter((o) => inRange(o.createdAt)), quotes = list("cotizaciones").filter((q) => inRange(q.createdAt));
+    const won = opps.filter((o) => o.etapa === "ganado"), lost = opps.filter((o) => o.etapa === "perdido");
+    const pct = (a, b) => (b ? fmtN((a / b) * 100, 0) + " %" : "—");
+    // by origin
+    const srcRows = [...new Set([...SOURCES, ...opps.map(oppSource)])].map((src) => {
+      const xs = opps.filter((o) => (oppSource(o) || "Sin especificar") === (src || "Sin especificar")), w = xs.filter((o) => o.etapa === "ganado"), l = xs.filter((o) => o.etapa === "perdido");
+      return { src: src || "Sin especificar", n: xs.length, w: w.length, rate: pct(w.length, w.length + l.length), val: w.reduce((a, o) => a + oppValue(o), 0), open: xs.filter(OPEN_OPP).reduce((a, o) => a + oppValue(o), 0) };
+    }).filter((r) => r.n).sort((a, b) => b.val - a.val || b.n - a.n);
+    // funnel
+    const sols = list("solicitudes").filter((x) => inRange(x.recibida || x.createdAt));
+    const sent = quotes.filter((q) => ["enviada", "aceptada", "rechazada"].includes(q.estado)), acc = quotes.filter((q) => q.estado === "aceptada");
+    // sales by month (accepted quotes)
+    const months = {}; for (const q of list("cotizaciones").filter((q) => q.estado === "aceptada")) { const m = String(q.aceptadaEn || q.updatedAt).slice(0, 7); months[m] = (months[m] || 0) + calcCot(q).sub; }
+    const monthRows = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
+    // plant: on time and waste
+    const shipped = list("ots").filter((o) => ["embarcada", "entregada"].includes(o.etapa) && inRange(o.createdAt));
+    const shipDate = (o) => ((o.historial || []).find((x) => x.etapa === "embarcada") || (o.historial || []).find((x) => x.etapa === "entregada") || {}).fecha || o.updatedAt;
+    const onTime = shipped.filter((o) => !o.fechaCompromiso || String(shipDate(o)).slice(0, 10) <= o.fechaCompromiso).length;
+    const pzs = shipped.reduce((a, o) => a + o.lineas.reduce((x, l) => x + (+l.piezas || 0), 0), 0), merma = shipped.reduce((a, o) => a + (o.merma || []).reduce((x, m) => x + (+m.cantidad || 0), 0), 0);
+    const cycle = won.filter((o) => o.cerradaEn).map((o) => (new Date(o.cerradaEn) - new Date(o.createdAt)) / 864e5);
+    const reasons = {}; for (const o of lost) reasons[o.perdidaRazon || "Sin razón"] = (reasons[o.perdidaRazon || "Sin razón"] || 0) + 1;
+    const kpi = (label, value, note) => h("div", { class: "kpi" }, h("span", { class: "label", text: label }), h("strong", { text: value }), note ? h("span", { class: "small muted", text: note }) : null);
+    const table = (head, rows) => h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, head.map((x, i) => h("th", { class: i ? "r" : "", text: x })))), h("tbody", {}, rows.map((r) => h("tr", {}, r.map((v, i) => h("td", { class: i ? "r num" : "", text: v })))))));
+    return h("div", {}, top("Ventas, origen de clientes y planta", "Reportes",
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.dias = e.target.value; rerender(); } }, [["30", "Últimos 30 días"], ["90", "Últimos 90 días"], ["180", "Últimos 6 meses"], ["365", "Último año"], ["", "Todo"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.dias === v })))),
+      h("div", { class: "kpis" }, kpi("Leads nuevos", fmtN(opps.length)), kpi("Tasa de cierre", pct(won.length, won.length + lost.length), `${won.length} ganadas · ${lost.length} perdidas`),
+        kpi("Vendido (ganadas)", moneyK(won.reduce((a, o) => a + oppValue(o), 0))), kpi("Ciclo de venta", cycle.length ? fmtN(cycle.reduce((a, b) => a + b, 0) / cycle.length, 0) + " días" : "—", "de lead a ganado"),
+        kpi("Entregas a tiempo", pct(onTime, shipped.length), `${shipped.length} OT embarcadas`), kpi("Merma", pzs ? fmtN((merma / pzs) * 100, 2) + " %" : "—", "meta 1.5 % o menos")),
+      h("div", { class: "cols" },
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "¿De dónde vienen los clientes?" }), srcRows.length ? table(["Origen", "Leads", "Ganadas", "Cierre", "Vendido", "Abierto"], srcRows.map((r) => [r.src, fmtN(r.n), fmtN(r.w), r.rate, moneyK(r.val), moneyK(r.open)])) : h("p", { class: "muted small", text: "Sin oportunidades en este periodo." })),
+          h("div", { class: "card" }, h("h2", { text: "Embudo" }), table(["Paso", "Cantidad", "Conversión"], [["Solicitudes recibidas", fmtN(sols.length), "—"], ["Oportunidades (leads)", fmtN(opps.length), pct(opps.length, sols.length)], ["Cotizaciones enviadas", fmtN(sent.length), pct(sent.length, opps.length)], ["Cotizaciones aceptadas", fmtN(acc.length), pct(acc.length, sent.length)]]))),
+        h("div", { class: "grid" },
+          h("div", { class: "card" }, h("h2", { text: "Venta por mes (cotizaciones aceptadas, sin IVA)" }), monthRows.length ? table(["Mes", "Venta"], monthRows.map(([m, v]) => [new Date(m + "-15").toLocaleDateString("es-MX", { month: "long", year: "numeric" }), money(v)])) : h("p", { class: "muted small", text: "Aún no hay cotizaciones aceptadas." })),
+          h("div", { class: "card" }, h("h2", { text: "¿Por qué se pierden?" }), Object.keys(reasons).length ? table(["Razón", "Oportunidades"], Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([r, n]) => [r, fmtN(n)])) : h("p", { class: "muted small", text: "Ninguna perdida en este periodo." })))));
+  }
+
   function viewHome() {
     const opps = list("oportunidades"), open = opps.filter((o) => !["ganado", "perdido"].includes(o.etapa));
     const ots = list("ots").filter((o) => !o.previa), active = ots.filter((o) => !["entregada"].includes(o.etapa));
@@ -511,6 +611,7 @@
           t.asignadaPor && t.asignadaPor !== t.asesor ? h("div", { class: "small muted", text: `Asignada por ${t.asignadaPor}${t.asesor !== S.name ? " a " + t.asesor : ""}` }) : t.asesor && t.asesor !== S.name ? h("div", { class: "small muted", text: t.asesor }) : null),
         h("div", { class: "row", style: "gap:.3rem;flex-wrap:nowrap" },
           h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha"),
+          h("button", { class: "btn sm ghost", type: "button", title: "Pasarla al siguiente día hábil", onclick: async () => { await save("tareas", { ...t, fecha: workDays(1, addDays(localDate(), 1))[0] }, { quiet: true }); toast("Tarea pospuesta al siguiente día hábil."); rerender(); } }, "Mañana"),
           h("button", { class: "x", type: "button", title: "Borrar tarea", "aria-label": "Borrar tarea", onclick: () => deleteTask(t) }, "×"))));
   }
   async function deleteTask(t) {
@@ -776,11 +877,13 @@
 
   /* ---------------- pipeline (kanban) ---------------- */
   function viewPipeline() {
-    const f = viewPipeline.f ||= { seg: "", asesor: "", q: "" };
+    const f = viewPipeline.f ||= { seg: "", asesor: "", q: "", src: "", stale: false };
     let opps = list("oportunidades");
     if (f.seg) opps = opps.filter((o) => o.segmento === f.seg);
     if (f.asesor) opps = opps.filter((o) => o.asesor === f.asesor);
     if (f.q) { const q = f.q.toLowerCase(); opps = opps.filter((o) => (o.titulo + " " + cuentaName(o.cuentaId)).toLowerCase().includes(q)); }
+    if (f.src) opps = opps.filter((o) => oppSource(o) === f.src);
+    if (f.stale) opps = opps.filter(stalled);
     const lanes = OPP_STAGES.map((s) => {
       const xs = opps.filter((o) => (o.etapa || "nuevo") === s.id).sort((a, b) => scoreOf(b) - scoreOf(a) || oppValue(b) - oppValue(a));
       const lane = h("section", { class: "lane", "data-stage": s.id },
@@ -788,7 +891,8 @@
         xs.map((o) => {
           const sc = scoreOf(o), card = h("article", { class: "opp", draggable: "true", "data-id": o.id, onclick: () => go("oportunidad/" + o.id) },
             h("div", { class: "row between", style: "flex-wrap:nowrap;align-items:start" }, h("span", { class: "t", text: o.titulo }), h("span", { class: "tier " + tierOf(sc), title: `Ajuste high-ticket: ${sc}/100`, text: tierOf(sc) })),
-            h("span", { class: "small", text: cuentaName(o.cuentaId) }),
+            h("span", { class: "small", text: cuentaName(o.cuentaId) + (oppSource(o) ? " · " + oppSource(o) : "") }),
+            OPEN_OPP(o) ? h("span", { class: "small " + (stalled(o) ? "due-late" : "muted"), text: `${daysIn(o)} día${daysIn(o) === 1 ? "" : "s"} en la etapa${stalled(o) ? " · estancada" : ""}` }) : null,
             h("div", { class: "m" }, h("span", { text: segName(o.segmento) }), h("span", { class: "money", text: moneyK(oppValue(o)) })),
             o.proximaAccion?.texto ? h("div", { class: "m" }, h("span", { class: dueClass(o.proximaAccion.fecha), text: (o.proximaAccion.fecha ? fmtDate(o.proximaAccion.fecha) + " · " : "") + o.proximaAccion.texto })) : null);
           card.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", o.id); card.classList.add("drag"); });
@@ -809,9 +913,17 @@
         h("input", { class: "i search", type: "search", placeholder: "Buscar oportunidad o cuenta", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewPipeline.t); viewPipeline.t = setTimeout(rerender, 250); } }),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.seg = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los segmentos" }), SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: f.seg === s.id }))),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.asesor = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), team().map((n) => h("option", { value: n, text: n, selected: f.asesor === n }))),
+        h("select", { class: "i", style: "width:auto", onchange: (e) => { f.src = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los orígenes" }), SOURCE_GROUPS.map(([g, xs]) => h("optgroup", { label: g }, xs.map((x) => h("option", { value: x, text: x, selected: f.src === x }))))),
+        h("label", { class: "row small", style: "gap:.3rem" }, h("input", { type: "checkbox", checked: f.stale, onchange: (e) => { f.stale = e.target.checked; rerender(); } }), `Estancadas (${list("oportunidades").filter(stalled).length})`),
         h("button", { class: "btn accent", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),
       h("div", { class: "board" }, lanes));
   }
+  // Stalled ("rotting") deals: too many days in a stage and no future next step. Days per stage, from sales practice.
+  const STALE_DAYS = { nuevo: 1, contactado: 4, calificado: 7, cotizacion: 5, negociacion: 10 };
+  const OPEN_OPP = (o) => !["ganado", "perdido"].includes(o.etapa || "nuevo");
+  const daysIn = (o) => Math.max(0, Math.floor((Date.now() - new Date(o.etapaDesde || o.createdAt || Date.now()).getTime()) / 864e5));
+  const stalled = (o) => OPEN_OPP(o) && daysIn(o) > (STALE_DAYS[o.etapa || "nuevo"] ?? 7) && !(o.proximaAccion?.fecha && o.proximaAccion.fecha >= localDate());
+  const oppSource = (o) => o.fuente || srcOf(byId("cuentas", o.cuentaId)?.fuente) || "";
   async function moveOpp(o, etapa) {
     let extra = {};
     if (etapa === "perdido") {
@@ -956,6 +1068,19 @@
   }
 
   /* ---------------- tasks ---------------- */
+  function quickTask(pre = {}) {
+    const f = h("form", { class: "quick-task", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f)); if (!fd.texto.trim()) return;
+      await save("tareas", { tipo: fd.tipo, texto: fd.texto.trim(), fecha: fd.fecha || localDate(), asesor: fd.asesor || S.name, asignadaPor: S.name, cuentaId: pre.cuentaId || "", oportunidadId: pre.oportunidadId || "", hecha: false }, { quiet: true });
+      toast(fd.asesor && fd.asesor !== S.name ? `Tarea asignada a ${fd.asesor}.` : "Tarea agregada."); rerender();
+    } },
+      h("select", { class: "i", name: "tipo", "aria-label": "Tipo" }, TIPOS_ACT.filter((x) => x !== "Nota").map((x) => h("option", { value: x, text: x }))),
+      h("input", { class: "i", name: "texto", placeholder: pre.placeholder || "Nueva tarea: ¿qué hay que hacer?", required: true, "aria-label": "Tarea" }),
+      h("input", { class: "i", name: "fecha", type: "date", value: localDate(), "aria-label": "Fecha" }),
+      h("select", { class: "i", name: "asesor", "aria-label": "Para" }, team().map((n) => h("option", { value: n, text: n === S.name ? "Para mí" : n, selected: n === (pre.asesor || S.name) }))),
+      h("button", { class: "btn accent", type: "submit" }, "Agregar"));
+    return f;
+  }
   function viewTasks() {
     const f = viewTasks.f ||= { who: S.name, show: "pendientes" };
     let ts = list("tareas");
@@ -963,7 +1088,7 @@
     ts = ts.filter((t) => (f.show === "pendientes" ? !t.hecha : t.hecha)).sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
     const groups = [["Atrasadas", ts.filter((t) => t.fecha && t.fecha < localDate())], ["Hoy", ts.filter((t) => t.fecha === localDate())], ["Próximas", ts.filter((t) => !t.fecha || t.fecha > localDate())]];
     return h("div", {},
-      top("Lo que sigue con cada cuenta", "Tareas",
+      top("Lo que sigue con cada cuenta", "Tareas", quickTask(),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), team().map((n) => h("option", { value: n, text: n, selected: f.who === n }))),
         h("div", { class: "chips" }, ["pendientes", "hechas"].map((x) => h("button", { type: "button", class: "chip" + (f.show === x ? " on" : ""), onclick: () => { f.show = x; rerender(); } }, x)))),
       f.show === "hechas" ? (ts.length ? h("div", { class: "card" }, h("ul", { class: "log" }, ts.slice(0, 200).map((t) => h("li", {}, h("time", { text: fmtDate(t.fecha) }), h("div", { class: "row between", style: "flex-wrap:nowrap" }, h("span", { text: `${t.tipo}: ${t.texto}` }), h("button", { class: "x", type: "button", title: "Borrar tarea", "aria-label": "Borrar tarea", onclick: () => deleteTask(t) }, "×")))))) : h("div", { class: "empty", text: "No hay tareas hechas aún." }))
@@ -1015,6 +1140,19 @@
     modal(c.id ? "Editar cuenta" : "Nueva cuenta", f);
   }
   const contactRow = (x) => h("div", { class: "ct grid g3" }, h("input", { class: "i cn", placeholder: "Nombre", value: x.nombre || "" }), h("input", { class: "i cp", placeholder: "Puesto", value: x.puesto || "" }), h("input", { class: "i cc", placeholder: "WhatsApp o correo", value: x.contacto || "" }));
+  // Everything that happened with a client, newest first: requests, deals, quotes, orders, tasks.
+  function clientTimeline(c, os, qs, ots) {
+    const ev = [];
+    for (const so of list("solicitudes").filter((x) => x.cuentaId === c.id)) ev.push([so.recibida || so.createdAt, "Solicitud", `${so.id} · ${arrivedBy(so)}`, "solicitudes"]);
+    for (const o of os) { ev.push([o.createdAt, "Oportunidad", `${o.titulo} · ${oppSource(o) || "origen sin especificar"}`, "oportunidad/" + o.id]); for (const a of o.actividad || []) ev.push([a.fecha, a.tipo || "Nota", `${a.texto}${a.por ? " · " + a.por : ""}`, "oportunidad/" + o.id]); }
+    for (const q of qs) { ev.push([q.createdAt, "Cotización", `${q.id} creada · ${money(calcCot(q).total)}`, "cotizacion/" + q.id]); if (q.enviadaEn) ev.push([q.enviadaEn, "Cotización", `${q.id} enviada`, "cotizacion/" + q.id]); if (q.aceptadaEn) ev.push([q.aceptadaEn, "Cotización", `${q.id} aceptada`, "cotizacion/" + q.id]); }
+    for (const ot of ots) for (const x of ot.historial || []) ev.push([x.fecha, "OT", `${ot.id} → ${stageName(OT_STAGES, x.etapa)}${x.nota ? " · " + x.nota : ""}`, "ot/" + ot.id]);
+    for (const t of list("tareas").filter((t) => t.hecha && t.cuentaId === c.id)) ev.push([t.hechaEn || t.updatedAt, "Tarea", `Hecha: ${t.texto}`, "tareas"]);
+    ev.sort((a, b) => String(b[0] || "").localeCompare(String(a[0] || "")));
+    if (!ev.length) return h("p", { class: "muted small", text: "Aún no hay movimientos." });
+    const show = h("ul", { class: "log timeline" }, ev.slice(0, 25).map(([f, k, t, href]) => h("li", {}, h("time", { text: f ? fmtDT(f) : "—" }), h("a", { href: "#" + href, style: "color:inherit;text-decoration:none" }, h("span", { class: "pill p-mut", style: "margin-right:.4rem", text: k }), t))));
+    return ev.length > 25 ? h("div", {}, show, h("p", { class: "muted small", text: `y ${ev.length - 25} movimientos más antiguos.` })) : show;
+  }
   function viewAccount(id) {
     const c = byId("cuentas", id);
     if (!c) return h("div", { class: "empty", text: "No encontramos esta cuenta." });
@@ -1028,7 +1166,10 @@
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("h2", { text: "Oportunidades" }), os.length ? h("div", { class: "tbl" }, h("table", {}, h("tbody", {}, os.map((o) => h("tr", { class: "click", onclick: () => go("oportunidad/" + o.id) }, h("td", { text: o.titulo }), h("td", { text: stageName(OPP_STAGES, o.etapa) }), h("td", { class: "r money", text: moneyK(oppValue(o)) })))))) : h("p", { class: "muted small", text: "Sin oportunidades." })),
           h("div", { class: "card" }, h("h2", { text: "Cotizaciones" }), qs.length ? quoteTable(qs) : h("p", { class: "muted small", text: "Sin cotizaciones." })),
-          h("div", { class: "card" }, h("h2", { text: "Órdenes de trabajo" }), ots.length ? otTable(ots) : h("p", { class: "muted small", text: "Sin órdenes." }))),
+          h("div", { class: "card" }, h("h2", { text: "Órdenes de trabajo" }), ots.length ? otTable(ots) : h("p", { class: "muted small", text: "Sin órdenes." })),
+          ((ts) => h("div", { class: "card" }, h("h2", { text: `Tareas pendientes (${ts.length})` }), quickTask({ cuentaId: c.id, asesor: c.responsable || S.name, placeholder: `Tarea para ${c.nombre}…` }),
+            ts.length ? h("ul", { class: "log", style: "margin-top:.6rem" }, ts.map(taskItem)) : null))(list("tareas").filter((t) => !t.hecha && (t.cuentaId === c.id || os.some((o) => o.id === t.oportunidadId))).sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"))),
+          h("div", { class: "card" }, h("h2", { text: "Historial del cliente" }), clientTimeline(c, os, qs, ots))),
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("h2", { text: "Contactos" }), (c.contactos || []).length ? h("ul", { class: "log" }, c.contactos.map((x) => h("li", {}, h("time", { text: x.puesto || "Contacto" }), h("div", {}, h("b", { text: x.nombre }), h("div", { class: "mono small", text: x.contacto }),
             h("div", { class: "row", style: "margin-top:.3rem" }, isPhone(x.contacto) ? h("a", { class: "btn sm ghost", href: waLink(x.contacto, `Hola ${x.nombre.split(" ")[0]}, soy ${S.name} de Chilian.`), target: "_blank", rel: "noopener" }, "WhatsApp") : null, h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(x.contacto) }, "Copiar")))))) : h("p", { class: "muted small", text: "Sin contactos." })),
@@ -1354,6 +1495,8 @@
     if (ot.arte?.estado !== "aprobada") add("compra", ot.arte?.estado === "cambios" ? "El cliente pidió cambios al arte y no se ha vuelto a aprobar" : "El arte no está aprobado por el cliente");
     const sinTallas = (ot.lineas || []).filter((l) => +l.piezas > 0 && Object.values(l.tallas || {}).reduce((a, b) => a + (+b || 0), 0) !== +l.piezas).length;
     if (sinTallas) add("compra", `Tallas incompletas en ${sinTallas} partida(s)`);
+    if (+ot.total > 0 && +ot.anticipo > 0 && paidOf(ot) < depositDue(ot) - 0.5) add("compra", `Anticipo sin cubrir (${money(Math.max(0, depositDue(ot) - paidOf(ot)))} por recibir)`);
+    if (+ot.total > 0 && paidOf(ot) < +ot.total - 0.5) add("entregada", `Saldo pendiente de ${money(+ot.total - paidOf(ot))}`);
     const falta = pendingTecs(ot);
     if (falta.length) add("programada", `Falta programar máquina (${falta.map((k) => TECS[k] || k).join(", ")})`);
     if (t >= stageIdx("empaque") && (ot.merma || []).length === 0 && !(ot.historial || []).some((hh) => hh.etapa === "calidad")) add("empaque", "No pasó por revisión de calidad");
@@ -1423,6 +1566,26 @@
     });
     return h("div", { class: "board ot-board" }, lanes);
   }
+  const paidOf = (ot) => (ot.pagos || []).reduce((a, p) => a + (+p.monto || 0), 0);
+  const depositDue = (ot) => (+ot.total || 0) * (+ot.anticipo || 0) / 100;
+  function paymentsCard(ot, persist) {
+    const total = +ot.total || 0, paid = paidOf(ot), dep = depositDue(ot);
+    const f = h("form", { class: "grid g3", onsubmit: async (e) => {
+      e.preventDefault(); const fd = Object.fromEntries(new FormData(f)); if (!(+fd.monto > 0)) return toast("Escribe el monto.", true);
+      await persist({ pagos: [...(ot.pagos || []), { monto: +fd.monto, metodo: fd.metodo, fecha: fd.fecha || localDate(), nota: fd.nota || "", por: S.name }] }, "Pago registrado.");
+    } },
+      h("input", { class: "i", name: "monto", type: "number", min: "0", step: "any", placeholder: "Monto (MXN)", value: !paid && dep ? dep.toFixed(2) : "" }),
+      h("select", { class: "i", name: "metodo" }, ["Transferencia", "Depósito", "Efectivo", "Tarjeta", "Cheque", "Crédito"].map((x) => h("option", { value: x, text: x }))),
+      h("input", { class: "i", name: "fecha", type: "date", value: localDate() }),
+      h("input", { class: "i", name: "nota", placeholder: "Referencia o folio de factura", style: "grid-column:span 2" }),
+      h("button", { class: "btn", type: "submit" }, "Registrar pago"));
+    return h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Pagos" }), total ? h("span", { class: "pill " + (paid >= total - 0.5 ? "p-ok" : paid >= dep - 0.5 && dep ? "p-info" : "p-warn"), text: paid >= total - 0.5 ? "pagada" : paid >= dep - 0.5 && dep ? "anticipo cubierto" : "pendiente" }) : null),
+      total ? h("div", { class: "grid g3" }, field("Total", h("b", { class: "money", text: money(total) })), field(`Anticipo ${ot.anticipo || 0} %`, money(dep)), field("Saldo", h("b", { class: "money " + (total - paid > 0.5 ? "due-late" : ""), text: money(Math.max(0, total - paid)) })))
+        : h("p", { class: "small muted", text: "Esta OT no viene de una cotización: registra los pagos aquí y el total en Fechas y prioridad." }),
+      (ot.pagos || []).length ? h("ul", { class: "log" }, ot.pagos.map((p, i) => h("li", {}, h("time", { text: fmtDate(p.fecha) }), h("div", { class: "row between", style: "flex-wrap:nowrap" }, h("span", { text: `${money(p.monto)} · ${p.metodo}${p.nota ? " · " + p.nota : ""} · ${p.por}` }),
+        h("button", { class: "x", type: "button", "aria-label": "Quitar pago", onclick: async () => { if (await confirmBox(`¿Quitar el pago de ${money(p.monto)}?`)) persist({ pagos: ot.pagos.filter((_, j) => j !== i) }, "Pago quitado."); } }, "×"))))) : null,
+      f);
+  }
   function setStage(ot, etapa, nota, por = S.name) {
     return { ...ot, etapa, historial: [...(ot.historial || []), { etapa, fecha: new Date().toISOString(), por, nota }] };
   }
@@ -1485,6 +1648,7 @@
           h("div", { class: "card" }, h("h2", { text: "Historial" }), h("ul", { class: "log" }, [...(ot.historial || [])].reverse().map((x) => h("li", {}, h("time", { text: fmtDT(x.fecha) }), h("span", {}, h("b", { text: stageName(OT_STAGES, x.etapa) }), ` · ${x.por || ""}${x.nota ? " · " + x.nota : ""}`)))))),
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("h2", { text: "Código de la orden" }), h("div", { class: "barcode", html: code128svg(ot.id) }), h("p", { class: "num small", text: ot.id + " · escanéalo en cada estación" })),
+          paymentsCard(ot, persist),
           h("div", { class: "card" }, h("h2", { text: "Fechas y prioridad" }),
             h("div", { class: "grid g2" }, inputField("Compromiso de entrega", ot.fechaCompromiso, "date", (v) => persist({ fechaCompromiso: v }, "Fecha guardada.")),
               selectField("Prioridad", ot.prioridad || "normal", [["normal", "Normal"], ["alta", "Alta"], ["urgente", "Urgente"]], (v) => persist({ prioridad: v }, "Prioridad guardada."))),
@@ -1932,7 +2096,7 @@
     const st = structuredClone(S.settings);
     const saveAll = async () => { const saved = await save("ajustes", { ...st, id: "general" }); S.settings = mergeSettings(saved); toast("Ajustes guardados."); rerender(); };
     const num = (obj, key, label, step = "any") => h("label", { class: "f" }, h("span", { text: label }), h("input", { class: "i", type: "number", step, value: obj[key], oninput: (e) => { obj[key] = +e.target.value; } }));
-    return h("div", {}, top("Valores que usa todo el sistema", "Ajustes", h("button", { class: "btn accent", type: "button", onclick: saveAll }, "Guardar ajustes")),
+    const root = h("div", {}, top("Valores que usa todo el sistema", "Ajustes", h("button", { class: "btn accent", type: "button", onclick: saveAll }, "Guardar ajustes")),
       h("div", { class: "cols" },
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("h2", { text: "Cotizador" }),
@@ -1994,13 +2158,16 @@
           webPricesCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));
+    const toc = h("nav", { class: "toc", "aria-label": "Secciones de ajustes" }, [...root.querySelectorAll(".card > h2")].map((h2) => h("button", { type: "button", onclick: () => h2.scrollIntoView({ behavior: "smooth", block: "start" }) }, h2.textContent)));
+    root.firstChild.after(toc);
+    return root;
   }
 
   /* ---------------- start ---------------- */
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal" || e.target.closest("[data-close]")) closeModal(); });
   // Other people (and clients approving art) change records too: refresh before
   // showing a view when what we hold is more than a few seconds old.
-  addEventListener("hashchange", async () => { if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
+  addEventListener("hashchange", async () => { if ($("#modal").open) closeModal(); if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
   addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
   // keep data fresh while the app is open (other people are working too)
   setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); notifyLocal(); } }, 90_000);

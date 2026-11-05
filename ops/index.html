@@ -67,6 +67,35 @@
   .topbar .sub { font: 500 .7rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); margin-bottom: .35rem; }
   .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .mobile-bar { display: none; }
+  .side-search { all: unset; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin: 0 .5rem .6rem; padding: .5rem .65rem; border: 1px solid color-mix(in srgb, var(--paper) 25%, transparent); font-size: .85rem; color: color-mix(in srgb, var(--paper) 80%, transparent); }
+  .side-search:hover, .side-search:focus-visible { border-color: var(--paper); color: var(--paper); }
+  .side-search kbd { font: 600 .66rem var(--f-mono); opacity: .7; }
+  .cmd-list { display: grid; gap: .2rem; max-height: min(60vh, 460px); overflow: auto; }
+  .cmd-item { all: unset; cursor: pointer; display: grid; grid-template-columns: 6.6rem minmax(0, 1fr); gap: .6rem; align-items: start; padding: .5rem .6rem; border: 1px solid transparent; }
+  .cmd-item small { display: block; color: var(--steel); font-size: .78rem; }
+  .cmd-item.on, .cmd-item:hover { background: var(--shade); border-color: var(--rule); }
+  .cmd-item .pill { justify-self: start; }
+  .crumb { display: inline-block; margin-bottom: .4rem; font: 600 .72rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--steel); text-decoration: none; }
+  .crumb:hover { color: var(--ink); }
+  .tabbar { display: none; }
+  .quick-task { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) 9.5rem 9.5rem auto; gap: .4rem; width: 100%; }
+  .card .quick-task { grid-template-columns: 1fr 1fr 1fr; } .card .quick-task [name=texto] { grid-column: 1 / -1; order: -1; } .card .quick-task button { grid-column: 1 / -1; }
+  .toc { display: flex; flex-wrap: wrap; gap: .35rem; margin: -.4rem 0 1rem; position: sticky; top: 0; z-index: 5; background: var(--paper); padding: .5rem 0; }
+  .toc button { all: unset; cursor: pointer; font-size: .78rem; padding: .3rem .6rem; border: 1px solid var(--rule); background: var(--card); }
+  .toc button:hover { border-color: var(--ink); }
+  .timeline li { grid-template-columns: 8.5rem minmax(0, 1fr); }
+  @media (max-width: 900px) {
+    .tabbar { display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--ink); color: var(--paper); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); border-top: 1px solid color-mix(in srgb, var(--paper) 15%, transparent); }
+    .tabbar a, .tabbar button { all: unset; cursor: pointer; position: relative; display: grid; place-items: center; min-height: 54px; font: 600 .62rem var(--f-mono); letter-spacing: .04em; text-transform: uppercase; color: color-mix(in srgb, var(--paper) 70%, transparent); text-align: center; }
+    .tabbar a.on { color: var(--paper); box-shadow: inset 0 3px 0 var(--magenta); }
+    .tabbar button { font-size: 1.4rem; color: var(--paper); }
+    .tabbar b { position: absolute; top: 6px; right: 14%; min-width: 1.1rem; height: 1.1rem; display: grid; place-items: center; border-radius: 999px; background: var(--magenta); color: #fff; font-size: .6rem; }
+    .main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important; }
+    .quick-task { grid-template-columns: 1fr 1fr; } .quick-task [name=texto] { grid-column: 1 / -1; order: -1; } .quick-task button { grid-column: 1 / -1; }
+    .log li { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
+    .log li .row { flex-wrap: wrap !important; }
+    .cmd-item { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+  }
   @media (max-width: 900px) {
     .shell { grid-template-columns: minmax(0, 1fr); }
     .side { position: fixed; inset: 0 auto 0 0; width: min(280px, 86vw); z-index: 30; transform: translateX(-100%); transition: transform .25s ease; height: 100%; }

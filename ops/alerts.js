@@ -69,16 +69,22 @@
       if (!OPEN_OPP(o)) continue;
       const pa = o.proximaAccion || {};
       if (pa.fecha && pa.fecha < today) add({ key: `op:${o.id}:${pa.fecha}`, cat: "avances", level: "alta", title: `Seguimiento vencido: ${o.titulo}`, detail: `${pa.texto || "siguiente paso"} · ${due(pa.fecha)}`, href: "oportunidad/" + o.id, owner: o.asesor || "" });
+      const STALE = { nuevo: 1, contactado: 4, calificado: 7, cotizacion: 5, negociacion: 10 }, days = daysSince(o.etapaDesde || o.createdAt, today);
+      if ((o.etapa || "nuevo") !== "nuevo" && !pa.fecha && days > (STALE[o.etapa || "nuevo"] ?? 7)) add({ key: `os:${o.id}:${o.etapa}`, cat: "avances", level: "media", title: `Oportunidad estancada: ${o.titulo}`, detail: `${days} días en ${o.etapa || "nuevo"} sin siguiente paso`, href: "oportunidad/" + o.id, owner: o.asesor || "" });
       if (!pa.texto || !pa.fecha) add({ key: `od:${o.id}`, cat: "datos", level: "media", title: `Oportunidad sin siguiente paso con fecha: ${o.titulo}`, detail: cuenta(D, o.cuentaId), href: "oportunidad/" + o.id, owner: o.asesor || "" });
       if (!(n(o.valor) > 0)) add({ key: `ov:${o.id}`, cat: "datos", level: "baja", title: `Oportunidad sin valor: ${o.titulo}`, detail: "pon el monto estimado para que cuente en el pipeline", href: "oportunidad/" + o.id, owner: o.asesor || "" });
     }
     for (const ot of D.ots || []) {
-      if (["entregada"].includes(ot.etapa)) continue;
+      if (ot.etapa === "entregada") { const t2 = n(ot.total), p2 = (ot.pagos || []).reduce((a, p) => a + n(p.monto), 0); if (t2 && p2 < t2 - 0.5) add({ key: `ps:${ot.id}`, cat: "avances", level: "media", title: `Saldo por cobrar: ${ot.id}`, detail: (ot.clienteNombre || "") + " · $" + fmtN(Math.round(t2 - p2)) + " pendientes", href: "ot/" + ot.id, owner: oppOwner(ot.oportunidadId) }); continue; }
       const owner = oppOwner(ot.oportunidadId), who = ot.clienteNombre || cuenta(D, ot.cuentaId);
       if (ot.previa) {
         if (daysSince(ot.createdAt, today) >= 2) add({ key: `pv:${ot.id}`, cat: "avances", level: "media", title: `OT previa sin confirmar: ${ot.id}`, detail: `${who} · desde ${fmtD(ot.createdAt)}`, href: "ot/" + ot.id, owner });
         continue;
       }
+      const paid = (ot.pagos || []).reduce((a, p) => a + n(p.monto), 0), total = n(ot.total), dep = total * n(ot.anticipo) / 100;
+      const ORDER = ["arte", "aprobacion", "compra", "pantallas", "programada", "impresion", "calidad", "empaque", "embarcada", "entregada"];
+      if (total && dep && paid < dep - 0.5 && ORDER.indexOf(ot.etapa) >= ORDER.indexOf("compra")) add({ key: `pa:${ot.id}`, cat: "avances", level: "alta", title: `OT en producción sin anticipo cubierto: ${ot.id}`, detail: `${who} · faltan $` + fmtN(Math.round(dep - paid)) + " del anticipo", href: "ot/" + ot.id, owner });
+      if (total && paid < total - 0.5 && ["embarcada", "entregada"].includes(ot.etapa)) add({ key: `ps:${ot.id}`, cat: "avances", level: "media", title: `Saldo por cobrar: ${ot.id}`, detail: `${who} · $` + fmtN(Math.round(total - paid)) + " pendientes", href: "ot/" + ot.id, owner });
       if (ot.fechaCompromiso && ot.fechaCompromiso < today && ot.etapa !== "embarcada")
         add({ key: `oa:${ot.id}:${ot.fechaCompromiso}`, cat: "avances", level: "alta", title: `OT atrasada: ${ot.id}`, detail: `${who} · compromiso ${fmtD(ot.fechaCompromiso)} · en ${ot.etapa}`, href: "ot/" + ot.id, owner });
       if (ot.arte && ot.arte.estado === "cambios") add({ key: `oc:${ot.id}:${ot.updatedAt}`, cat: "avances", level: "alta", title: `El cliente pidió cambios al arte: ${ot.id}`, detail: who, href: "ot/" + ot.id, owner });
