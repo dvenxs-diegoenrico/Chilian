@@ -395,3 +395,9 @@ La sección `#cotizar` funciona como un configurador con precio en vivo:
 
 - **Órdenes de trabajo** se ve como tablero por etapa (Arte → Entregada). Las OT se arrastran de una etapa a otra; en el teléfono, con «Mover a…» en cada tarjeta. La vista de lista sigue disponible.
 - **Procesos sin terminar:** antes de avanzar una OT se revisa lo que falta para la etapa destino (arte subido y aprobado, tallas completas, máquina programada, revisión de calidad, datos de embarque, fecha compromiso, piezas, OT previa sin confirmar y etapas brincadas). Si falta algo, aparece la lista y se puede cancelar, abrir la OT o mover de todos modos (queda en el historial con el nombre de quien la movió). Las tarjetas, la lista, el detalle de la OT y el escaneo muestran la leyenda «⚠ procesos sin terminar»; en la barra de etapas, las que se brincaron salen con «!».
+
+### Origen del cliente y borrado
+
+- **Toda cotización trabajada entra al CRM:** las que se crean con «+ Cotización» nacen con su oportunidad; las pre-cotizaciones del sitio y las que no tenían oportunidad se agregan solas en cuanto se editan (o con «Agregar al CRM»).
+- **¿De dónde viene el cliente?** Se pide al crear la cotización, en dos grupos: por internet (sitio web, Instagram, Facebook, WhatsApp, TikTok, Google, redes) y sin internet (cliente actual ya retenido, contacto personal, referido, llamada o visita, feria o evento, distribuidor, prospección, otro), con un detalle libre (quién lo refirió, qué feria…). Una cuenta existente propone su origen, o «cliente actual» si ya compró. Se puede cambiar arriba de cada cotización y en la oportunidad; se guarda en la cotización, la oportunidad y la cuenta.
+- **Borrar:** tareas (× en cada tarea), cotizaciones (× en la lista o «Borrar cotización») y cuentas («Borrar cuenta», solo la cuenta principal; opcionalmente con sus oportunidades, cotizaciones y tareas; las órdenes de trabajo se conservan).

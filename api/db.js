@@ -51,8 +51,9 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    await guard(req);
+    const s = await guard(req);
     const q = new URL(req.url).searchParams;
+    if (q.get("col") === "cuentas" && s.role !== "admin") return json({ error: "Solo la cuenta principal borra cuentas." }, 403);
     await deleteDoc(colOf(q.get("col")), q.get("id"));
     return json({ ok: true });
   } catch (e) { return fail(e); }

@@ -22,7 +22,21 @@
     { id: "marca", name: "Marca / OEM" }, { id: "usa", name: "Marca de EE. UU." }, { id: "uniformes", name: "Uniformes" }, { id: "merch", name: "Merch / artista" },
     { id: "promo", name: "Eventos y promocionales" }, { id: "campana", name: "Campaña política" }, { id: "distribuidor", name: "Distribuidor" }
   ];
-  const SOURCES = ["Sitio web", "Prospección", "Referido", "Feria", "Distribuidor", "Redes sociales", "Cliente actual"];
+  // Where a client comes from. Internet and the people/channels that are not internet.
+  const SOURCE_GROUPS = [
+    ["Por internet", ["Sitio web", "Instagram", "Facebook", "WhatsApp", "TikTok", "Google", "Redes sociales"]],
+    ["Sin internet", ["Cliente actual (ya retenido)", "Contacto personal", "Referido", "Llamada o visita", "Feria o evento", "Distribuidor", "Prospección", "Otro"]]
+  ];
+  const SOURCES = SOURCE_GROUPS.flatMap(([, xs]) => xs);
+  const SOURCE_ALIAS = { "Cliente actual": "Cliente actual (ya retenido)", "Feria": "Feria o evento" };
+  const srcOf = (v) => SOURCE_ALIAS[v] || v || "";
+  // <select> with the sources in two groups; keeps an older value that is not on the list
+  const sourceSelect = (attrs, value) => {
+    const v = srcOf(value);
+    return h("select", { class: "i", ...attrs }, !v ? h("option", { value: "", text: "— Elige de dónde viene —" }) : null,
+      v && !SOURCES.includes(v) ? h("option", { value: v, text: v, selected: true }) : null,
+      SOURCE_GROUPS.map(([g, xs]) => h("optgroup", { label: g }, xs.map((x) => h("option", { value: x, text: x, selected: x === v })))));
+  };
   const OT_STAGES = [
     { id: "arte", name: "Arte" }, { id: "aprobacion", name: "Aprobación" }, { id: "compra", name: "Prenda" }, { id: "pantallas", name: "Pantallas" },
     { id: "programada", name: "Programada" }, { id: "impresion", name: "Impresión" }, { id: "calidad", name: "Calidad" }, { id: "empaque", name: "Empaque" },
@@ -495,7 +509,13 @@
         h("div", {}, t.prioridad && t.prioridad !== "normal" ? h("span", { class: "pill p-bad", style: "margin-right:.35rem", text: t.prioridad }) : null, h("b", { text: t.tipo ? t.tipo + ": " : "" }), t.texto,
           o ? h("div", {}, h("a", { class: "small muted", href: "#oportunidad/" + o.id }, `${o.titulo} · ${cuentaName(o.cuentaId)}`)) : !o && t.cuentaId ? h("div", {}, h("a", { class: "small muted", href: "#cuenta/" + t.cuentaId }, cuentaName(t.cuentaId))) : null,
           t.asignadaPor && t.asignadaPor !== t.asesor ? h("div", { class: "small muted", text: `Asignada por ${t.asignadaPor}${t.asesor !== S.name ? " a " + t.asesor : ""}` }) : t.asesor && t.asesor !== S.name ? h("div", { class: "small muted", text: t.asesor }) : null),
-        h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha")));
+        h("div", { class: "row", style: "gap:.3rem;flex-wrap:nowrap" },
+          h("button", { class: "btn sm ghost", type: "button", onclick: async () => { await save("tareas", { ...t, hecha: true, hechaEn: new Date().toISOString() }, { quiet: true }); toast("Tarea hecha."); rerender(); } }, "Hecha"),
+          h("button", { class: "x", type: "button", title: "Borrar tarea", "aria-label": "Borrar tarea", onclick: () => deleteTask(t) }, "×"))));
+  }
+  async function deleteTask(t) {
+    if (!(await confirmBox(`¿Borrar la tarea «${t.texto}»? No se puede deshacer.`))) return;
+    await remove("tareas", t.id); toast("Tarea borrada."); rerender();
   }
 
   // Where a request came from: the traffic source and the channel it was sent by.
@@ -696,6 +716,10 @@
     toast(`Oportunidad creada para ${cuentaName(opp.cuentaId)}.`);
     go("oportunidad/" + opp.id);
   }
+  // The client origin of a request, in the CRM's terms.
+  const solSource = (s) => s.waId ? "WhatsApp" : s.fbId || s.canal === "messenger" ? "Facebook" : s.canal === "instagram" ? "Instagram"
+    : s.canal === "manual" ? ({ referido: "Referido", feria: "Feria o evento", telefono: "Llamada o visita", visita: "Llamada o visita", correo: "Llamada o visita", distribuidor: "Distribuidor", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp" }[s.fuente] || "Otro")
+    : ({ instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google", whatsapp: "WhatsApp" }[s.fuente] || "Sitio web");
   async function leadFromRequest(s) {
     // Reuse the account if one already has this company or contact.
     const key = (s.empresa || s.nombre || "").trim().toLowerCase();
@@ -706,7 +730,7 @@
     const pre = s.preCotizacionId ? byId("cotizaciones", s.preCotizacionId) : null, preC = pre ? calcCot(pre) : null;
     const opp = await save("oportunidades", {
       titulo: `${s.prenda || (specific(s) ? s.modelos[0].titulo : "Pedido")} · ${fmtN(piezas)} pzas`, cuentaId: cuenta.id, segmento: s.tipo || cuenta.segmento, etapa: "nuevo", probabilidad: stageProb("nuevo"),
-      valor: preC && preC.sub > 0 ? Math.round(preC.sub) : estimateValue(piezas), piezasAnio: piezas, asesor: s.asesor && team().includes(s.asesor) ? s.asesor : S.name, origen: `${fuenteName(s.canal === "instagram" ? "instagram" : s.fuente)} · ${src}`, solicitudId: s.id, fechaNecesaria: s.fechaNecesaria,
+      fuente: solSource(s), valor: preC && preC.sub > 0 ? Math.round(preC.sub) : estimateValue(piezas), piezasAnio: piezas, asesor: s.asesor && team().includes(s.asesor) ? s.asesor : S.name, origen: `${fuenteName(s.canal === "instagram" ? "instagram" : s.fuente)} · ${src}`, solicitudId: s.id, fechaNecesaria: s.fechaNecesaria,
       proximaAccion: { texto: "Contactar y calificar (volumen, fechas, quién decide)", fecha: localDate() }, score: { fecha: !!s.fechaNecesaria && s.fechaNecesaria <= addDays(localDate(), 90), volumen: piezas >= 10000 },
       actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Solicitud ${s.id}: ${arrivedBy(s)}.${pre ? " Pre-cotización " + pre.id + "." : ""}`, por: S.name }], solicitud: s
     }, { quiet: true });
@@ -733,16 +757,18 @@
     }
     const c = calcCot(q), name = (info.nombre || CZ.clientOf(q) || "").trim() || "Cliente sin nombre";
     let cuenta = q.cuentaId ? byId("cuentas", q.cuentaId) : list("cuentas").find((x) => x.nombre.trim().toLowerCase() === name.toLowerCase());
+    info.fuente = info.fuente || q.origen || "";
+    info.detalle = info.detalle ?? q.origenDetalle ?? "";
     if (!cuenta) cuenta = await save("cuentas", { nombre: name, segmento: info.segmento || "marca", fuente: info.fuente || "Prospección", responsable: S.name,
       contactos: info.contacto || info.persona ? [{ nombre: info.persona || "", puesto: "", contacto: info.contacto || "" }] : [], notas: "" }, { quiet: true });
     o = await save("oportunidades", {
       titulo: quoteTitle(q, c), tituloAuto: true, cuentaId: cuenta.id, segmento: info.segmento || cuenta.segmento || "marca", etapa: "calificado", probabilidad: stageProb("calificado"),
       valor: Math.round(c.sub) || 0, piezasAnio: c.piezas, asesor: cuenta.responsable && team().includes(cuenta.responsable) ? cuenta.responsable : S.name,
-      origen: `Cotización ${q.id} · ${info.fuente || cuenta.fuente || "Prospección"}`, cotizacionId: q.id,
+      fuente: info.fuente || srcOf(cuenta.fuente) || "", origen: `${info.fuente || srcOf(cuenta.fuente) || "Sin especificar"}${info.detalle ? " · " + info.detalle : ""} · cotización ${q.id}`, cotizacionId: q.id,
       proximaAccion: { texto: `Enviar la cotización ${q.id}`, fecha: localDate() },
       actividad: [{ fecha: new Date().toISOString(), tipo: "Nota", texto: `Lead creado con la cotización ${q.id}.`, por: S.name }]
     }, { quiet: true });
-    q = await save("cotizaciones", { ...byId("cotizaciones", q.id), oportunidadId: o.id, cuentaId: cuenta.id, cliente: "" }, { quiet: true });
+    q = await save("cotizaciones", { ...byId("cotizaciones", q.id), oportunidadId: o.id, cuentaId: cuenta.id, cliente: "", origen: info.fuente || q.origen || "", origenDetalle: info.detalle || "" }, { quiet: true });
     return { q, o };
   }
   // A first value from the pieces: an average decorated garment price, editable later.
@@ -858,6 +884,7 @@
               inputField("Piezas al año", o.piezasAnio, "number", (v) => upd({ piezasAnio: +v || 0 })),
               selectField("Responsable", o.asesor, team(), (v) => upd({ asesor: v })),
               selectField("Segmento", o.segmento, SEGMENTS.map((s) => [s.id, s.name]), (v) => upd({ segmento: v })),
+              h("label", { class: "f" }, h("span", { text: "¿De dónde viene?" }), sourceSelect({ onchange: (e) => upd({ fuente: e.target.value, origen: e.target.value + (o.origen && o.origen.includes(" · ") ? o.origen.slice(o.origen.indexOf(" · ")) : "") }, "Origen actualizado.") }, o.fuente || srcOf(cuenta?.fuente) || "")),
               inputField("Probabilidad (%)", o.probabilidad ?? stageProb(o.etapa), "number", (v) => upd({ probabilidad: Math.max(0, Math.min(100, +v || 0)) })),
               inputField("Fecha que lo necesita", o.fechaNecesaria, "date", (v) => upd({ fechaNecesaria: v })),
               field("Valor ponderado", h("span", { class: "money", text: money(weighted(o)) })),
@@ -939,7 +966,7 @@
       top("Lo que sigue con cada cuenta", "Tareas",
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.who = e.target.value; rerender(); } }, h("option", { value: "", text: "Todo el equipo" }), team().map((n) => h("option", { value: n, text: n, selected: f.who === n }))),
         h("div", { class: "chips" }, ["pendientes", "hechas"].map((x) => h("button", { type: "button", class: "chip" + (f.show === x ? " on" : ""), onclick: () => { f.show = x; rerender(); } }, x)))),
-      f.show === "hechas" ? (ts.length ? h("div", { class: "card" }, h("ul", { class: "log" }, ts.slice(0, 200).map((t) => h("li", {}, h("time", { text: fmtDate(t.fecha) }), h("span", { text: `${t.tipo}: ${t.texto}` }))))) : h("div", { class: "empty", text: "No hay tareas hechas aún." }))
+      f.show === "hechas" ? (ts.length ? h("div", { class: "card" }, h("ul", { class: "log" }, ts.slice(0, 200).map((t) => h("li", {}, h("time", { text: fmtDate(t.fecha) }), h("div", { class: "row between", style: "flex-wrap:nowrap" }, h("span", { text: `${t.tipo}: ${t.texto}` }), h("button", { class: "x", type: "button", title: "Borrar tarea", "aria-label": "Borrar tarea", onclick: () => deleteTask(t) }, "×")))))) : h("div", { class: "empty", text: "No hay tareas hechas aún." }))
         : h("div", { class: "grid g3" }, groups.map(([name, xs]) => h("div", { class: "card" }, h("h2", { text: `${name} (${xs.length})` }), xs.length ? h("ul", { class: "log" }, xs.map(taskItem)) : h("p", { class: "muted small", text: "Nada aquí." })))));
   }
 
@@ -976,7 +1003,7 @@
     } },
       h("label", { class: "f full" }, h("span", { text: "Empresa" }), h("input", { class: "i", name: "nombre", required: true, value: c.nombre || "" })),
       h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((s) => h("option", { value: s.id, text: s.name, selected: c.segmento === s.id })))),
-      h("label", { class: "f" }, h("span", { text: "Origen" }), h("select", { class: "i", name: "fuente" }, SOURCES.map((s) => h("option", { value: s, text: s, selected: (c.fuente || "Prospección") === s })))),
+      h("label", { class: "f" }, h("span", { text: "¿De dónde viene?" }), sourceSelect({ name: "fuente" }, c.fuente || "")),
       h("label", { class: "f" }, h("span", { text: "Ciudad" }), h("input", { class: "i", name: "ciudad", value: c.ciudad || "" })),
       h("label", { class: "f" }, h("span", { text: "País" }), h("input", { class: "i", name: "pais", value: c.pais || "México" })),
       h("label", { class: "f" }, h("span", { text: "Sitio o red social" }), h("input", { class: "i", name: "sitio", value: c.sitio || "" })),
@@ -993,7 +1020,8 @@
     if (!c) return h("div", { class: "empty", text: "No encontramos esta cuenta." });
     const os = list("oportunidades").filter((o) => o.cuentaId === id), qs = list("cotizaciones").filter((q) => q.cuentaId === id), ots = list("ots").filter((o) => o.cuentaId === id);
     return h("div", {},
-      top(`${segName(c.segmento)} · ${c.fuente || ""} · ${c.responsable ? "Responsable: " + c.responsable : "Sin responsable"}`, c.nombre, h("button", { class: "btn ghost", type: "button", onclick: () => accountModal(c) }, "Editar"),
+      top(`${segName(c.segmento)} · ${srcOf(c.fuente) || "origen sin especificar"} · ${c.responsable ? "Responsable: " + c.responsable : "Sin responsable"}`, c.nombre, h("button", { class: "btn ghost", type: "button", onclick: () => accountModal(c) }, "Editar"),
+        isAdmin() ? h("button", { class: "btn danger", type: "button", onclick: () => deleteAccount(c) }, "Borrar cuenta") : null,
         isAdmin() ? h("button", { class: "btn ghost", type: "button", onclick: () => assignFollowModal({ cuentaId: c.id, asesor: c.responsable }) }, "Asignar seguimiento") : null,
         h("button", { class: "btn ghost", type: "button", onclick: () => assignTaskModal({ cuentaId: c.id, asesor: c.responsable || S.name }) }, "+ Tarea"), h("button", { class: "btn accent", type: "button", onclick: () => newOppModal({ cuentaId: c.id, segmento: c.segmento }) }, "+ Oportunidad")),
       h("div", { class: "cols" },
@@ -1071,14 +1099,28 @@
   const CZ = window.makeCotizador({
     h, settings: () => S.settings, list, byId, cuentaName, me: () => S.name, isPhone, waLink, copy, toast,
     lineMinutes, machinesOf, dayCapacity: () => dayCapacity(), TECS,
-    save: (col, doc, o) => save(col, doc, o), rerender: () => rerender(),
+    save: async (col, doc, o) => {
+      if (col === "cotizaciones" && doc.id) {   // the open quoter does not know about links made meanwhile: keep them
+        const prev = byId("cotizaciones", doc.id);
+        if (prev) for (const k of ["oportunidadId", "origen", "origenDetalle", "solicitudId"]) if (!doc[k] && prev[k]) doc[k] = prev[k];
+        if (prev && !doc.cuentaId && prev.cuentaId && doc.oportunidadId) doc.cuentaId = prev.cuentaId;
+      }
+      const saved = await save(col, doc, o);
+      if (col === "cotizaciones" && !saved.oportunidadId && !leadBusy.has(saved.id)) {
+        leadBusy.add(saved.id);
+        ensureLead(saved).then(({ o: opp }) => toast(`${saved.id} quedó en el CRM como oportunidad: ${opp.titulo}.`)).catch((e) => console.error(e)).finally(() => leadBusy.delete(saved.id));
+      }
+      return saved;
+    }, rerender: () => rerender(),
     onSent: (q) => markSent(q), onAccept: (q) => acceptQuote(q), onDuplicate: (q) => duplicateQuote(q), onDelete: (q) => deleteQuote(q)
   });
+  const leadBusy = new Set();
   function quoteTable(qs) {
-    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Folio", "Cliente", "Estado", "Piezas", "Total", "Margen"].map((x, i) => h("th", { class: i > 2 ? "r" : "", text: x })))),
+    return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Folio", "Cliente", "Estado", "Piezas", "Total", "Margen", ""].map((x, i) => h("th", { class: i > 2 ? "r" : "", text: x })))),
       h("tbody", {}, qs.sort((a, b) => b.id.localeCompare(a.id)).map((q) => { const c = calcCot(q); return h("tr", { class: "click", onclick: () => go("cotizacion/" + q.id) },
         h("td", { class: "num", text: q.id }), h("td", { text: CZ.clientOf(q) || "—" }), h("td", {}, quotePill(q.estado)), h("td", { class: "r num", text: fmtN(c.piezas) }), h("td", { class: "r money", text: money(c.total) }),
-        h("td", { class: "r num", text: c.margen == null ? "—" : fmtN(c.margen * 100) + " %" })); }))));
+        h("td", { class: "r num", text: c.margen == null ? "—" : fmtN(c.margen * 100) + " %" }),
+        h("td", { class: "r" }, h("button", { class: "x", type: "button", title: "Borrar cotización", "aria-label": "Borrar " + q.id, onclick: (e) => { e.stopPropagation(); deleteQuote(q, true); } }, "×"))); }))));
   }
   const quotePill = (e) => h("span", { class: "pill " + ({ pre: "p-acc", borrador: "p-mut", enviada: "p-info", aceptada: "p-ok", rechazada: "p-bad" }[e] || "p-mut"), text: e === "pre" ? "pre-cotización" : e || "borrador" });
   function viewQuotes() {
@@ -1100,13 +1142,19 @@
       h("label", { class: "f" }, h("span", { text: "Empresa o cliente" }), h("input", { class: "i", name: "nombre", required: true, placeholder: "Ej. Cervecería del Valle" })),
       h("label", { class: "f" }, h("span", { text: "Contacto" }), h("input", { class: "i", name: "persona", placeholder: "Nombre de quien compra" })),
       h("label", { class: "f" }, h("span", { text: "WhatsApp o correo" }), h("input", { class: "i", name: "contacto" })),
-      h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((x) => h("option", { value: x.id, text: x.name })))),
-      h("label", { class: "f" }, h("span", { text: "Fuente" }), h("select", { class: "i", name: "fuente" }, SOURCES.map((x) => h("option", { value: x, text: x, selected: x === "Prospección" })))));
+      h("label", { class: "f" }, h("span", { text: "Segmento" }), h("select", { class: "i", name: "segmento" }, SEGMENTS.map((x) => h("option", { value: x.id, text: x.name })))));
+    let srcSel = sourceSelect({ name: "fuente", required: true }, "");
+    const origin = h("div", { class: "grid g2" },
+      h("label", { class: "f" }, h("span", { text: "¿De dónde viene el cliente?" }), srcSel),
+      h("label", { class: "f" }, h("span", { text: "Detalle (opcional)" }), h("input", { class: "i", name: "detalle", placeholder: "Quién lo refirió, qué feria, campaña…" })));
     const oppBox = h("label", { class: "f" }, h("span", { text: "Oportunidad" }), oppSel);
     const paint = () => {
       const open = list("oportunidades").filter((o) => o.cuentaId === sel.value && !["ganado", "perdido"].includes(o.etapa));
       oppSel.replaceChildren(h("option", { value: "", text: "+ Nueva oportunidad (lead) con esta cotización" }), ...open.map((o) => h("option", { value: o.id, text: `${o.titulo} · ${stageName(OPP_STAGES, o.etapa)}` })));
       fresh.hidden = !!sel.value; fresh.querySelector("[name=nombre]").required = !sel.value; oppBox.hidden = !sel.value;
+      const c = sel.value && byId("cuentas", sel.value);   // an existing client: its known origin, or "already retained" if it has bought before
+      const known = c ? srcOf(c.fuente) || (list("ots").some((o) => o.cuentaId === c.id) ? "Cliente actual (ya retenido)" : "") : "";
+      srcSel.replaceWith(srcSel = sourceSelect({ name: "fuente", required: true }, known));
     };
     sel.addEventListener("change", paint); paint();
     modal("Nueva cotización", h("form", { class: "grid", onsubmit: async (e) => {
@@ -1114,12 +1162,15 @@
       const fd = Object.fromEntries(new FormData(e.target)); closeModal();
       const opp = oppSel.value && byId("oportunidades", oppSel.value);
       const doc = await CZ.newDoc({ cuentaId: sel.value, oportunidadId: opp ? opp.id : "", cliente: sel.value ? "" : (fd.nombre || "").trim() });
+      Object.assign(doc, { origen: fd.fuente, origenDetalle: (fd.detalle || "").trim() });
       let q = await save("cotizaciones", doc, { quiet: true });
       if (opp) await leadQuoted(opp, q);
-      else q = (await ensureLead(q, { nombre: fd.nombre, persona: (fd.persona || "").trim(), contacto: (fd.contacto || "").trim(), segmento: fd.segmento, fuente: fd.fuente })).q;
+      else q = (await ensureLead(q, { nombre: fd.nombre, persona: (fd.persona || "").trim(), contacto: (fd.contacto || "").trim(), segmento: fd.segmento, fuente: fd.fuente, detalle: (fd.detalle || "").trim() })).q;
+      const c = sel.value && byId("cuentas", sel.value);
+      if (c && !c.fuente) await save("cuentas", { ...c, fuente: fd.fuente }, { quiet: true });
       toast(`Cotización ${q.id} creada y su lead en Oportunidades.`);
       go("cotizacion/" + q.id);
-    } }, h("label", { class: "f" }, h("span", { text: "Cuenta" }), sel), fresh, oppBox,
+    } }, h("label", { class: "f" }, h("span", { text: "Cuenta" }), sel), fresh, oppBox, origin,
       h("p", { class: "hint", text: "Cada cotización entra al pipeline: crea o usa la oportunidad de la cuenta, y al marcarla enviada su etapa, valor y seguimiento se actualizan solos." }), h("button", { class: "btn accent", type: "submit" }, "Crear cotización")));
   }
   // A quote started on an existing opportunity: the opportunity is at least "qualified" and logs it.
@@ -1140,7 +1191,27 @@
   function viewQuote(id) {
     const q0 = byId("cotizaciones", id);
     if (!q0) return h("div", { class: "empty", text: "No encontramos esta cotización." });
-    return CZ.view(q0, { pill: quotePill(q0.estado) });
+    const o = q0.oportunidadId ? byId("oportunidades", q0.oportunidadId) : null, sol = q0.solicitudId ? byId("solicitudes", q0.solicitudId) : null;
+    const cur = q0.origen || o?.fuente || srcOf(byId("cuentas", q0.cuentaId)?.fuente) || (sol ? solSource(sol) : "");
+    const setOrigin = async (fuente, detalle) => {
+      let q = byId("cotizaciones", id);
+      q = await save("cotizaciones", { ...q, origen: fuente, origenDetalle: detalle }, { quiet: true });
+      const opp = q.oportunidadId && byId("oportunidades", q.oportunidadId);
+      if (opp) await save("oportunidades", { ...opp, fuente, origen: `${fuente}${detalle ? " · " + detalle : ""}${opp.solicitudId ? " · solicitud " + opp.solicitudId : " · cotización " + q.id}` }, { quiet: true });
+      const c = q.cuentaId && byId("cuentas", q.cuentaId);
+      if (c && srcOf(c.fuente) !== fuente) await save("cuentas", { ...c, fuente }, { quiet: true });
+      toast("Origen del cliente actualizado en la cotización, la oportunidad y la cuenta.");
+    };
+    const srcSel = sourceSelect({ onchange: (e) => setOrigin(e.target.value, det.value.trim()) }, cur);
+    const det = h("input", { class: "i", value: q0.origenDetalle || "", placeholder: "Quién lo refirió, qué feria…", onchange: (e) => setOrigin(srcSel.value, e.target.value.trim()) });
+    const bar = h("div", { class: "card crm-bar" },
+      h("div", { class: "grid g3", style: "align-items:end" },
+        h("div", {}, h("div", { class: "label", text: "En el CRM" }), o ? h("a", { href: "#oportunidad/" + o.id, text: `${o.titulo} · ${stageName(OPP_STAGES, o.etapa)}` })
+          : h("span", { class: "small" }, q0.estado === "pre" ? "Pre-cotización del sitio: entra al CRM en cuanto la trabajes. " : "Aún no está en el CRM. ",
+            h("button", { class: "btn sm", type: "button", onclick: async () => { if (!srcSel.value) { toast("Elige de dónde viene el cliente.", true); srcSel.focus(); return; } const { o: opp } = await ensureLead({ ...byId("cotizaciones", id), origen: srcSel.value, origenDetalle: det.value.trim() }); toast(`Agregada al CRM: ${opp.titulo}.`); rerender(); } }, "Agregar al CRM"))),
+        h("label", { class: "f" }, h("span", { text: "¿De dónde viene el cliente?" }), srcSel),
+        h("label", { class: "f" }, h("span", { text: `Detalle${sol ? " · llegó por " + arrivedBy(sol) : ""}` }), det)));
+    return h("div", {}, bar, CZ.view(q0, { pill: quotePill(q0.estado) }));
   }
   async function markSent(q) {
     const wasSent = q.estado === "enviada";
@@ -1199,10 +1270,35 @@
     toast(`Copia creada: ${saved.id}.`);
     go("cotizacion/" + saved.id);
   }
-  async function deleteQuote(q) {
-    if (!(await confirmBox(`¿Borrar la cotización ${q.id}?`))) return;
+  async function deleteQuote(q, stay) {
+    const ot = q.otId && byId("ots", q.otId);
+    if (!(await confirmBox(`¿Borrar la cotización ${q.id}${CZ.clientOf(q) ? " de " + CZ.clientOf(q) : ""}?${ot ? ` Su orden ${ot.id} se queda en planta.` : ""} No se puede deshacer.`))) return;
     await remove("cotizaciones", q.id);
-    go(q.oportunidadId ? "oportunidad/" + q.oportunidadId : "cotizaciones");
+    const o = q.oportunidadId && byId("oportunidades", q.oportunidadId);
+    if (o) await save("oportunidades", { ...o, ...(o.cotizacionId === q.id ? { cotizacionId: "" } : {}), actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `Cotización ${q.id} borrada.`, por: S.name }] }, { quiet: true });
+    for (const s of list("solicitudes").filter((x) => x.preCotizacionId === q.id)) await save("solicitudes", { ...s, preCotizacionId: "" , preCotizacionBorrada: q.id }, { quiet: true });
+    toast(`Cotización ${q.id} borrada.`);
+    if (stay) rerender(); else go(q.oportunidadId ? "oportunidad/" + q.oportunidadId : "cotizaciones");
+  }
+  // An account and, if chosen, everything sales-side that hangs from it. Work orders stay (production history).
+  async function deleteAccount(c) {
+    const os = list("oportunidades").filter((o) => o.cuentaId === c.id), qs = list("cotizaciones").filter((q) => q.cuentaId === c.id || os.some((o) => o.id === q.oportunidadId));
+    const ts = list("tareas").filter((t) => t.cuentaId === c.id || os.some((o) => o.id === t.oportunidadId)), ots = list("ots").filter((o) => o.cuentaId === c.id);
+    const all = h("input", { type: "checkbox", checked: true });
+    const ok = await new Promise((res) => {
+      modal(`Borrar la cuenta ${c.nombre}`, h("div", { class: "grid" },
+        h("p", { text: `Tiene ${os.length} oportunidad(es), ${qs.length} cotización(es) y ${ts.length} tarea(s).${ots.length ? ` Sus ${ots.length} orden(es) de trabajo se quedan en planta con el nombre del cliente.` : ""}` }),
+        os.length + qs.length + ts.length ? h("label", { class: "row small", style: "gap:.4rem" }, all, "Borrar también sus oportunidades, cotizaciones y tareas") : null,
+        h("p", { class: "small muted", text: "No se puede deshacer." }),
+        h("div", { class: "row" }, h("button", { class: "btn danger", type: "button", onclick: () => { closeModal(); res(true); } }, "Borrar cuenta"), h("button", { class: "btn ghost", type: "button", onclick: () => { closeModal(); res(false); } }, "Cancelar"))));
+      $("#modal").addEventListener("close", () => res(false), { once: true });
+    });
+    if (!ok) return;
+    try {
+      if (all.checked) { for (const t of ts) await remove("tareas", t.id); for (const q of qs) await remove("cotizaciones", q.id); for (const o of os) await remove("oportunidades", o.id); }
+      await remove("cuentas", c.id);
+      toast(`Cuenta ${c.nombre} borrada.`); go("cuentas");
+    } catch (e) { if (e.message !== "401") toast(e.message, true); await loadAll(true); rerender(); }
   }
   /* ---------------- work orders ---------------- */
   const otPill = (e) => h("span", { class: "pill " + ({ entregada: "p-ok", embarcada: "p-ok", impresion: "p-acc", calidad: "p-info", empaque: "p-info", aprobacion: "p-warn", arte: "p-warn" }[e] || "p-mut"), text: stageName(OT_STAGES, e) });
