@@ -424,3 +424,13 @@ Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, S
 - **`robots.txt`** (permite buscadores y asistentes de IA; cierra `/ops`, `/api`, enlaces privados de clientes y la propuesta vieja), **`sitemap.xml`** y **`llms.txt`** (resumen del negocio para asistentes).
 - `propuesta-v2.html` queda fuera de los buscadores (`noindex`).
 - El dominio está en una sola constante del script de SEO: si el sitio se muda a grupochilian.com.mx, hay que cambiar la canónica, `og:url`, el sitemap y `robots.txt`.
+
+### SEO enfocado en el cliente de alto valor
+
+- **Para quién:** marcas globales y licencias, OEM, programas de uniformes y marcas de EE. UU. que producen en México.
+- **Página en inglés indexable: `/en`** (`en.html`), con todo el texto en inglés ya en el HTML, título, descripción, canónica y datos estructurados propios. `hreflang` une `/` (español) y `/en` (inglés). El botón ES/EN cambia la dirección; la dirección manda el idioma (los navegadores en inglés ven una invitación a la versión en inglés, sin cambiar la página en español).
+- **Títulos y descripciones:** «Planta de serigrafía y confección para marcas en México» / «Audited screen printing & apparel manufacturer in Mexico», con auditorías y capacidad.
+- **Preguntas que hacen las marcas** (visibles y en datos estructurados): marcas y licencias producidas, auditorías, capacidad, paquete completo, mínimo para marcas, proceso con muestra de preproducción, marcas de EE. UU., visita a planta y cotización.
+- **Datos estructurados:** servicios B2B (maquila para marcas y OEM, paquete completo, uniformes, merch), temas (producto licenciado, nearshoring, cumplimiento social), premio PNAG 2025 y contactos por tipo de cliente.
+- **`llms.txt`** con los clientes principales y un resumen en inglés.
+- **Regenerar después de editar `index.html`:** `python3 tools/seo/build_seo.py` (escribe el bloque SEO, las preguntas, `en.html` y `sitemap.xml`). El dominio está en la constante `SITE`.
