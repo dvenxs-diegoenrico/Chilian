@@ -1209,14 +1209,14 @@
   function otTable(ots) {
     return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Máquinas", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
       h("tbody", {}, ots.sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9")).map((o) => h("tr", { class: "click", onclick: () => go("ot/" + o.id) },
-        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa)),
+        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa), !o.previa && otPending(o).length ? h("span", { class: "pill p-warn", title: otPending(o).map((x) => x.txt).join("\n"), style: "margin-left:.3rem", text: `⚠ ${otPending(o).length}` }) : null),
         h("td", {}, h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[o.arte?.estado] || "p-mut"), text: o.arte?.estado || "pendiente" })),
         h("td", { class: "r num", text: fmtN((o.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0)) }),
         h("td", { class: "small", text: (o.programacion || []).map((p) => `${S.settings.pulpos.find((x) => x.id === p.pulpo)?.nombre || p.pulpo} · ${fmtDate(p.fecha)}`).join("; ") || "—" }),
         h("td", { class: o.etapa !== "entregada" && o.etapa !== "embarcada" ? dueClass(o.fechaCompromiso) : "", text: fmtDate(o.fechaCompromiso) }))))));
   }
   function viewOTs() {
-    const f = viewOTs.f ||= { etapa: "activas", q: "" };
+    const f = viewOTs.f ||= { etapa: "activas", q: "", vista: store.get("chilian-os-otvista") || "tablero" };
     let ots = list("ots");
     if (f.etapa === "activas") ots = ots.filter((o) => o.etapa !== "entregada" && !o.previa); else if (f.etapa === "previas") ots = ots.filter((o) => o.previa); else if (f.etapa) ots = ots.filter((o) => o.etapa === f.etapa && !o.previa);
     if (f.q) { const q = f.q.toLowerCase(); ots = ots.filter((o) => (o.id + " " + (o.clienteNombre || "")).toLowerCase().includes(q)); }
@@ -1224,9 +1224,14 @@
       top(`${list("ots").filter((o) => o.etapa !== "entregada" && !o.previa).length} activas · ${list("ots").filter((o) => o.previa).length} previas`, "Órdenes de trabajo",
         h("input", { class: "i search", type: "search", placeholder: "Buscar OT o cliente", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewOTs.t); viewOTs.t = setTimeout(rerender, 250); } }),
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.etapa = e.target.value; rerender(); } }, h("option", { value: "activas", text: "Activas" }), h("option", { value: "previas", text: `Previas (${list("ots").filter((o) => o.previa).length})`, selected: f.etapa === "previas" }), h("option", { value: "", text: "Todas", selected: f.etapa === "" }), OT_STAGES.map((s) => h("option", { value: s.id, text: s.name, selected: f.etapa === s.id }))),
+        h("div", { class: "seg" }, [["tablero", "Tablero"], ["lista", "Lista"]].map(([v, t]) => h("button", { type: "button", class: f.vista === v ? "on" : "", onclick: () => { f.vista = v; store.set("chilian-os-otvista", v); rerender(); } }, t))),
         h("button", { class: "btn ghost", type: "button", onclick: () => manualOT() }, "+ OT sin cotización")),
-      h("div", { class: "kpis" }, OT_STAGES.map((s) => h("a", { class: "kpi", href: "#ots", onclick: () => { f.etapa = s.id; } }, h("span", { class: "label", text: s.name }), h("strong", { text: list("ots").filter((o) => o.etapa === s.id).length })))),
-      ots.length ? otTable(ots) : h("div", { class: "empty", text: "No hay órdenes en esta vista. Una OT nace cuando se acepta una cotización." }));
+      (() => { const n = list("ots").filter((o) => !o.previa && o.etapa !== "entregada" && otPending(o).length).length;
+        return n ? h("p", { class: "pend sm", style: "margin:0 0 .8rem" }, h("b", { text: `⚠ ${n} OT con procesos sin terminar.` }), h("span", { text: " Arrastra cada tarjeta a su siguiente etapa (en el teléfono, usa «Mover a…»); si le falta algo, el sistema te dice qué antes de moverla." })) : null; })(),
+      f.vista === "tablero"
+        ? (ots.length || f.etapa !== "activas" ? otBoard(f.etapa === "activas" || f.etapa === "" ? ots : ots) : h("div", { class: "empty", text: "No hay órdenes activas. Una OT nace cuando se acepta una cotización." }))
+        : h("div", {}, h("div", { class: "kpis" }, OT_STAGES.map((s) => h("a", { class: "kpi", href: "#ots", onclick: () => { f.etapa = s.id; } }, h("span", { class: "label", text: s.name }), h("strong", { text: list("ots").filter((o) => o.etapa === s.id).length })))),
+          ots.length ? otTable(ots) : h("div", { class: "empty", text: "No hay órdenes en esta vista. Una OT nace cuando se acepta una cotización." })));
   }
   async function manualOT() {
     const cs = list("cuentas");
@@ -1239,6 +1244,88 @@
         arte: { estado: "pendiente", archivos: [] }, programacion: [], merma: [], historial: [{ etapa: "arte", fecha: new Date().toISOString(), por: S.name, nota: "Creada sin cotización" }] }, { quiet: true });
       go("ot/" + ot.id);
     } }, h("label", { class: "f" }, h("span", { text: "Cliente" }), sel), h("button", { class: "btn accent", type: "submit" }, "Crear OT")));
+  }
+  /* Processes that should be finished before an OT is in (or moves to) a stage.
+     Returns [{ txt, etapa }] — etapa is where that process belongs, to show it in the legend. */
+  const stageIdx = (id) => OT_STAGES.findIndex((s) => s.id === id);
+  function otPending(ot, target = ot.etapa) {
+    const t = stageIdx(target), out = [], add = (etapa, txt) => { if (t >= stageIdx(etapa)) out.push({ etapa, txt }); };
+    const piezas = (ot.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
+    if (ot.previa) out.push({ etapa: "arte", txt: "Es una OT previa: confírmala antes de moverla en planta" });
+    if (!piezas) add("arte", "Las partidas no tienen piezas");
+    if (!ot.fechaCompromiso) add("arte", "Sin fecha compromiso");
+    if (!(ot.arte?.archivos || []).length) add("aprobacion", "No hay arte ni mockup subido");
+    if (ot.arte?.estado !== "aprobada") add("compra", ot.arte?.estado === "cambios" ? "El cliente pidió cambios al arte y no se ha vuelto a aprobar" : "El arte no está aprobado por el cliente");
+    const sinTallas = (ot.lineas || []).filter((l) => +l.piezas > 0 && Object.values(l.tallas || {}).reduce((a, b) => a + (+b || 0), 0) !== +l.piezas).length;
+    if (sinTallas) add("compra", `Tallas incompletas en ${sinTallas} partida(s)`);
+    const falta = pendingTecs(ot);
+    if (falta.length) add("programada", `Falta programar máquina (${falta.map((k) => TECS[k] || k).join(", ")})`);
+    if (t >= stageIdx("empaque") && (ot.merma || []).length === 0 && !(ot.historial || []).some((hh) => hh.etapa === "calidad")) add("empaque", "No pasó por revisión de calidad");
+    if (!ot.embarque?.paqueteria && !ot.embarque?.guia) add("embarcada", "Sin datos de embarque (paquetería o guía)");
+    // stages jumped over: never recorded in the history
+    const seen = new Set((ot.historial || []).map((hh) => hh.etapa));
+    const skipped = OT_STAGES.slice(stageIdx(ot.etapa) + 1, t).filter((st) => !seen.has(st.id)).map((st) => st.name);
+    if (skipped.length && t > stageIdx(ot.etapa) + 1) out.push({ etapa: target, txt: `Se brinca ${skipped.join(", ")} sin registrarse` });
+    return out;
+  }
+  // Move an OT to another stage; if processes are unfinished, say which and ask before moving.
+  async function moveOT(ot, etapa, nota = "Movida en el tablero") {
+    ot = byId("ots", ot.id) || ot;
+    if (ot.etapa === etapa) return;
+    const forward = stageIdx(etapa) > stageIdx(ot.etapa);
+    const pend = forward ? otPending(ot, etapa) : [];
+    if (pend.length) {
+      const ok = await new Promise((res) => {
+        modal(`${ot.id}: hay procesos sin terminar`, h("div", { class: "grid" },
+          h("p", { text: `Para pasar a ${stageName(OT_STAGES, etapa)} falta:` }),
+          h("ul", { class: "pend-list" }, pend.map((p) => h("li", {}, h("b", { text: stageName(OT_STAGES, p.etapa) + ": " }), p.txt))),
+          h("p", { class: "small muted", text: "Si la mueves de todos modos, queda anotado en su historial con tu nombre." }),
+          h("div", { class: "row" },
+            h("button", { class: "btn accent", type: "button", onclick: () => { closeModal(); res(true); } }, "Mover de todos modos"),
+            h("button", { class: "btn ghost", type: "button", onclick: () => { closeModal(); res(false); } }, "Cancelar"),
+            h("a", { class: "btn ghost", href: "#ot/" + ot.id, onclick: () => { closeModal(); res(false); } }, "Abrir la OT y completarla"))));
+        $("#modal").addEventListener("close", () => res(false), { once: true });
+      });
+      if (!ok) { rerender(); return; }
+    }
+    await save("ots", setStage(ot, etapa, pend.length ? `${nota} con pendientes: ${pend.map((p) => p.txt).join("; ")}` : nota), { quiet: true });
+    toast(`${ot.id} → ${stageName(OT_STAGES, etapa)}${pend.length ? " (con pendientes)" : ""}.`);
+    rerender();
+  }
+  // The legend on a card or an OT: what of the current stage (and before) is unfinished.
+  const pendLegend = (ot, compact) => {
+    const p = otPending(ot); if (!p.length) return null;
+    return h("div", { class: "pend" + (compact ? " sm" : "") }, h("b", { text: `⚠ ${p.length} proceso${p.length > 1 ? "s" : ""} sin terminar` }),
+      compact ? h("span", { text: p.slice(0, 2).map((x) => x.txt).join(" · ") + (p.length > 2 ? "…" : "") }) : h("ul", {}, p.map((x) => h("li", {}, h("b", { text: stageName(OT_STAGES, x.etapa) + ": " }), x.txt))));
+  };
+  function otBoard(ots) {
+    const lanes = OT_STAGES.map((st) => {
+      const xs = ots.filter((o) => (o.etapa || "arte") === st.id).sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9"));
+      const lane = h("section", { class: "lane", "data-stage": st.id },
+        h("header", {}, h("b", { text: st.name }), h("span", { class: "num small muted", text: `${xs.length} · ${fmtN(xs.reduce((a, o) => a + o.lineas.reduce((x, l) => x + (+l.piezas || 0), 0), 0))} pzas` })),
+        xs.map((o) => {
+          const pz = o.lineas.reduce((a, l) => a + (+l.piezas || 0), 0), late = o.fechaCompromiso && o.fechaCompromiso < localDate() && !["embarcada", "entregada"].includes(o.etapa);
+          const card = h("article", { class: "opp otc" + (otPending(o).length ? " warn" : ""), draggable: "true", "data-id": o.id, onclick: (e) => { if (!e.target.closest("select")) go("ot/" + o.id); } },
+            h("div", { class: "row between", style: "flex-wrap:nowrap;align-items:start" }, h("span", { class: "t num", text: o.id }), o.prioridad === "urgente" ? h("span", { class: "pill p-bad", text: "urgente" }) : null),
+            h("span", { class: "small", text: o.clienteNombre || cuentaName(o.cuentaId) }),
+            h("div", { class: "m" }, h("span", { text: fmtN(pz) + " pzas" }), h("span", { class: late ? "due-late" : "", text: o.fechaCompromiso ? (late ? "atrasada · " : "") + fmtDate(o.fechaCompromiso) : "sin fecha" })),
+            pendLegend(o, true),
+            h("select", { class: "i sm mover", "aria-label": "Mover a otra etapa", onchange: (e) => { const v = e.target.value; e.target.value = ""; if (v) moveOT(o, v, "Movida en el tablero"); } },
+              h("option", { value: "", text: "Mover a…" }), OT_STAGES.filter((x) => x.id !== o.etapa).map((x) => h("option", { value: x.id, text: x.name }))));
+          card.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", o.id); e.dataTransfer.effectAllowed = "move"; card.classList.add("drag"); });
+          card.addEventListener("dragend", () => card.classList.remove("drag"));
+          return card;
+        }));
+      lane.addEventListener("dragover", (e) => { e.preventDefault(); lane.classList.add("drop"); });
+      lane.addEventListener("dragleave", (e) => { if (!lane.contains(e.relatedTarget)) lane.classList.remove("drop"); });
+      lane.addEventListener("drop", async (e) => {
+        e.preventDefault(); lane.classList.remove("drop");
+        const o = byId("ots", e.dataTransfer.getData("text/plain"));
+        if (o && o.etapa !== st.id) await moveOT(o, st.id);
+      });
+      return lane;
+    });
+    return h("div", { class: "board ot-board" }, lanes);
   }
   function setStage(ot, etapa, nota, por = S.name) {
     return { ...ot, etapa, historial: [...(ot.historial || []), { etapa, fecha: new Date().toISOString(), por, nota }] };
@@ -1270,7 +1357,8 @@
         h("p", { class: "small muted", text: `${ot.estudio.prenda || ""} ${ot.estudio.color ? "· " + ot.estudio.color : ""} · ${ot.estudio.modo === "full" ? "estampado completo" : "serigrafía por posición"}${ot.estudio.piezas ? " · " + fmtN(ot.estudio.piezas) + " piezas" : ""}` }),
         h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Sección", "Posición", "Medida", "Archivo"].map((x) => h("th", { text: x })))),
           h("tbody", {}, ot.estudio.secciones.map((x) => h("tr", {}, h("td", { text: x.seccion }), h("td", { text: x.lugar || "—" }), h("td", { class: "num", text: x.medida || "—" }), h("td", { class: "small", text: x.archivo || "—" }))))))) : null,
-      h("div", { class: "steps", style: "margin-bottom:1rem" }, OT_STAGES.map((s, i) => h("button", { type: "button", class: i < idx ? "done" : i === idx ? "now" : "", title: "Mover a " + s.name, onclick: () => persist(setStage(ot, s.id, "Cambio manual"), `Etapa: ${s.name}.`) }, (i < idx ? "✓ " : "") + s.name))),
+      h("div", { class: "steps", style: "margin-bottom:1rem" }, ((seen) => OT_STAGES.map((s, i) => { const skip = i < idx && i > 0 && !seen.has(s.id); return h("button", { type: "button", class: skip ? "skip" : i < idx ? "done" : i === idx ? "now" : "", title: skip ? `${s.name}: no se registró (se brincó)` : "Mover a " + s.name, onclick: () => moveOT(ot0, s.id, "Cambio manual") }, (skip ? "! " : i < idx ? "✓ " : "") + s.name); }))(new Set((ot.historial || []).map((x) => x.etapa)))),
+      ot.previa ? null : pendLegend(ot0),
       h("div", { class: "cols" },
         h("div", { class: "grid" },
           h("div", { class: "card" }, h("div", { class: "row between" }, h("h2", { text: "Partidas y tallas" }), saveLines),
@@ -1441,10 +1529,11 @@
       if (!ot) { result.replaceChildren(h("div", { class: "card", style: "border-color:var(--bad)" }, h("h2", { text: "No se encontró " + code }), h("p", { class: "small", text: "Revisa que la etiqueta sea de una OT activa." }))); return; }
       if (ot.previa) { result.replaceChildren(h("div", { class: "card", style: "border-color:var(--warn)" }, h("h2", { text: ot.id + " es una OT previa" }), h("p", { class: "small", text: "Confírmala (o acepta su cotización) antes de moverla en planta." }), h("a", { class: "link small", href: "#ot/" + ot.id }, "Abrir la OT"))); return; }
       const sid = station.value, name = stageName(STATIONS, sid);
-      const saved = await save("ots", setStage(ot, sid, `Escaneo en ${name}`), { quiet: true });
+      const pend = stageIdx(sid) > stageIdx(ot.etapa) ? otPending(ot, sid) : [];
+      const saved = await save("ots", setStage(ot, sid, `Escaneo en ${name}${pend.length ? " con pendientes: " + pend.map((p) => p.txt).join("; ") : ""}`), { quiet: true });
       const card = h("div", { class: "card flash" }, h("div", { class: "row between" }, h("h2", { text: `${saved.id} → ${stageName(OT_STAGES, sid)}` }), otPill(saved.etapa)),
         h("p", { text: `${saved.clienteNombre || ""} · ${fmtN(saved.lineas.reduce((a, l) => a + (+l.piezas || 0), 0))} piezas · compromiso ${fmtDate(saved.fechaCompromiso)}` }),
-        saved.arte?.estado !== "aprobada" && ["impresion", "pantallas"].includes(sid) ? h("p", { class: "due-late", text: "Atención: el arte de esta OT no está aprobado." }) : null,
+        pend.length ? h("div", { class: "pend" }, h("b", { text: `⚠ Llegó a ${name} con ${pend.length} proceso${pend.length > 1 ? "s" : ""} sin terminar` }), h("ul", {}, pend.map((x) => h("li", {}, h("b", { text: stageName(OT_STAGES, x.etapa) + ": " }), x.txt)))) : null,
         sid === "calidad" ? mermaForm(saved, async (patch, msg) => { await save("ots", { ...saved, ...patch }, { quiet: true }); toast(msg); }) : null,
         h("a", { class: "link small", href: "#ot/" + saved.id }, "Abrir la OT"));
       result.replaceChildren(card);

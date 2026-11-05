@@ -390,3 +390,8 @@ La sección `#cotizar` funciona como un configurador con precio en vivo:
 
 - **Logo:** los archivos originales de Grupo Chilian (carpeta de marketing en Drive): el círculo azul `#0070BB` con la C (`logos/chilian-icono.png`) y la palabra CHILIAN (`logos/chilian-wordmark.png`, versión negra o blanca según el modo claro u oscuro), con el lema «Estampados • Textiles • Promocionales». Aparece en el encabezado y el pie del sitio, el OS (barra lateral y entrada), la hoja de cotización, las páginas de cliente, la 404, el tutorial y la marca de agua de los mockups. Favicon e íconos del OS salen del ícono original.
 - **Tipografía:** la del logo es una geométrica tipo Century Gothic (de licencia comercial). En la web se usan sus equivalentes libres (OFL): **Jost** para titulares, botones y etiquetas, y **Questrial** para el texto. Se sirven desde `fonts/`.
+
+### Operación: tablero de órdenes de trabajo
+
+- **Órdenes de trabajo** se ve como tablero por etapa (Arte → Entregada). Las OT se arrastran de una etapa a otra; en el teléfono, con «Mover a…» en cada tarjeta. La vista de lista sigue disponible.
+- **Procesos sin terminar:** antes de avanzar una OT se revisa lo que falta para la etapa destino (arte subido y aprobado, tallas completas, máquina programada, revisión de calidad, datos de embarque, fecha compromiso, piezas, OT previa sin confirmar y etapas brincadas). Si falta algo, aparece la lista y se puede cancelar, abrir la OT o mover de todos modos (queda en el historial con el nombre de quien la movió). Las tarjetas, la lista, el detalle de la OT y el escaneo muestran la leyenda «⚠ procesos sin terminar»; en la barra de etapas, las que se brincaron salen con «!».

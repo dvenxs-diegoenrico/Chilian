@@ -137,6 +137,17 @@
   /* kanban */
   .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: .7rem; overflow-x: auto; padding-bottom: .6rem; align-items: start; }
   .lane { background: var(--shade); border: 1px solid var(--rule); padding: .55rem; display: grid; gap: .5rem; align-content: start; min-height: 140px; }
+  .pend { border: 1px solid color-mix(in srgb, var(--warn, #9A5B00) 55%, transparent); border-left: 4px solid var(--warn, #9A5B00); background: color-mix(in srgb, var(--warn, #9A5B00) 9%, var(--card)); padding: .6rem .8rem; margin: 0 0 1rem; font-size: .86rem; }
+  .pend ul { margin: .35rem 0 0; padding-left: 1.1rem; } .pend li { margin: .15rem 0; }
+  .pend.sm { padding: .35rem .5rem; margin: 0; font-size: .74rem; display: grid; gap: .1rem; }
+  .pend-list { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+  .ot-board { grid-auto-columns: minmax(176px, 1fr); }
+  .otc.warn { border-left: 3px solid var(--warn, #9A5B00); }
+  .otc .t { white-space: nowrap; }
+  .steps button.skip { color: var(--warn, #9A5B00); background: color-mix(in srgb, var(--warn, #9A5B00) 10%, transparent); }
+  .otc .mover { font-size: .74rem; padding: .25rem .35rem; }
+  .opp.drag { opacity: .45; }
+  .seg { display: inline-flex; border: 1px solid var(--rule); } .seg button { all: unset; cursor: pointer; padding: .5rem .8rem; font: 600 .72rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; } .seg button.on { background: var(--ink); color: var(--paper); }
   .lane.drop { outline: 2px dashed var(--magenta); outline-offset: -4px; }
   .lane header { display: flex; justify-content: space-between; align-items: baseline; gap: .4rem; padding: .1rem .2rem .3rem; }
   .lane header b { font: 650 0.69rem/1.04 var(--f-display); text-transform: uppercase; }
