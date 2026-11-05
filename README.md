@@ -414,3 +414,13 @@ Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, S
 - **Tareas:** alta rápida en una línea (tipo, texto, fecha, para quién) y botón «Mañana» para pasarla al siguiente día hábil.
 - **Pagos en la OT:** total, anticipo y saldo; registro de pagos (monto, método, fecha, referencia). Pasar a compra de prenda sin anticipo cubierto y entregar con saldo pendiente avisan como proceso sin terminar; también en Avisos.
 - **Reportes:** leads, tasa de cierre, vendido, ciclo de venta, entregas a tiempo y merma; de dónde vienen los clientes (leads, ganadas, cierre, vendido, abierto por origen), embudo solicitud → lead → cotización enviada → aceptada, venta por mes y razones de pérdida.
+
+## SEO y visibilidad en buscadores y asistentes de IA
+
+- **Título y descripción** con lo que se busca (serigrafía, bordado, DTG, Puebla) y cambian al inglés con el botón EN. Canónica, Open Graph completo y tarjeta de X.
+- **Datos estructurados (schema.org JSON-LD):** organización y negocio local (dirección, teléfono, horario, fundación 1990, redes, contactos de venta, técnicas como servicios), sitio web y preguntas frecuentes.
+- **Preguntas frecuentes visibles** (`#preguntas`) con las mismas respuestas que los datos estructurados; todo sale de datos ya publicados en el sitio.
+- **Contenido legible sin JavaScript:** técnicas, equipo y auditorías vienen ya en el HTML (el script los vuelve a dibujar con su diseño).
+- **`robots.txt`** (permite buscadores y asistentes de IA; cierra `/ops`, `/api`, enlaces privados de clientes y la propuesta vieja), **`sitemap.xml`** y **`llms.txt`** (resumen del negocio para asistentes).
+- `propuesta-v2.html` queda fuera de los buscadores (`noindex`).
+- El dominio está en una sola constante del script de SEO: si el sitio se muda a grupochilian.com.mx, hay que cambiar la canónica, `og:url`, el sitemap y `robots.txt`.

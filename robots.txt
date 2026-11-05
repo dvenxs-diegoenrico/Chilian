@@ -1,0 +1,30 @@
+# Grupo Chilian — https://chilian.vercel.app
+# Search engines and AI assistants may read the public site.
+# The team system (/ops), the API and the private client links are not public.
+User-agent: *
+Allow: /
+Disallow: /ops/
+Disallow: /api/
+Disallow: /aprobar
+Disallow: /pedido
+Disallow: /propuesta-v2
+
+# AI assistants and AI search (explicitly allowed)
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+Allow: /
+Disallow: /ops/
+Disallow: /api/
+Disallow: /aprobar
+Disallow: /pedido
+
+Sitemap: https://chilian.vercel.app/sitemap.xml
