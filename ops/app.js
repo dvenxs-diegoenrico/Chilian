@@ -305,7 +305,7 @@
     const counts = { solicitudes: newReq, tareas: late, avisos: unseenAlerts().length };
     const { r } = route(), parent = { oportunidad: "pipeline", cuenta: "cuentas", cotizacion: "cotizaciones", ot: "ots" }[r] || r;
     const side = h("aside", { class: "side", id: "side" },
-      h("div", { class: "brand" }, h("i", { "aria-hidden": "true" }), h("div", {}, h("b", { text: "CHILIAN" }), h("small", { text: "OS · PEDIDOS" }))),
+      h("div", { class: "brand ch-logo", role: "img", "aria-label": "Chilian OS" }, h("img", { src: "/logos/chilian-icono.png", alt: "" }), h("div", {}, h("span", { class: "ch-word" }), h("span", { class: "ch-tag", text: "OS · pedidos" }))),
       h("nav", { class: "nav", "aria-label": "Secciones" }, NAV.filter(([id]) => isAdmin() || (id !== "equipo" && id !== "ajustes")).filter(([id], i, a) => !(id === "group" && (!a[i + 1] || a[i + 1][0] === "group"))).map(([id, label]) => id === "group" ? h("div", { class: "group", text: label })
         : h("a", { href: "#" + id, class: parent === id ? "on" : "", onclick: () => $("#side").classList.remove("open") }, label, counts[id] ? h("span", { class: "count", text: counts[id] }) : null))),
       h("div", { class: "me" }, h("span", {}, S.name, h("span", { class: "muted small", text: " · " + S.usuario })), h("span", { class: "muted small", text: `Datos de ${fmtDT(new Date(S.loadedAt).toISOString())}` }),
@@ -343,6 +343,7 @@
         await loadAll(); render();
       } catch (e2) { err.textContent = e2.message; btn.disabled = false; }
     } },
+      h("div", { class: "ch-logo", role: "img", "aria-label": "Chilian" }, h("img", { src: "/logos/chilian-icono.png", alt: "" }), h("div", {}, h("span", { class: "ch-word" }), h("span", { class: "ch-tag", html: "Estampados <i>•</i> Textiles <i>•</i> Promocionales" }))),
       h("div", { class: "label", text: "Grupo Chilian · sistema interno" }), h("h1", { text: "Chilian OS" }),
       h("p", { class: "muted small", text: "Solicitudes, CRM, cotizaciones, órdenes de trabajo, programación por pulpo, escaneo y embarques." }),
       h("label", { class: "f" }, h("span", { text: "Usuario" }), h("input", { class: "i mono", id: "l-user", required: true, autocomplete: "username", autocapitalize: "none", spellcheck: "false", value: store.get("chilian-os-user") || "" })),

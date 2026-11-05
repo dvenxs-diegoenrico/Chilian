@@ -535,7 +535,7 @@
         x.restore();
       }
       x.restore();
-      x.fillStyle = "#67626B"; x.font = '500 20px "IBM Plex Mono", monospace'; x.textAlign = "center";
+      x.fillStyle = "#67626B"; x.font = '500 20px "Jost", sans-serif'; x.textAlign = "center";
       x.fillText(label, px + (p.width * k) / 2, py + p.height * k + 26);
     };
     put(F, ox, oy, labels.front);
@@ -544,7 +544,7 @@
     const sw = (S1.width + S2.width + gap) * k, sx = (S - sw) / 2;
     put(S1, sx, sy, S1.side === "L" ? labels.sleeveL : labels.sleeveR); put(S2, sx + (S1.width + gap) * k, sy, S2.side === "L" ? labels.sleeveL : labels.sleeveR);
     if (pat.neckline_mm) {
-      x.fillStyle = "#151316"; x.font = '500 22px "IBM Plex Mono", monospace'; x.textAlign = "center";
+      x.fillStyle = "#151316"; x.font = '500 22px "Jost", sans-serif'; x.textAlign = "center";
       x.fillText(labels.binding(Math.round(pat.neckline_mm)), S / 2, S - 26);
     }
     return layout;
@@ -559,7 +559,7 @@
     const x = c.getContext("2d");
     x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, c.width, c.height);
     x.scale(pxmm, pxmm);
-    x.fillStyle = "#151316"; x.font = '500 7px "IBM Plex Mono", monospace';
+    x.fillStyle = "#151316"; x.font = '500 7px "Jost", sans-serif';
     x.fillText(`CHILIAN · ${pat.style} · TALLA ${size} · ${Math.round(pat.marker.width)} × ${Math.round(pat.marker.height)} mm · ${dpi} dpi · ${new Date().toISOString().slice(0, 10)}`, 6, 12);
     if (pat.neckline_mm) x.fillText(`CUELLO: CINTA DE LA MISMA TELA, 1 TONO ${(design.colorName || "").toUpperCase()} ${design.color.toUpperCase()} · ESCOTE ${Math.round(pat.neckline_mm)} mm EN LÍNEA DE CORTE (NO INCLUIDA EN ESTE TRAZO)`, 6, 22);
     x.translate(0, head);

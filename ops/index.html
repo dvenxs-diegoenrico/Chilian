@@ -12,21 +12,19 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Chilian OS">
 <meta name="theme-color" content="#151316">
-<link rel="preload" href="/fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/jost.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/questrial.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  @font-face { font-family: "Big Shoulders Display"; font-weight: 700 900; font-display: swap; src: url(/fonts/big-shoulders-display.woff2) format("woff2"); }
-  @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap; src: url(/fonts/instrument-sans.woff2) format("woff2"); }
-  @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono-400.woff2) format("woff2"); }
-  @font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url(/fonts/ibm-plex-mono-500.woff2) format("woff2"); }
+  @font-face { font-family: "Jost"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(/fonts/jost.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   /* Chilian OS: the plant's work order as software. Ink bar on the left, paper
      workspace, monospace for every folio, number and date. */
   :root {
     --paper: #F4F3F5; --card: #FFFFFF; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --shade: rgba(21,19,22,.05);
     --magenta: #C20E62; --on-accent: #FFFFFF; --ok: #3F7A0A; --warn: #B4541A; --bad: #C8322B; --info: #1F64B5;
-    --f-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
-    --f-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --f-display: "Jost", "Century Gothic", "Futura", sans-serif;
+    --f-body: "Questrial", "Century Gothic", "Avenir", Arial, sans-serif;
+    --f-mono: "Jost", "Century Gothic", sans-serif;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.05);
@@ -47,10 +45,14 @@
   /* shell */
   .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100%; }
   .side { background: var(--ink); color: var(--paper); display: flex; flex-direction: column; gap: .2rem; padding: calc(1rem + env(safe-area-inset-top, 0px)) .7rem 1rem max(.7rem, env(safe-area-inset-left, 0px)); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .ch-logo { display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; color: inherit; }
+  .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
+  .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
+  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .5rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
+  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
   .brand { display: flex; align-items: center; gap: .55rem; padding: .2rem .5rem 1rem; }
-  .brand i { width: 28px; height: 28px; background: var(--paper); -webkit-mask: url(/logos/chilian-c.png) center/contain no-repeat; mask: url(/logos/chilian-c.png) center/contain no-repeat; }
-  .brand b { font: 900 1.35rem/1 var(--f-display); letter-spacing: .12em; }
-  .brand small { display: block; font: 500 .55rem var(--f-mono); letter-spacing: .2em; opacity: .65; }
+  .brand .ch-word { width: 6.6rem; }
+  .login .ch-logo { margin-bottom: .2rem; } .login .ch-logo img { width: 2.8rem; height: 2.8rem; } .login .ch-word { width: 9rem; }
   .nav a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .55rem .65rem; text-decoration: none; border-radius: 2px; font-weight: 500; color: color-mix(in srgb, var(--paper) 78%, transparent); transition: background-color .2s ease, color .2s ease; }
   .nav a:hover { background: color-mix(in srgb, var(--paper) 10%, transparent); color: var(--paper); }
   .nav a.on { background: var(--paper); color: var(--ink); }
@@ -61,7 +63,7 @@
   .side .me button:hover { opacity: 1; }
   .main { min-width: 0; padding: calc(1.2rem + env(safe-area-inset-top, 0px)) max(1.2rem, env(safe-area-inset-right, 0px)) 4rem 1.6rem; }
   .topbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .8rem 1rem; margin-bottom: 1.2rem; }
-  .topbar h1 { margin: 0; font: 800 clamp(2rem, 3.6vw, 2.8rem)/.92 var(--f-display); text-transform: uppercase; }
+  .topbar h1 { margin: 0; font: 650 clamp(1.32rem, 2.38vw, 1.85rem)/1.04 var(--f-display); text-transform: uppercase; }
   .topbar .sub { font: 500 .7rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); margin-bottom: .35rem; }
   .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .mobile-bar { display: none; }
@@ -70,7 +72,7 @@
     .side { position: fixed; inset: 0 auto 0 0; width: min(280px, 86vw); z-index: 30; transform: translateX(-100%); transition: transform .25s ease; height: 100%; }
     .side.open { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
     .mobile-bar { display: flex; align-items: center; justify-content: space-between; gap: .6rem; position: sticky; top: 0; z-index: 20; background: var(--ink); color: var(--paper); padding: calc(.55rem + env(safe-area-inset-top, 0px)) max(.9rem, env(safe-area-inset-right, 0px)) .55rem max(.9rem, env(safe-area-inset-left, 0px)); }
-    .mobile-bar b { font: 900 1.1rem var(--f-display); letter-spacing: .12em; }
+    .mobile-bar b { font: 700 0.73rem var(--f-display); letter-spacing: .12em; }
     .main { padding: 1rem max(16px, env(safe-area-inset-right, 0px)) 4rem max(16px, env(safe-area-inset-left, 0px)); }
   }
 
@@ -103,7 +105,7 @@
 
   /* surfaces */
   .card { background: var(--card); border: 1px solid var(--rule); padding: 1rem 1.1rem; display: grid; gap: .7rem; align-content: start; min-width: 0; }
-  .card h2 { margin: 0; font: 800 1.35rem/1 var(--f-display); text-transform: uppercase; }
+  .card h2 { margin: 0; font: 650 0.89rem/1.04 var(--f-display); text-transform: uppercase; }
   .card h3 { margin: 0; font: 700 .95rem/1.3 var(--f-body); }
   .label { font: 500 .62rem/1.3 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
   .muted { color: var(--steel); }
@@ -114,7 +116,7 @@
   @media (max-width: 1100px) { .cols { grid-template-columns: minmax(0, 1fr); } }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 1rem; }
   .kpi { background: var(--card); padding: .9rem 1rem; display: grid; gap: .25rem; text-decoration: none; }
-  .kpi strong { font: 800 2rem/1 var(--f-display); font-variant-numeric: tabular-nums; }
+  .kpi strong { font: 650 1.32rem/1.04 var(--f-display); font-variant-numeric: tabular-nums; }
   .kpi.alert strong { color: var(--magenta); }
   .empty { padding: 1.4rem; border: 1px dashed var(--rule); text-align: center; color: var(--steel); background: var(--card); }
 
@@ -129,7 +131,7 @@
   td.r, th.r { text-align: right; }
   .pill { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .5rem; border-radius: 999px; font: 600 .62rem/1.4 var(--f-mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; border: 1px solid currentColor; }
   .p-ok { color: var(--ok); } .p-warn { color: var(--warn); } .p-bad { color: var(--bad); } .p-info { color: var(--info); } .p-mut { color: var(--steel); } .p-acc { color: var(--magenta); }
-  .tier { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; font: 800 .85rem var(--f-display); color: var(--on-accent); }
+  .tier { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; font: 650 0.56rem var(--f-display); color: var(--on-accent); }
   .tier.A { background: var(--magenta); } .tier.B { background: var(--warn); } .tier.C { background: var(--steel); }
 
   /* kanban */
@@ -137,7 +139,7 @@
   .lane { background: var(--shade); border: 1px solid var(--rule); padding: .55rem; display: grid; gap: .5rem; align-content: start; min-height: 140px; }
   .lane.drop { outline: 2px dashed var(--magenta); outline-offset: -4px; }
   .lane header { display: flex; justify-content: space-between; align-items: baseline; gap: .4rem; padding: .1rem .2rem .3rem; }
-  .lane header b { font: 800 1.05rem/1 var(--f-display); text-transform: uppercase; }
+  .lane header b { font: 650 0.69rem/1.04 var(--f-display); text-transform: uppercase; }
   .opp { background: var(--card); border: 1px solid var(--rule); padding: .65rem .7rem; display: grid; gap: .3rem; cursor: grab; transition: box-shadow .2s ease, transform .2s ease; }
   .opp:hover { box-shadow: 0 8px 20px var(--shade); transform: translateY(-1px); }
   .opp.drag { opacity: .45; }
@@ -192,13 +194,13 @@
   dialog.modal .body { padding: 1rem; display: grid; gap: .8rem; overflow: auto; }
   .login { min-height: 100%; display: grid; place-items: center; padding: 1.5rem max(16px, env(safe-area-inset-right, 0px)) 1.5rem max(16px, env(safe-area-inset-left, 0px)); }
   .login form { width: min(400px, 100%); display: grid; gap: .9rem; background: var(--card); border: 1.5px solid var(--ink); padding: 1.4rem; }
-  .login h1 { margin: 0; font: 900 2.4rem/.9 var(--f-display); text-transform: uppercase; }
+  .login h1 { margin: 0; font: 700 1.58rem/1.04 var(--f-display); text-transform: uppercase; }
   .err { color: var(--bad); font-size: .85rem; min-height: 1em; }
   .bar-h { display: flex; height: 10px; background: var(--shade); border-radius: 5px; overflow: hidden; }
   .bar-h i { display: block; height: 100%; }
   .money { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .totals { display: grid; grid-template-columns: 1fr auto; gap: .35rem 1rem; font-size: .9rem; }
-  .totals .grand { font: 800 1.6rem/1 var(--f-display); }
+  .totals .grand { font: 650 1.06rem/1.04 var(--f-display); }
   .lineitem { border: 1px solid var(--rule); background: var(--card); padding: .8rem; display: grid; gap: .6rem; }
   .ub { display: grid; grid-template-columns: minmax(0, 1.2fr) 90px minmax(0, 1fr) 2rem; gap: .4rem; align-items: end; }
   .x { all: unset; cursor: pointer; width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 50%; }
@@ -271,7 +273,7 @@
   /* ink calculator */
   .cz-tq { margin-top: 1.2rem; background: var(--card); border: 1px solid var(--rule); padding: 1.1rem; display: grid; gap: 1rem; scroll-margin-top: 1rem; }
   .cz-tq-head { display: flex; flex-wrap: wrap; gap: .8rem 1.5rem; justify-content: space-between; align-items: end; border-bottom: 1.5px solid var(--ink); padding-bottom: .75rem; }
-  .cz-tq-head h2 { margin: 0; font: 800 1.6rem/1 var(--f-display); text-transform: uppercase; }
+  .cz-tq-head h2 { margin: 0; font: 650 1.06rem/1.04 var(--f-display); text-transform: uppercase; }
   .cz-tq-head .hint { max-width: 62ch; margin: .35rem 0 0; }
   .cz-tq-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
   @media (max-width: 980px) { .cz-tq-grid { grid-template-columns: minmax(0, 1fr); } }
@@ -300,15 +302,15 @@
   .cz-big { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
   .cz-big > div { background: var(--card); border: 1px solid var(--rule); padding: .7rem; min-width: 0; }
   .cz-big .k { font: 700 .6rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--steel); }
-  .cz-big .v { font: 800 1.5rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .cz-big .v { font: 650 0.99rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
   /* the sheet: paper in both themes, exactly as it prints */
-  .qsheet { background: #fff; color: #18181B; font: 400 11.5px/1.5 "Instrument Sans", "Helvetica Neue", Arial, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 14px 40px rgba(0,0,0,.1); overflow: hidden; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .qsheet { background: #fff; color: #18181B; font: 400 11.5px/1.5 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 14px 40px rgba(0,0,0,.1); overflow: hidden; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .qsheet .mh { background: #101012; color: #fff; padding: 26px 30px 22px; }
   .qsheet .mh-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
   .qsheet .mh-brand { display: flex; align-items: center; gap: 12px; }
-  .qsheet .mh-logo { width: 38px; height: 38px; background: #fff; -webkit-mask: url(/logos/chilian-c.png) center/contain no-repeat; mask: url(/logos/chilian-c.png) center/contain no-repeat; }
-  .qsheet .mh-name { font: 900 22px/1 "Big Shoulders Display", Impact, sans-serif; letter-spacing: 5px; }
+  .qsheet .mh-logo { width: 38px; height: 38px; display: block; }
+  .qsheet .mh-name { width: 120px; aspect-ratio: 669 / 96; background: #fff; -webkit-mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .qsheet .mh-sub { font-size: 7px; letter-spacing: 3px; color: #B9B9BD; margin-top: 4px; }
   .qsheet .mh-doc { text-align: right; font-size: 8px; letter-spacing: 2.5px; color: #B9B9BD; line-height: 2; font-variant-numeric: tabular-nums; }
   .qsheet .mh-doc b { color: #fff; font-weight: 600; }

@@ -7,20 +7,24 @@
 <title>Página no encontrada · Chilian</title>
 <link rel="icon" href="/favicon.png">
 <style>
-  @font-face { font-family: "Big Shoulders Display"; font-weight: 700 900; font-display: swap; src: url(/fonts/big-shoulders-display.woff2) format("woff2"); }
-  @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap; src: url(/fonts/instrument-sans.woff2) format("woff2"); }
-  @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono-400.woff2) format("woff2"); }
+  @font-face { font-family: "Jost"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(/fonts/jost.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   :root { --paper: #F4F3F5; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --magenta: #C20E62; --on-accent: #fff; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #FF4D9D; --on-accent: #120A0E; color-scheme: dark; } }
   :root[data-theme="dark"] { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #FF4D9D; --on-accent: #120A0E; color-scheme: dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 16px/1.55 "Instrument Sans", "Helvetica Neue", Arial, sans-serif; padding: 2rem 16px; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 16px/1.55 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; padding: 2rem 16px; }
+  .ch-logo { margin-bottom: 1.6rem; display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; color: inherit; }
+  .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
+  .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
+  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .5rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
+  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
   main { max-width: 560px; }
-  .code { font: 400 .78rem "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); }
-  h1 { font: 900 clamp(3rem, 12vw, 5.5rem)/.9 "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; margin: .4rem 0 .8rem; }
+  .code { font: 400 .78rem "Jost", "Century Gothic", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); }
+  h1 { font: 700 clamp(1.98rem, 7.92vw, 3.63rem)/1.04 "Jost", "Century Gothic", sans-serif; text-transform: uppercase; margin: .4rem 0 .8rem; }
   p { color: var(--steel); margin: 0 0 1.6rem; }
   nav { display: flex; flex-wrap: wrap; gap: .6rem; }
-  a { display: inline-flex; align-items: center; min-height: 46px; padding: .6rem 1.1rem; border: 1px solid var(--ink); color: var(--ink); text-decoration: none; font: 500 .8rem "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; transition: transform .15s ease, background-color .15s ease, color .15s ease; }
+  a { display: inline-flex; align-items: center; min-height: 46px; padding: .6rem 1.1rem; border: 1px solid var(--ink); color: var(--ink); text-decoration: none; font: 500 .8rem "Jost", sans-serif; letter-spacing: .08em; text-transform: uppercase; transition: transform .15s ease, background-color .15s ease, color .15s ease; }
   a:hover { transform: translateY(-1px); background: var(--ink); color: var(--paper); }
   a.accent { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
   a:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
@@ -28,6 +32,7 @@
 </head>
 <body>
 <main>
+  <span class="ch-logo" role="img" aria-label="Chilian"><img src="/logos/chilian-icono.png" alt=""><span><span class="ch-word"></span><span class="ch-tag">Estampados <i>•</i> Textiles <i>•</i> Promocionales</span></span></span>
   <div class="code">Error 404 · Chilian Screen Printing</div>
   <h1>Esta página no está</h1>
   <p>El enlace cambió o ya no existe. Desde aquí puedes ver el catálogo, armar tu mockup o pedir tu cotización.</p>
