@@ -48,7 +48,7 @@
   .ch-logo { display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; color: inherit; }
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
-  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .5rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
+  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
   .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
   .brand { display: flex; align-items: center; gap: .55rem; padding: .2rem .5rem 1rem; }
   .brand .ch-word { width: 6.6rem; }
@@ -67,6 +67,7 @@
   .topbar .sub { font: 500 .7rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); margin-bottom: .35rem; }
   .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .mobile-bar { display: none; }
+  @media (max-width: 400px) { .login .ch-tag { display: none; } }
   .side-search { all: unset; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin: 0 .5rem .6rem; padding: .5rem .65rem; border: 1px solid color-mix(in srgb, var(--paper) 25%, transparent); font-size: .85rem; color: color-mix(in srgb, var(--paper) 80%, transparent); }
   .side-search:hover, .side-search:focus-visible { border-color: var(--paper); color: var(--paper); }
   .side-search kbd { font: 600 .66rem var(--f-mono); opacity: .7; }
@@ -136,7 +137,7 @@
   .card { background: var(--card); border: 1px solid var(--rule); padding: 1rem 1.1rem; display: grid; gap: .7rem; align-content: start; min-width: 0; }
   .card h2 { margin: 0; font: 650 0.89rem/1.04 var(--f-display); text-transform: uppercase; }
   .card h3 { margin: 0; font: 700 .95rem/1.3 var(--f-body); }
-  .label { font: 500 .62rem/1.3 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
+  .label { font: 500 .68rem/1.3 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
   .muted { color: var(--steel); }
   .small { font-size: .82rem; }
   .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }

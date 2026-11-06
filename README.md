@@ -434,3 +434,10 @@ Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, S
 - **Datos estructurados:** servicios B2B (maquila para marcas y OEM, paquete completo, uniformes, merch), temas (producto licenciado, nearshoring, cumplimiento social), premio PNAG 2025 y contactos por tipo de cliente.
 - **`llms.txt`** con los clientes principales y un resumen en inglés.
 - **Regenerar después de editar `index.html`:** `python3 tools/seo/build_seo.py` (escribe el bloque SEO, las preguntas, `en.html` y `sitemap.xml`). El dominio está en la constante `SITE`.
+
+### Mayoreo y menudeo, páginas por tipo de cliente y todos los dispositivos
+
+- **Dos caminos para comprar** en la página principal: mayoreo y programas (cotizador) y menudeo (tienda en línea de Chilian).
+- **Páginas por intención de búsqueda** (`tools/seo/build_landings.py`): `/maquila-serigrafia-para-marcas`, `/uniformes-empresariales`, `/playeras-personalizadas-mayoreo`, `/playeras-deportivas-sublimadas` (con precios por volumen y datos de producto), `/merch-eventos-y-campanas` y `/contract-screen-printing-mexico` (inglés). Cada una abre el cotizador con el tipo de proyecto ya elegido (`/?tipo=…#cotizar`) y lleva al WhatsApp de la asesora correcta; están enlazadas desde el pie y entre sí, en `sitemap.xml` y en `llms.txt`.
+- **Dispositivos:** revisión automática en 320, 360, 390, 414, 768, 1024, 1280, 1440 y 1920 px del sitio, `/en`, las páginas nuevas, la 404, las páginas de cliente, el tutorial y el OS: sin desbordes laterales, botones y enlaces táctiles de al menos ~40 px, letra mínima legible y la animación de fotos sin provocar desplazamiento lateral.
+- Orden para regenerar: `python3 tools/seo/build_seo.py && python3 tools/seo/build_landings.py`.

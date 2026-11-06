@@ -152,11 +152,13 @@
   .reg-corner.bl { bottom: -11px; left: -11px; } .reg-corner.br { bottom: -11px; right: -11px; }
 
   /* ---------- TOP STRIP: the credentials, before anything else ---------- */
-  .strip { background: var(--ink); color: var(--paper); font: 500 .68rem/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
+  html, body { overflow-x: clip; }
+  .usa-photo { overflow: hidden; }
+  .strip { background: var(--ink); color: var(--paper); font: 500 .75rem/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
   .strip .wrap { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: .55rem; }
   .strip .live { display: inline-flex; align-items: center; gap: .5rem; }
   .strip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--press); box-shadow: 0 0 0 3px color-mix(in srgb, var(--press) 30%, transparent); }
-  .strip a { text-decoration: none; }
+  .strip a { text-decoration: none; display: inline-block; padding-block: .45rem; margin-block: -.45rem; }
   .strip-links { display: flex; gap: 1.2rem; }
   @media (max-width: 720px) { .strip-links .hide-sm { display: none; } .strip .live span.long { display: none; } }
 
@@ -170,7 +172,7 @@
   .ch-logo { display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; color: inherit; }
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
-  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .5rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
+  .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
   .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
   .brand { margin-right: auto; }
   .brand { min-width: 0; flex-shrink: 1; }
@@ -291,7 +293,7 @@
   .door li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; background: var(--ink); }
   .door-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
   .door-foot .mono { font-size: .72rem; letter-spacing: .08em; color: var(--steel); text-transform: uppercase; }
-  .door-link { all: unset; cursor: pointer; font: 600 .78rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
+  .door-link { all: unset; cursor: pointer; padding: .7rem 0; margin: -.7rem 0; font: 600 .78rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
   /* The whole card is clickable: the link's ::after stretches over it. */
   .door-link::after { content: ""; position: absolute; inset: 0; }
   .door-link:focus-visible { outline: none; }
@@ -525,7 +527,7 @@
   .qz-qty input { max-width: 12rem; font: 650 1.06rem/1.04 var(--f-display); font-variant-numeric: tabular-nums; padding: .6rem .8rem; }
   .qz-qty span { font: 500 .74rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }
   .qz-qty input[aria-invalid="true"] { border-color: #D2452B; }
-  .qz-range { width: 100%; accent-color: var(--magenta); margin: .2rem 0 0; }
+  .qz-range { width: 100%; height: 36px; accent-color: var(--magenta); margin: 0; }
   .qz-hint { margin: 0; font: 400 .74rem/1.45 var(--f-mono); color: var(--steel); }
   .qz-hint:empty { display: none; }
   .qz-hint.warn { color: #D2452B; }
@@ -623,6 +625,14 @@
 
   .lang-offer { position: fixed; z-index: 45; left: 50%; top: calc(80px + env(safe-area-inset-top, 0px)); transform: translate(-50%, -12px); opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s ease; background: var(--ink); color: var(--paper); padding: .6rem 1rem; font: 600 .74rem var(--f-mono); letter-spacing: .06em; text-decoration: none; box-shadow: 0 10px 30px rgba(0,0,0,.25); white-space: nowrap; }
   .lang-offer.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .buyways { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 1.6rem; }
+  .buyway { display: grid; gap: .3rem; padding: 1.1rem 1.2rem; background: var(--card); text-decoration: none; color: var(--ink); transition: background-color .2s ease; }
+  .buyway strong { font: 650 1.2rem/1.2 var(--f-display); }
+  .buyway span:last-child { color: var(--steel); font-size: .92rem; }
+  @media (hover: hover) { .buyway:hover { background: var(--shade); } }
+  @media (max-width: 640px) { .buyways { grid-template-columns: minmax(0, 1fr); } }
+  .foot-links { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+  @media (pointer: coarse) { .qty-quick button { min-height: 40px; padding-inline: .75rem; } .person .contact a { display: inline-block; padding-block: .55rem; } .qz-open { min-height: 40px; } input[type=range] { min-height: 36px; } }
   /* ---------- FAQ ---------- */
   .faq { display: grid; gap: 0; border-top: 1px solid var(--rule); }
   .faq details { border-bottom: 1px solid var(--rule); }
@@ -649,7 +659,7 @@
   /* ---------- FOOTER ---------- */
   /* Extra room at the bottom so the floating buttons never cover the legal links. */
   .site-footer { background: var(--ink); color: var(--paper); padding-block: 4rem calc(6rem + env(safe-area-inset-bottom, 0px)); }
-  .foot-grid { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 2rem; }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)); gap: 2rem; }
   .site-footer h4 { margin: 0 0 .8rem; font: 500 .68rem var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: color-mix(in srgb, var(--paper) 55%, transparent); }
   .site-footer p, .site-footer li { font-size: .92rem; color: color-mix(in srgb, var(--paper) 82%, transparent); }
   .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
@@ -959,7 +969,7 @@
   .qp-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; padding-top: .3rem; }
   .qp-foot strong { font: 650 0.99rem/1.04 var(--f-display); }
   .qp-add, .q-cat-link { all: unset; cursor: pointer; font: 600 .72rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; border-bottom: 1.5px solid currentColor; padding-bottom: 2px; }
-  .q-cat-link { margin-top: .5rem; justify-self: start; color: var(--steel); }
+  .q-cat-link { margin-top: .5rem; justify-self: start; color: var(--steel); padding-block: .6rem; }
   @media (hover: hover) { .qp-add:hover, .q-cat-link:hover { color: var(--magenta); } }
   @media (max-width: 600px) {
     .qp-head { display: none; }
@@ -1035,7 +1045,7 @@
   .lang { position: relative; }
   .lang::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 50%; background: var(--ink); transition: transform .35s var(--ease-out); }
   html[lang="en"] .lang::before { transform: translateX(100%); }
-  .lang button { position: relative; z-index: 1; flex: 1; transition: color .25s ease; }
+  .lang button { position: relative; z-index: 1; flex: 1; transition: color .25s ease; min-width: 40px; min-height: 40px; }
   .lang button[aria-pressed="true"] { background: none; }
   /* Chips you pick in the quote form snap in. */
   .q-step .chip input:checked + span, .qty-quick button.on { animation: pop .28s var(--ease-out); }
@@ -1316,6 +1326,11 @@
         <div class="mini"><img src="photos/opt/proyectos-especiales-960.webp" srcset="photos/opt/proyectos-especiales-480.webp 480w, photos/opt/proyectos-especiales-960.webp 960w, photos/opt/proyectos-especiales-1600.webp 1600w" sizes="76px" decoding="async" width="1067" height="1600" loading="lazy" alt=""><div><h4 data-en="Special projects">Proyectos especiales</h4><p data-en="Cut, sew, dye and print: the whole garment.">Corte, costura, teñido y estampado: la prenda completa.</p></div></div>
         <div class="mini"><img src="photos/opt/accesorios-960.webp" srcset="photos/opt/accesorios-480.webp 480w, photos/opt/accesorios-960.webp 960w, photos/opt/accesorios-1600.webp 1600w" sizes="76px" decoding="async" width="1080" height="891" loading="lazy" alt=""><div><h4 data-en="Promotional items">Promocionales</h4><p data-en="Caps, totes, tumblers and accessories with your logo.">Gorras, totes, termos y accesorios con tu logo.</p></div></div>
       </div>
+      <!-- wholesale or retail: two ways to buy -->
+      <div class="buyways">
+        <a class="buyway" href="#cotizar"><span class="mono" data-en="Wholesale · programs">Mayoreo · programas</span><strong data-en="Quote by volume">Cotiza por volumen</strong><span data-en="Brands, companies, uniforms and events: reference price in a minute and your advisor within one business day.">Marcas, empresas, uniformes y eventos: precio de referencia en un minuto y tu asesora en un día hábil.</span></a>
+        <a class="buyway" href="https://grupochilian.com.mx/collections/all" target="_blank" rel="noopener"><span class="mono" data-en="Retail · few pieces">Menudeo · pocas piezas</span><strong data-en="Buy in the online store ↗">Compra en la tienda en línea ↗</strong><span data-en="Ready-made garments and Chilian Sport with published prices.">Prendas listas y Chilian Sport con precios publicados.</span></a>
+      </div>
     </div>
   </section>
 
@@ -1443,7 +1458,7 @@
           <strong data-en="First place · Textile · PNAG 2025">Primer lugar · Textil · PNAG 2025</strong>
           <span data-en="Premio Nacional de Artes Gráficas 2025, textile category, with the project “Einstein: Abre tu mente”.">Premio Nacional de Artes Gráficas 2025, categoría Textil, con el proyecto “Einstein: Abre tu mente”.</span>
         </div>
-        <a href="https://www.diariocambio.com.mx/2025/puebla/grupo-chilian-industria-grafica-nacional/" target="_blank" rel="noopener" data-en="Read the note ↗">Leer la nota ↗</a>
+        <a style="display:inline-block;padding:.6rem 0" href="https://www.diariocambio.com.mx/2025/puebla/grupo-chilian-industria-grafica-nacional/" target="_blank" rel="noopener" data-en="Read the note ↗">Leer la nota ↗</a>
       </div>
       <ol class="timeline">
         <li><span class="when">1990</span><h3 data-en="Estampados Especiales">Estampados Especiales</h3><p data-en="Federico Chilian starts printing logos on t-shirts in Puebla. His first screen printing table was built with hinges bought with 6 pesos from his father.">Federico Chilian empieza a estampar logotipos en playeras en Puebla. Su primera mesa de serigrafía la armó con bisagras compradas con 6 pesos de su padre.</p></li>
@@ -1617,6 +1632,7 @@
           <li><svg aria-hidden="true"><use href="#i-layers"/></svg><div><strong data-en="Decoration plus full garment">Decorado y prenda completa</strong><span data-en="Print on your blanks, or cut, sew, dye and print from fabric.">Estampamos tu prenda lisa, o cortamos, cosemos, teñimos y estampamos desde la tela.</span></div></li>
           <li><svg aria-hidden="true"><use href="#i-shield"/></svg><div><strong data-en="Standards for retail supply chains">Estándares para cadenas de suministro de retail</strong><span data-en="2026 social compliance approvals from SMETA, Walmart, C&amp;A and Disney FAMA: the standards supply chains like Walmart, Amazon, Costco, Disney, Carhartt, Nike and adidas ask for.">Aprobaciones de cumplimiento social 2026 de SMETA, Walmart, C&amp;A y Disney FAMA: los estándares que piden cadenas como Walmart, Amazon, Costco, Disney, Carhartt, Nike y adidas.</span></div></li>
         </ul>
+        <a class="link" href="/contract-screen-printing-mexico" style="display:inline-block;margin:0 1rem .8rem 0;padding:.7rem 0" data-en="Contract printing in Mexico: full details →">Contract printing in Mexico: detalles en inglés →</a>
         <a class="btn btn-accent" href="#cotizar" id="usa-cta"><span data-en="Talk to our US contact">Habla con el contacto en EE. UU.</span> <span class="arrow" aria-hidden="true">→</span></a>
       </div>
     </div>
@@ -1755,6 +1771,17 @@
         <h4 data-en="Hours">Horario</h4>
         <p data-en="Mon–Fri 9:00–18:00">Lun–Vie 9:00–18:00</p>
         <p class="foot-note"><a href="https://wa.me/522226925404" target="_blank" rel="noopener">WhatsApp 222 692 5404 ↗</a></p>
+      </div>
+      <div>
+        <h4 data-en="Solutions">Soluciones</h4>
+        <ul class="foot-links">
+          <li><a href="/maquila-serigrafia-para-marcas" data-en="Contract printing for brands">Maquila para marcas</a></li>
+          <li><a href="/uniformes-empresariales" data-en="Corporate uniforms">Uniformes empresariales</a></li>
+          <li><a href="/playeras-personalizadas-mayoreo" data-en="Custom tees, wholesale">Playeras por mayoreo</a></li>
+          <li><a href="/playeras-deportivas-sublimadas" data-en="Chilian Sport full print">Playeras deportivas sublimadas</a></li>
+          <li><a href="/merch-eventos-y-campanas" data-en="Merch, events and campaigns">Merch, eventos y campañas</a></li>
+          <li><a href="/contract-screen-printing-mexico" data-en="Contract printing in Mexico (EN)">Contract printing in Mexico (EN)</a></li>
+        </ul>
       </div>
       <div>
         <h4 data-en="Follow">Síguenos</h4>
@@ -3721,6 +3748,7 @@
   // The address decides the language (/ Spanish, /en English) so search engines see each page in its own
   // language; a visitor's saved choice wins. English browsers without a choice get an offer, not a switch.
   setLang(window.CHILIAN_LANG || saved || "es");
+  { const tp = new URLSearchParams(location.search).get("tipo"); if (tp && TYPES.some((x) => x.id === tp)) { const r = $("#type-" + tp); if (r) { r.checked = true; updateTicket(); renderQz(); } } }
   if (!window.CHILIAN_LANG && lang === "en") langUrl("en");
   if (!window.CHILIAN_LANG && !saved && (navigator.language || "").toLowerCase().startsWith("en")) {
     const offer = el("a", { class: "lang-offer", href: "/en" + location.hash, text: "View this site in English →" });

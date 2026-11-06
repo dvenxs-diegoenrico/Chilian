@@ -71,3 +71,12 @@ Grupo Chilian is an audited screen printing, embroidery and cut-and-sew plant in
 - Catálogo de prendas: https://chilian.vercel.app/#catalogo
 - Técnicas: https://chilian.vercel.app/#tecnicas
 - Auditorías: https://chilian.vercel.app/#certificaciones
+
+## Páginas por tipo de cliente
+- Maquila de serigrafía para marcas y licencias: https://chilian.vercel.app/maquila-serigrafia-para-marcas
+- Uniformes empresariales e industriales: https://chilian.vercel.app/uniformes-empresariales
+- Playeras personalizadas por mayoreo: https://chilian.vercel.app/playeras-personalizadas-mayoreo
+- Playeras deportivas sublimadas Chilian Sport (precios por volumen): https://chilian.vercel.app/playeras-deportivas-sublimadas
+- Merch, eventos y campañas: https://chilian.vercel.app/merch-eventos-y-campanas
+- Contract screen printing in Mexico (English): https://chilian.vercel.app/contract-screen-printing-mexico
+- Menudeo (pocas piezas): https://grupochilian.com.mx/collections/all
