@@ -44,7 +44,8 @@ export function quote(P, c, lang = "es") {
   let unit = 0;
   if (kind === "full") unit = P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0;
   else {
-    unit += prod.precios[i] || 0;
+    const ln = c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? P.lineas[c.linea] : null;   // garment line (Básica, Clásica, Premium)
+    unit += (prod.precios[i] || 0) * (ln ? +ln.factor || 1 : 1);
     if (kind === "serigrafia") unit += ((P.tinta[i] || 0) * inks + (P.baseUbicacion[i] || 0) + ((P.especiales || {})[tec.id] || 0)) * locs + (q ? P.pantalla * inks * locs / q : 0);
     else if (kind === "dtg") unit += (P.dtg[i] || 0) * locs;
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
@@ -65,5 +66,5 @@ export function quote(P, c, lang = "es") {
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
-    sentence: `${q} ${plural} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
+    sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

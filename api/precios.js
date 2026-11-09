@@ -29,7 +29,19 @@ export const DEFAULTS = {
   express: 18, diasExpress: 3,             // % surcharge and business days saved
   dias: { serigrafia: [[2000, 8], [10000, 10], [1e9, 15]], dtg: [[100, 4], [500, 6], [1e9, 9]], bordado: [[500, 8], [3000, 12], [1e9, 18]], full: [[1000, 12], [5000, 15], [1e9, 20]] },
   minimos: { serigrafia: 50, dtg: 1, bordado: 12, full: 100 },
-  iva: 16
+  iva: 16,
+  // Garment lines (Básica, Clásica, Premium). "factor" multiplies the garment price above (Clásica = the
+  // price in the list). The specs are what the assistant tells customers; EXAMPLES until Chilian confirms them.
+  lineas: {
+    basica: { nombre: "Básica", en: "Basic", factor: 0.85, para: "eventos, promociones y activaciones", paraEn: "events, promotions and activations" },
+    clasica: { nombre: "Clásica", en: "Classic", factor: 1, para: "uniformes, equipos y merch de uso diario", paraEn: "uniforms, teams and everyday merch" },
+    premium: { nombre: "Premium", en: "Premium", factor: 1.4, para: "marcas de ropa, bandas y merch premium", paraEn: "apparel brands, bands and premium merch" }
+  },
+  specs: {   // per product and line: fabric and weight
+    playera: { basica: "50 % algodón 50 % poliéster · 140–150 g/m²", clasica: "100 % algodón peinado · 160–165 g/m²", premium: "100 % algodón peinado peso completo · 190–220 g/m², corte regular u oversize" },
+    sudadera: { basica: "50 % algodón 50 % poliéster afelpada · 240 g/m²", clasica: "80 % algodón 20 % poliéster · 280 g/m²", premium: "100 % algodón french terry · 330 g/m² o más" },
+    polo: { basica: "Piqué 50 % algodón 50 % poliéster · 180 g/m²", clasica: "Piqué 100 % algodón · 200 g/m²", premium: "Piqué algodón peinado · 220 g/m², o dry fit premium" }
+  }
 };
 
 const merge = (d, s) => {

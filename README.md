@@ -473,3 +473,19 @@ Un solo asistente para el chat del sitio, WhatsApp, Instagram y Messenger. Cotiz
   - Opcionales: `ANTHROPIC_API_KEY` (y `BOT_MODEL`) y `SITE_URL`.
   - Paso a paso: `/ops/conectar.html#pagos`.
 - **Funciones de Vercel:** `/api/instagram` se reescribe a `/api/meta` (`vercel.json`), así el proyecto se mantiene en 11 funciones.
+
+### Cómo atiende el asistente (definido con el dueño de Chilian)
+
+1. **Primero identifica quién escribe.** Si el primer mensaje ya lo dice, no pregunta.
+   - **Ya sé lo que quiero:** ya trae prenda, tela, gramaje y sistema de impresión, y probablemente está comparando precios. Va directo: producto, línea (o su propia tela y gramaje), piezas, sistema de impresión y cotización.
+   - **Necesito asesoría:** conoce el producto pero no las calidades ni los sistemas de impresión.
+   - **Estoy explorando:** no sabe qué cotizar. Recibe el mismo camino que «Necesito asesoría», con más explicación.
+   - **Ya soy cliente:** se reconoce solo por su teléfono en WhatsApp, o lo elige el cliente. Puede repetir un pedido (pasa a su asesora), cotizar algo nuevo o hablar con su asesora.
+2. **Asesoría por uso.** Pregunta para qué es: carrera o deporte, evento, merch de un negocio, uniforme, banda o gira, marca de ropa, o regalo. Con eso sugiere tres productos, con el recomendado marcado con ⭐.
+   - Ejemplos: una carrera lleva a la Chilian Sport con full print; una cafetería, a playeras básicas; una banda, a la línea premium con efectos.
+3. **Tres opciones a la vez.** Las líneas Básica, Clásica y Premium se muestran lado a lado, con tela, gramaje y precio por pieza a la cantidad del cliente. Normalmente se elige la de en medio.
+4. **Impresión según el diseño.** Pregunta cómo es el diseño (logo, foto, bordado, sin diseño) y sugiere la técnica. Luego cotiza.
+
+En el OS, cada solicitud muestra el **perfil** del cliente, el **uso** y, si la pidió, su **especificación de tela**. Una especificación propia siempre pasa a una asesora para confirmar el precio.
+
+Las líneas y sus telas o gramajes están en `api/precios.js` (`lineas`, `specs`). Son **ejemplos** hasta que Chilian los confirme: la Básica cuesta 0.85× y la Premium 1.4× el precio de la prenda.

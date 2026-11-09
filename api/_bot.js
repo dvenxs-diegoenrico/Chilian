@@ -12,7 +12,7 @@
    go to an advisor. Advisors work Monday to Friday, 9:00–19:00 (Mexico City).
    It only talks about Chilian: products, techniques, prices, times, orders and payments. */
 import { prices, quote, TECS, EMB } from "./_pricing.js";
-import { getDoc } from "./_lib.js";
+import { getDoc, listDocs } from "./_lib.js";
 
 export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
 export async function botSettings() {
@@ -51,12 +51,66 @@ async function extract(text) {
   const key = process.env.ANTHROPIC_API_KEY; if (!key) return null;
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: process.env.BOT_MODEL || "claude-haiku-5-5", max_tokens: 200, system: "Extract an apparel printing order from the customer's message for Chilian, a Mexican screen printing plant. Reply ONLY with JSON: {\"prod\": one of playera|sport|sudadera|polo|camisa|gorra|bolsa|propia|null, \"qty\": number|null, \"tec\": one of plastisol|dtg|embroidery|fullprint|null, \"inks\": 1-6|null, \"locs\": 1-4|null, \"emb\": chico|mediano|grande|null, \"del\": estandar|express|null, \"handoff\": true if they ask for a person, licensing, brand programs, full package, complaints or anything not about ordering}. Never add text.",
+      body: JSON.stringify({ model: process.env.BOT_MODEL || "claude-haiku-5-5", max_tokens: 260, system: "Extract an apparel printing order from the customer's message for Chilian, a Mexican screen printing plant. Reply ONLY with JSON: {\"prod\": one of playera|sport|sudadera|polo|camisa|gorra|bolsa|propia|null, \"qty\": number|null, \"tec\": one of plastisol|dtg|embroidery|fullprint|null, \"inks\": 1-6|null, \"locs\": 1-4|null, \"emb\": chico|mediano|grande|null, \"del\": estandar|express|null, \"uso\": one of carrera|evento|negocio|uniforme|banda|marca|regalo|null (what it is for), \"linea\": basica|clasica|premium|null, \"spec\": fabric, blend or weight they ask for (short text)|null, \"handoff\": true if they ask for a person, licensing, brand programs, full package, complaints or anything not about ordering}. Never add text.",
         messages: [{ role: "user", content: String(text).slice(0, 1500) }] }) });
     if (!r.ok) return null;
     const j = await r.json(); const m = (j.content?.[0]?.text || "").match(/\{[\s\S]*\}/);
     return m ? JSON.parse(m[0]) : null;
   } catch { return null; }
+}
+
+/* Who is writing (from the owner's brief): the assistant first sorts the customer, then advises.
+   · experto     knows everything (garment, fabric, weight, printing system) and is comparing quotes:
+                 straight to the spec and the price.
+   · intermedio  knows the product but not lines or printing systems: asked what it is for, then
+                 offered three options at a time (Básica, Clásica, Premium; the middle one usually wins).
+   · explorador  doesn't know what to quote: same path, starting from the use, with more explanation.
+   · cliente     already buys from Chilian: repeat an order, quote something new or talk to their advisor. */
+const USOS = {
+  carrera: { es: "Carrera o deporte", en: "Race or sports", prods: ["sport", "playera", "gorra"], linea: "clasica", tec: "fullprint",
+    tip: ["Para carreras te sugiero la Chilian Sport: poliéster dry fit que no se pega con el sudor, la que usamos en maratones, y se puede sublimar de costura a costura (full print).", "For races I suggest the Chilian Sport: dry-fit polyester that doesn't cling with sweat, the one we make for marathons, and it can be sublimated seam to seam (full print)."] },
+  evento: { es: "Evento o activación", en: "Event or activation", prods: ["playera", "bolsa", "gorra"], linea: "basica", tec: "plastisol",
+    tip: ["Para un evento conviene la línea básica: buen precio por volumen y buena presentación, con tu logo en serigrafía.", "For an event the basic line works best: good price at volume and a good look, with your logo screen printed."] },
+  negocio: { es: "Merch de mi negocio", en: "Merch for my business", prods: ["playera", "bolsa", "gorra"], linea: "basica", tec: "plastisol",
+    tip: ["Para el merch de tu negocio (cafetería, restaurante, tienda) unas básicas funcionan muy bien: precio accesible para regalar o vender.", "For your business merch (café, restaurant, shop) basic tees work great: an easy price to give away or sell."] },
+  uniforme: { es: "Uniforme de empresa", en: "Company uniform", prods: ["polo", "playera", "camisa"], linea: "clasica", tec: "embroidery",
+    tip: ["Para uniformes te recomiendo la línea clásica: aguanta el uso diario y las lavadas. El logo bordado se ve más formal.", "For uniforms I recommend the classic line: it holds up to daily wear and washing. An embroidered logo looks more formal."] },
+  banda: { es: "Banda, artista o gira", en: "Band, artist or tour", prods: ["playera", "sudadera", "gorra"], linea: "premium", tec: "plastisol",
+    tip: ["Para merch de banda o gira necesitas buena calidad: la línea premium tiene tela más gruesa y se siente de marca. Si ya tienes tu diseño, la serigrafía con efectos (relieve, puff, base agua) lo hace destacar.", "For band or tour merch you need quality: the premium line has a heavier fabric and feels branded. With your design ready, screen printing with effects (high density, puff, water-based) makes it stand out."] },
+  marca: { es: "Mi marca de ropa", en: "My apparel brand", prods: ["playera", "sudadera", "polo"], linea: "premium", tec: "waterbase",
+    tip: ["Para una marca de ropa va la línea premium, con impresión base agua o discharge para un tacto suave, como las marcas grandes que estampamos.", "For an apparel brand go premium, with water-based or discharge printing for a soft hand, like the big brands we print for."] },
+  regalo: { es: "Regalo o promocional", en: "Gift or giveaway", prods: ["playera", "bolsa", "gorra"], linea: "basica", tec: "plastisol",
+    tip: ["Para regalos y promocionales, la línea básica rinde el presupuesto; las bolsas y gorras también funcionan muy bien.", "For gifts and giveaways the basic line stretches the budget; totes and caps work great too."] }
+};
+const USO_RX = [["carrera", /carrera|maraton|correr|running|deport|futbol|liga|torneo|triatl|ciclis|race|marathon|sport/], ["banda", /banda|grupo de rock|musico|artista|gira|tour|concierto|band\b/],
+  ["marca", /mi marca|marca de ropa|coleccion|streetwear|clothing brand|apparel brand/], ["uniforme", /uniforme|empleados|personal|corporativ|uniform/],
+  ["negocio", /cafeter|restaurant|negocio|tienda|local|barberia|gimnasio|\bgym|cafe\b|business|shop/], ["regalo", /regalo|promocional|giveaway|gift/],
+  ["evento", /evento|boda|xv|fiesta|congreso|activacion|graduacion|aniversario|event/]];
+const LINEA_RX = [["basica", /basica|economica|basic|cheap/], ["premium", /premium|alta calidad|gruesa|peso completo|heavyweight/], ["clasica", /clasica|classic/]];
+const PERFILES = { experto: ["Ya sé lo que quiero", "I know what I want"], intermedio: ["Necesito asesoría", "I need advice"], explorador: ["Estoy explorando", "Just exploring"], cliente: ["Ya soy cliente", "I'm a customer"] };
+export const PERFIL_NOMBRE = { experto: "Sabe lo que quiere (compara)", intermedio: "Necesita asesoría", explorador: "Explorando", cliente: "Cliente que ya compra" };
+const ALL_TECS = ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "dtg", "embroidery", "fullprint"];
+
+function parseMore(text, d) {
+  const t = norm(text);
+  for (const [id, rx] of USO_RX) if (rx.test(t)) { d.uso ||= id; break; }
+  for (const [id, rx] of LINEA_RX) if (rx.test(t)) { d.linea = id; break; }
+  const o = String(text).toLowerCase();   // the spec keeps the customer's own words (with accents)
+  const spec = [o.match(/\d{3}\s*(g\b|gr|grs|gsm|g\/m)\S*/)?.[0], o.match(/\d{2,3}\s*%?\s*(algod[oó]n|poli[eé]ster|cotton|poly)\S*(\s*\d{1,3}\s*%?\s*(algod[oó]n|poli[eé]ster|cotton|poly)\S*)?/)?.[0], o.match(/peinado|ring ?spun|pima|french terry|dry ?fit|oversize/)?.[0]].filter(Boolean);
+  if (spec.length) d.spec = [...new Set([...(d.spec ? [d.spec] : []), ...spec])].join(" · ").slice(0, 160);
+  if (d.spec && !d.linea) {   // the closest line prices their spec; the advisor confirms the exact fabric
+    const g = +(d.spec.match(/(\d{3})\s*(g|gr|gsm)/)?.[1] || 0);
+    d.linea = g >= 185 || /peso completo|french terry|oversize/.test(d.spec) ? "premium" : /50\s*%?\s*(algod|poli|cotton|poly)/.test(d.spec) || (g && g < 150) ? "basica" : "clasica";
+  }
+  return d;
+}
+
+// A customer we already have: by the account on the conversation, or by the phone on any account.
+async function knownClient(doc) {
+  if (doc.cuentaId) { const c = await getDoc("cuentas", doc.cuentaId).catch(() => null); if (c) return c; }
+  const phone = String(doc.waId || doc.contacto || "").replace(/\D/g, "").slice(-10);
+  if (phone.length < 10) return null;
+  try { return (await listDocs("cuentas")).find((c) => (c.contactos || []).some((x) => String(x.contacto || "").replace(/\D/g, "").slice(-10) === phone)) || null; } catch { return null; }
 }
 
 export async function botTurn(doc, input, ctx) {
@@ -68,6 +122,7 @@ export async function botTurn(doc, input, ctx) {
   const text = input.text || "", btn = input.button || "";
   const out = [];
   const say = (t, buttons, links) => out.push({ text: t, ...(buttons ? { buttons } : {}), ...(links ? { links } : {}) });
+  const done = () => ({ replies: out });
   const handoff = (why) => {
     b.estado = "asesora"; b.paso = "asesora";
     const open = inHours(st.horario);
@@ -76,28 +131,39 @@ export async function botTurn(doc, input, ctx) {
     return { replies: out, handoff: why };
   };
   if (btn === "asesora" || (text && HANDOFF_RX.test(norm(text)))) return handoff(btn === "asesora" ? "El cliente pidió hablar con una asesora" : "Pidió algo que atiende una asesora: " + text.slice(0, 120));
-  if (btn === "reiniciar" || /^(reiniciar|empezar|otra cotizacion|nueva cotizacion|start over)$/.test(norm(text).trim())) { b.paso = "inicio"; b.d = {}; }
-
-  // what the customer said or tapped fills the order
   const d = b.d;
-  if (btn.startsWith("prod:")) d.prod = btn.slice(5);
-  else if (btn.startsWith("qty:")) d.qty = +btn.slice(4);
-  else if (btn.startsWith("tec:")) d.tec = btn.slice(4);
-  else if (btn.startsWith("inks:")) d.inks = +btn.slice(5);
-  else if (btn.startsWith("emb:")) d.emb = btn.slice(4);
-  else if (btn.startsWith("locs:")) d.locs = +btn.slice(5);
-  else if (btn.startsWith("del:")) d.del = btn.slice(4);
+  if (btn === "reiniciar" || /^(reiniciar|empezar|otra cotizacion|nueva cotizacion|start over)$/.test(norm(text).trim())) { b.d = { perfil: d.perfil, uso: d.uso, cliente: d.cliente }; b.paso = "reinicio"; b.todos = false; return botTurn(doc, {}, ctx); }
+
+  // what the customer tapped or said fills the order
+  const pre = btn.split(":")[0], val = btn.slice(pre.length + 1);
+  if (pre === "perfil") d.perfil = val;
+  else if (pre === "uso") d.uso = val;
+  else if (pre === "prod") { if (val === "otro") b.todos = true; else d.prod = val; }
+  else if (pre === "linea") { if (val === "otra") { b.paso = "spec"; say(L("Escríbeme la tela, la composición y el gramaje que buscas (por ejemplo: 100 % algodón peinado, 180 g/m², corte oversize).", "Tell me the fabric, blend and weight you need (for example: 100% combed cotton, 180 gsm, oversized fit).")); return done(); } d.linea = val; }
+  else if (pre === "qty") d.qty = +val;
+  else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
+  else if (pre === "tec") d.tec = val;
+  else if (pre === "inks") d.inks = +val;
+  else if (pre === "emb") d.emb = val;
+  else if (pre === "locs") d.locs = +val;
+  else if (pre === "del") d.del = val;
+  else if (pre === "cli") {
+    if (val === "repetir") return handoff(`Cliente que ya compra${d.cliente ? " (" + d.cliente + ")" : ""}: quiere repetir un pedido`);
+    if (val === "nuevo") d.perfil = "experto";
+  }
+  else if (b.paso === "spec" && text) { d.spec = text.slice(0, 160); d.linea ||= "clasica"; }
   else if (/^\s*\d{1,6}\s*$/.test(text) && ["qty", "inks", "locs"].includes(b.paso)) d[b.paso] = parseInt(text, 10);
   else if (text) {
     const before = JSON.stringify(d);
-    parse(text, d);
-    if (JSON.stringify(d) === before && b.paso !== "inicio") {
+    parse(text, d); parseMore(text, d);
+    if (JSON.stringify(d) === before) {
       const x = await extract(text);
       if (x?.handoff) return handoff("Pidió algo que atiende una asesora: " + text.slice(0, 120));
-      if (x) for (const k of ["prod", "qty", "tec", "inks", "locs", "emb", "del"]) if (x[k] != null) d[k] = x[k];
+      if (x) for (const k of ["prod", "qty", "tec", "inks", "locs", "emb", "del", "uso", "linea", "spec"]) if (x[k] != null && x[k] !== "") d[k] = x[k];
     }
   }
   if (d.tec === "fullprint") d.prod = "sport";
+  if (d.prod === "sport" && d.uso === undefined && !d.perfil) d.uso = "carrera";
 
   if (btn === "pagar" && b.cot) {
     const amount = Math.round(b.cot.totalIva * st.anticipo) / 100;
@@ -106,37 +172,107 @@ export async function botTurn(doc, input, ctx) {
     b.paso = "pago";
     say(L(`Aquí tu link para pagar el anticipo de ${money(amount)} (${st.anticipo}% de ${money(b.cot.totalIva)} con IVA). Con Mercado Pago puedes pagar con SPEI, OXXO, tarjeta o meses sin intereses. Cuando se acredite te confirmo aquí y te pedimos tu logo para el arte.`,
       `Here is your link to pay the ${st.anticipo}% deposit of ${money(amount)} MXN (of ${money(b.cot.totalIva)} with VAT). Once it clears I'll confirm here and we'll ask for your artwork.`), null, links);
-    return { replies: out };
+    return done();
   }
 
-  // ask for what is missing, in order
-  const PRODS_BTNS = P.productos.map((p) => ({ id: "prod:" + p.id, title: ((b.lang === "en" ? p.en : p.nombre) || "").replace(/^Playera deportiva Chilian Sport$/, "Chilian Sport (deportiva)").replace(/^Chilian Sport performance tee$/i, "Chilian Sport tee").slice(0, 24) }));
-  if (!d.prod) { say(b.paso === "inicio" ? L("¡Hola! Soy el asistente de Chilian. Te cotizo en un minuto. ¿Qué producto necesitas?", "Hi! I'm Chilian's assistant. I'll quote you in a minute. What product do you need?") : L("¿Qué producto necesitas?", "What product do you need?"), PRODS_BTNS); b.paso = "prod"; return { replies: out }; }
-  if (!d.qty) { say(L("¿Cuántas piezas?", "How many pieces?"), [50, 100, 300, 500, 1000].map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return { replies: out }; }
+  // 1. who is writing
+  if (!d.perfil) {
+    if (b.paso === "inicio" && !b.revisado) {
+      b.revisado = true;
+      const c = await knownClient(doc);
+      if (c) {
+        d.perfil = "cliente"; d.cliente = c.nombre;
+        say(L(`¡Hola de nuevo! Qué gusto saludarte de parte de ${c.nombre}. ¿En qué te ayudo hoy?`, `Welcome back! Great to hear from ${c.nombre}. How can I help today?`),
+          [{ id: "cli:repetir", title: L("Repetir un pedido", "Repeat an order") }, { id: "cli:nuevo", title: L("Cotizar algo nuevo", "Quote something new") }, { id: "asesora", title: L("Hablar con mi asesora", "Talk to my advisor") }]);
+        b.paso = "cliente"; return done();
+      }
+    }
+    // the first message can already say who they are: a full spec is someone comparing; a use is someone to advise
+    const known = ["prod", "qty", "tec"].filter((k) => d[k]).length;
+    if (known >= 3 || d.spec || (known >= 2 && (d.linea || d.inks || d.locs))) d.perfil = "experto";
+    else if (d.uso) d.perfil = d.prod ? "intermedio" : "explorador";
+    else if (d.prod && d.qty) d.perfil = "intermedio";
+  }
+  if (!d.perfil) {
+    say(L("¡Hola! Soy el asistente de Chilian y te ayudo a cotizar. Para atenderte mejor, ¿cuál te describe?", "Hi! I'm Chilian's assistant and I'll help you get a quote. To help you best, which one describes you?"),
+      Object.entries(PERFILES).map(([id, t]) => ({ id: "perfil:" + id, title: L(t[0], t[1]) })));
+    b.paso = "perfil"; return done();
+  }
+  if (d.perfil === "cliente" && b.paso === "cliente" && !btn) {
+    say(L("¿Repetimos un pedido, cotizamos algo nuevo o te paso con tu asesora?", "Shall we repeat an order, quote something new, or pass you to your advisor?"),
+      [{ id: "cli:repetir", title: L("Repetir un pedido", "Repeat an order") }, { id: "cli:nuevo", title: L("Cotizar algo nuevo", "Quote something new") }, { id: "asesora", title: L("Hablar con mi asesora", "Talk to my advisor") }]);
+    return done();
+  }
+  const advise = d.perfil === "intermedio" || d.perfil === "explorador";
+  const prodName = (id) => { const p = P.productos.find((x) => x.id === id); return ((b.lang === "en" ? p?.en : p?.nombre) || id).replace(/^Playera deportiva Chilian Sport$/, "Chilian Sport deportiva").replace(/^Chilian Sport performance tee$/i, "Chilian Sport tee").slice(0, 22); };
+  const ALL_PRODS = P.productos.map((p) => ({ id: "prod:" + p.id, title: prodName(p.id) }));
+
+  // 2. what it is for (advice path)
+  if (advise && !d.uso) {
+    say(d.perfil === "explorador" ? L("¡Te ayudo a aterrizarlo! Cuéntame, ¿para qué lo quieres? Con eso te sugiero el producto, la calidad y la impresión.", "Let's figure it out together! What is it for? With that I'll suggest the product, quality and print.")
+      : L("¿Para qué es? Con eso te recomiendo la calidad y la impresión que más te conviene.", "What is it for? With that I'll recommend the quality and print that suit you best."),
+      Object.entries(USOS).map(([id, u]) => ({ id: "uso:" + id, title: L(u.es, u.en) })));
+    b.paso = "uso"; return done();
+  }
+  const uso = USOS[d.uso];
+
+  // 3. the product: three suggestions for its use, or the whole list
+  if (!d.prod) {
+    if (advise && uso && !b.todos) {
+      say(`${L(uso.tip[0], uso.tip[1])}\n\n${L("Te sugiero una de estas tres:", "I suggest one of these three:")}`,
+        [...uso.prods.map((id, i) => ({ id: "prod:" + id, title: (i === 0 ? "⭐ " : "") + prodName(id) })), { id: "prod:otro", title: L("Otro producto", "Other product") }]);
+    } else say(L("¿Qué producto necesitas?", "What product do you need?"), ALL_PRODS);
+    b.paso = "prod"; return done();
+  }
+  if (!d.qty) {
+    say(L("¿Cuántas piezas necesitas?", "How many pieces do you need?") + (advise ? L(" Si no sabes exacto, elige la más cercana.", " If you're not sure, pick the closest.") : ""),
+      [50, 100, 300, 500, 1000].map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
+  }
   const prod = P.productos.find((p) => p.id === d.prod) || P.productos[0];
+
+  // 4. the line: three options side by side, with their price at this quantity (the middle one usually wins)
+  const specs = P.specs?.[prod.id];
+  if (specs && !d.linea) {
+    const rec = uso?.linea || "clasica";
+    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
+    const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
+      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unit)} por pieza`, `About ${money(r.unit)} MXN per piece`)}`; });
+    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${L("(Precio con 1 tinta en 1 lugar; lo ajusto con tu diseño.)", "(Price with 1 ink in 1 location; I'll adjust it to your design.)")}`,
+      [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
+    b.paso = "linea"; return done();
+  }
+
+  // 5. how it is printed: the expert picks the system; the rest describe their design and we suggest
   if (!d.tec) {
-    const opts = [["plastisol", L("Serigrafía", "Screen print")], ["dtg", "DTG"], ["embroidery", L("Bordado", "Embroidery")], ...(prod.fullprint ? [["fullprint", "Full print"]] : [])].filter(([id]) => !(id === "dtg" && prod.nodtg));
-    say(L("¿Con qué técnica? Serigrafía para colores sólidos y volumen; DTG para fotos y pocas piezas; bordado para logos en polo, gorra o camisa.", "Which technique? Screen printing for solid colors and volume; DTG for photos and short runs; embroidery for logos on polos, caps or shirts."), opts.map(([id, title]) => ({ id: "tec:" + id, title })));
-    b.paso = "tec"; return { replies: out };
+    if (advise) {
+      const opts = [{ id: "dis:logo", title: L("Logo o texto", "Logo or text") }, { id: "dis:foto", title: L("Foto o muchos colores", "Photo or many colors") }];
+      if (prod.fullprint) opts.unshift({ id: "dis:full", title: L("⭐ Full print", "⭐ Full print") });
+      opts.push(["polo", "camisa", "gorra"].includes(prod.id) || d.uso === "uniforme" ? { id: "dis:bordado", title: L("⭐ Bordado", "⭐ Embroidery") } : { id: "dis:bordado", title: L("Bordado", "Embroidery") });
+      opts.push({ id: "dis:nodis", title: L("Aún no tengo diseño", "No design yet") });
+      say(L("¿Cómo es tu diseño? Con eso te sugiero la impresión: serigrafía para logos de pocos colores y volumen, DTG para fotos en pocas piezas, bordado para un acabado formal" + (prod.fullprint ? " y full print para cubrir toda la prenda." : "."),
+        "What is your design like? With that I'll suggest the print: screen printing for logos with few colors and volume, DTG for photos in short runs, embroidery for a formal finish" + (prod.fullprint ? " and full print to cover the whole garment." : ".")), opts);
+      b.paso = "dis"; return done();
+    }
+    const opts = ALL_TECS.filter((id) => !(id === "fullprint" && !prod.fullprint) && !(id === "dtg" && prod.nodtg)).map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: t ? L(t.es, t.en).slice(0, 24) : id }; });
+    say(L("¿Qué sistema de impresión?", "Which printing system?"), opts); b.paso = "tec"; return done();
   }
   const tec = TECS.find((x) => x.id === d.tec) || TECS[0];
-  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [1, 2, 3, 4, 5, 6].map((n) => ({ id: "inks:" + n, title: String(n) }))); b.paso = "inks"; return { replies: out }; }
-  if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return { replies: out }; }
-  if (tec.kind !== "full" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return { replies: out }; }
-  if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return { replies: out }; }
+  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [1, 2, 3, 4, 5, 6].map((n) => ({ id: "inks:" + n, title: String(n) }))); b.paso = "inks"; return done(); }
+  if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
+  if (tec.kind !== "full" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }
+  if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return done(); }
 
-  // the quote
+  // 6. the quote
   const r = quote(P, d, b.lang);
-  if (r.err) { say(r.err + " " + L("¿Cambiamos las piezas o la técnica?", "Shall we change the pieces or the technique?"), [{ id: "qty:" + r.min, title: L(`Usar ${r.min} piezas`, `Use ${r.min} pieces`) }, { id: "reiniciar", title: L("Empezar de nuevo", "Start over") }]); delete d.qty; b.paso = "qty"; return { replies: out }; }
-  b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva, days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
+  if (r.err) { say(r.err + " " + L("¿Cambiamos las piezas o la técnica?", "Shall we change the pieces or the technique?"), [{ id: "qty:" + r.min, title: L(`Usar ${r.min} piezas`, `Use ${r.min} pieces`) }, { id: "reiniciar", title: L("Empezar de nuevo", "Start over") }]); delete d.qty; b.paso = "qty"; return done(); }
+  b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, linea: d.linea || "", spec: d.spec || "", sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva, days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
   const when = r.date.toLocaleDateString(b.lang === "en" ? "en-US" : "es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Mexico_City" });
-  const body = L(`Tu cotización: ${r.sentence}.\n• ${money(r.unit)} por pieza\n• Total ${money(r.total)} más IVA (${money(r.totalIva)} con IVA)\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
-    `Your quote: ${r.sentence}.\n• ${money(r.unit)} MXN per piece\n• Total ${money(r.total)} MXN plus VAT (${money(r.totalIva)} with VAT)\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
+  const specLine = d.spec ? L(`\n• Tu especificación: ${d.spec} (tu asesora confirma el precio exacto con esa tela)`, `\n• Your spec: ${d.spec} (your advisor confirms the exact price for that fabric)`) : specs && d.linea ? `\n• ${specs[d.linea]}` : "";
+  const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unit)} por pieza\n• Total ${money(r.total)} más IVA (${money(r.totalIva)} con IVA)\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
+    `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unit)} MXN per piece\n• Total ${money(r.total)} MXN plus VAT (${money(r.totalIva)} with VAT)\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
   b.paso = "cotizado";
-  if (r.totalIva > st.limite) {
-    say(body);
-    return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalIva)} con IVA`);
-  }
+  if (r.totalIva > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalIva)} con IVA`); }
+  if (d.spec) { say(body); return handoff(`Cotizó con una especificación propia (${d.spec}): ${r.sentence}`); }
   say(body, [{ id: "pagar", title: L(`Pagar anticipo ${st.anticipo}%`, `Pay ${st.anticipo}% deposit`) }, { id: "reiniciar", title: L("Cambiar algo", "Change something") }, { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }]);
-  return { replies: out };
+  return done();
 }

@@ -5,7 +5,7 @@
    GET  ?accion=estado  (main account)                                           what is configured
    POST ?webhook=mp | ?webhook=stripe                                            payment confirmations */
 import { sessionOf, getDoc, saveDoc, sign, verify, json, fail } from "./_lib.js";
-import { botTurn, botSettings } from "./_bot.js";
+import { botTurn, botSettings, PERFIL_NOMBRE } from "./_bot.js";
 import { payLinks, payReady, mpWebhook, stripeWebhook } from "./_pay.js";
 import { sendReplies } from "./_channels.js";
 import { notifySafe } from "./_push.js";
@@ -22,10 +22,15 @@ export async function assistantTurn(doc, input, { canal, lang, base, send }) {
   res.replies.forEach((r, i) => doc.mensajes.push({ mid: ids[i] || "", de: "bot", por: "Asistente Chilian", texto: r.text, botones: r.buttons, links: r.links, fecha: now() }));
   if (doc.bot?.cot && (!doc.estimados?.[0] || doc.estimados[0].resumen !== doc.bot.cot.sentence)) {
     const c = doc.bot.cot;   // what was quoted: the OS makes the pre-quote from it, at this price
-    doc.estimados = [{ producto: c.d.prod, nombre: c.nombre || c.d.prod, piezas: +c.d.qty, tecnica: c.d.tec, tecnicaNombre: c.tecNombre || c.d.tec, tintas: c.d.inks || 0, ubicaciones: c.d.locs || 0, bordado: c.d.emb || "", entrega: c.d.del || "estandar",
+    doc.estimados = [{ producto: c.d.prod, nombre: (c.nombre || c.d.prod) + (c.linea ? ` · línea ${{ basica: "básica", clasica: "clásica", premium: "premium" }[c.linea]}` : ""), piezas: +c.d.qty, tecnica: c.d.tec, tecnicaNombre: c.tecNombre || c.d.tec, tintas: c.d.inks || 0, ubicaciones: c.d.locs || 0, bordado: c.d.emb || "", entrega: c.d.del || "estandar",
       unitario: c.unit, total: c.total, dias: c.days, fechaEstimada: c.fecha, resumen: c.sentence, origen: "asistente" }];
     doc.prenda = c.sentence; doc.piezas = +c.d.qty;
+    if (c.linea) doc.estimados[0].linea = c.linea;
+    if (c.spec) { doc.estimados[0].especificacion = c.spec; doc.especificacion = c.spec; }
   }
+  const bd = doc.bot?.d || {};   // who the customer is and what it is for: the team sees it on the request
+  if (bd.perfil) doc.perfilCliente = PERFIL_NOMBRE[bd.perfil] || bd.perfil;
+  if (bd.uso) doc.usoCliente = bd.uso;
   if (res.handoff) { doc.nuevoMensaje = true; doc.estado = doc.estado === "descartada" ? "nueva" : doc.estado; doc.asistente = { pasoAAsesora: res.handoff, fecha: now() }; }
   return res;
 }

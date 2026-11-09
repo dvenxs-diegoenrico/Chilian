@@ -679,6 +679,8 @@
         waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null,
         s.canal === "chat" ? h("span", { class: "pill p-info", text: "Chat del sitio" }) : null,
         s.bot ? h("span", { class: "pill p-info", text: "Cotizó con el asistente" }) : null,
+        s.perfilCliente ? h("span", { class: "pill p-acc", title: "Lo identificó el asistente", text: `Perfil: ${s.perfilCliente}${s.usoCliente ? " · para " + ({ carrera: "carrera o deporte", evento: "evento", negocio: "su negocio", uniforme: "uniforme", banda: "banda o gira", marca: "marca de ropa", regalo: "regalo o promocional" }[s.usoCliente] || s.usoCliente) : ""}` }) : null,
+        s.especificacion ? h("span", { class: "pill p-warn", title: "Pidió una tela o gramaje específico", text: "Especificación: " + s.especificacion }) : null,
         s.pagos?.length ? h("span", { class: "pill p-ok", text: `Pagó ${money(s.pagos.reduce((a, p) => a + (+p.monto || 0), 0))} en línea` }) : null),
       h("p", { class: "small muted", style: "margin:0" }, h("b", { text: "Llegó por: " }), arrivedBy(s)),
       h("div", { class: "grid g4" },
