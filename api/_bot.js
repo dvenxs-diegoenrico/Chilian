@@ -15,7 +15,8 @@ import { prices, quote, TECS, EMB } from "./_pricing.js";
 import { getDoc, listDocs } from "./_lib.js";
 import { understand } from "./_ai.js";
 
-export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+// The website chat is published by default; the social channels turn on in Ajustes once Meta is connected.
+export const BOT_DEFAULTS = { activo: { web: true, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
 export async function botSettings() {
   const st = await getDoc("ajustes", "asistente").catch(() => null);
   return { ...BOT_DEFAULTS, ...(st || {}), activo: { ...BOT_DEFAULTS.activo, ...(st?.activo || {}) }, horario: { ...BOT_DEFAULTS.horario, ...(st?.horario || {}) } };
@@ -300,13 +301,14 @@ export async function botTurn(doc, input, ctx) {
   const r = quote(P, d, b.lang);
   if (r.err) { say(r.err + " " + L("¿Cambiamos las piezas o la técnica?", "Shall we change the pieces or the technique?"), [{ id: "qty:" + r.min, title: L(`Usar ${r.min} piezas`, `Use ${r.min} pieces`) }, { id: "reiniciar", title: L("Empezar de nuevo", "Start over") }]); delete d.qty; b.paso = "qty"; return done(); }
   b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, linea: d.linea || "", spec: d.spec || "", sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva,
-    unitFinal: r.unitFinal, envio: r.envio, totalFinal: r.totalFinal, prenda: r.prenda?.codigo || "", days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
+    unitFinal: r.unitFinal, envio: r.envio, envioCotizar: r.envioCotizar, totalFinal: r.totalFinal, prenda: r.prenda?.codigo || "", days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
   const when = r.date.toLocaleDateString(b.lang === "en" ? "en-US" : "es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Mexico_City" });
   const specLine = d.spec ? L(`\n• Tu especificación: ${d.spec} (tu asesora confirma el precio exacto con esa tela)`, `\n• Your spec: ${d.spec} (your advisor confirms the exact price for that fabric)`)
     : r.prenda?.tela ? `\n• ${r.prenda.tela}${d.color ? L(d.color === "blanca" ? ", blanca" : ", de color", d.color === "blanca" ? ", white" : ", colored") : ""}` : specs && d.linea ? `\n• ${specs[d.linea]}` : "";
-  const ship = r.envio ? L(`\n• Envío: ${money(r.envio)}`, `\n• Shipping: ${money(r.envio)} MXN`) : "";
-  const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} por pieza (IVA y comisión de pago incluidos)${ship}\n• Total: ${money(r.totalFinal)}\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
-    `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} MXN per piece (VAT and payment fee included)${ship}\n• Total: ${money(r.totalFinal)} MXN\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
+  const ship = r.envio ? L(`\n• Envío: ${money(r.envio)}`, `\n• Shipping: ${money(r.envio)} MXN`) : r.envioCotizar ? L("\n• Envío: a cotizar con tu asesora", "\n• Shipping: quoted by your advisor") : "";
+  const sinEnvio = r.envioCotizar ? L(" (sin envío)", " (shipping not included)") : "";
+  const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} por pieza (IVA y comisión de pago incluidos)${ship}\n• Total${sinEnvio}: ${money(r.totalFinal)}\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
+    `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} MXN per piece (VAT and payment fee included)${ship}\n• Total${sinEnvio}: ${money(r.totalFinal)} MXN\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
   b.paso = "cotizado";
   if (r.totalFinal > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalFinal)} total`); }
   if (d.spec) { say(body); return handoff(`Cotizó con una especificación propia (${d.spec}): ${r.sentence}`); }

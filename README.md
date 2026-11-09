@@ -568,3 +568,11 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
 - **OS: la tabla es lista de precios.** En Ajustes se llama «Tabla de precios de serigrafía (LN1)» y el margen de estampado queda en 0 %: el OS cobra el precio de la tabla más IVA. Si se quiere un margen, se pone en Ajustes o en la cotización.
 - **Cambio de versión.** `tarifas.tablaVersion` (hoy `LN1-2026-11`) marca la versión de la tabla. Si los ajustes guardados traen otra, la tabla, el margen de estampado y el ajuste en % vuelven a los valores nuevos una sola vez. Al guardar los ajustes queda la versión nueva.
 - **Diferencia con el sitio.** El sitio suma además 5 % de comisión de pago en línea y envío; el OS no, porque ahí el cobro lo registra el equipo.
+
+### Envío «a cotizar» y publicación del chat
+
+- **Envío.** El sitio y el asistente ya no suman envío. Muestran «envío a cotizar con tu asesora» y el total dice «sin envío». Para cobrar un monto fijo: Ajustes → Asistente de ventas → «Envío por pedido», con la casilla «Envío a cotizar» quitada.
+- **Chat publicado.** El chat del sitio viene encendido por defecto (`BOT_DEFAULTS.activo.web`).
+  - **Se apaga desde Ajustes:** se desactiva en Ajustes → Asistente de ventas, y lo guardado ahí manda sobre el valor por defecto.
+  - **Almacenamiento caído:** el botón del chat solo aparece si el almacenamiento responde (`/api/venta?accion=activo`). Si el almacenamiento falla, el sitio no muestra un chat que no puede guardar.
+  - **WhatsApp, Instagram y Messenger:** siguen apagados hasta conectar Meta y encenderlos en Ajustes.

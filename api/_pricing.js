@@ -62,8 +62,9 @@ export function garment(P, prod, c, q) {
 export function charges(P, base, q) {
   const iva = (P.iva ?? 16) / 100, fee = (P.cargos?.comision ?? 5) / 100, env = P.cargos?.envio || {};
   const unitFinal = base * (1 + iva) * (1 + fee), sub = unitFinal * q;
-  const envio = q ? (env.gratisDesde && sub >= env.gratisDesde ? 0 : +env.porPedido || 0) : 0;
-  return { unitFinal, envio, totalFinal: sub + envio };
+  const envioCotizar = env.cotizar !== false;   // shipping is quoted by the advisor: it is not added to the total
+  const envio = q && !envioCotizar ? (env.gratisDesde && sub >= env.gratisDesde ? 0 : +env.porPedido || 0) : 0;
+  return { unitFinal, envio, envioCotizar, totalFinal: sub + envio };
 }
 export function addBusinessDays(n, from = new Date()) { const d = new Date(from); d.setHours(12, 0, 0, 0); while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n--; } return d; }
 
@@ -105,6 +106,6 @@ export function quote(P, c, lang = "es") {
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);
   return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
-    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null,
+    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null,
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }
