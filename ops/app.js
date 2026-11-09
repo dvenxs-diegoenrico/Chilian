@@ -2088,7 +2088,7 @@
   // The prices the website's "Cotiza en un minuto" shows (sale prices before VAT, per piece).
   // The sales assistant (website chat, WhatsApp, Instagram, Messenger) and online payments. Saved in ajustes/asistente.
   function assistantCard() {
-    const DEF = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+    const DEF = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
     const cur = byId("ajustes", "asistente") || {};
     const a = { ...DEF, ...cur, activo: { ...DEF.activo, ...(cur.activo || {}) }, horario: { ...DEF.horario, ...(cur.horario || {}) } };
     const prices = byId("ajustes", "precios-web"), example = !prices || prices.ejemplo !== false;
@@ -2162,21 +2162,21 @@
         h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { P.productos.push({ id: "p" + Date.now().toString(36), nombre: "Nuevo producto", plural: "", precios: P.tramos.map(() => 0) }); paintProds(); } }, "+ Producto"),
         h("div", { class: "label", text: "Impresión, por pieza (mismas escalas)" }),
         h("div", { class: "tbl" }, h("table", {}, h("tbody", {},
-          rowOf("Serigrafía: por tinta y ubicación", P.tinta), rowOf("Serigrafía: base por ubicación", P.baseUbicacion), rowOf("DTG: por ubicación", P.dtg),
+          rowOf("DTG: por ubicación", P.dtg),
           rowOf("Bordado chico (≤ 7 cm)", P.bordado.chico), rowOf("Bordado mediano (≤ 12 cm)", P.bordado.mediano), rowOf("Bordado grande (≤ 25 cm)", P.bordado.grande)))),
         h("div", { class: "label", text: "Chilian Sport full print (prenda + sublimación, por pieza)" }),
         h("div", { class: "tbl" }, h("table", {}, h("thead", {}, head(P.fullprint.tramos)), h("tbody", {}, rowOf("Precio por pieza", P.fullprint.precios)))),
-        h("div", { class: "label", text: "Extra por ubicación en tintas especiales" }),
-        h("div", { class: "grid g3" }, ...Object.keys(P.especiales).map((k) => one(P.especiales, k, ({ plastisol: "Plastisol", waterbase: "Base agua", discharge: "Discharge", hd: "HD", puff: "Puff", glitter: "Glitter", gitd: "Brilla en la oscuridad" })[k] || k))),
+        h("p", { class: "small", style: "background:var(--shade);padding:.5rem .7rem;margin:0" }, h("b", { text: "Serigrafía y prendas de playera: " }), "usan la lista oficial de Chilian (tabla LN1 por tamaño, piezas y colores; lista de playera cuello redondo). Esas tablas están en el código: para cambiarlas, pásale la nueva lista a Claude."),
         h("div", { class: "label", text: "Cargos, mínimos y tiempos" }),
-        h("div", { class: "grid g3" }, one(P, "pantalla", "Pantalla (MXN, se prorratea)"), one(P, "ponchado", "Ponchado (MXN por ubicación)"), one(P, "express", "Cargo express (%)"),
+        h("div", { class: "grid g3" }, one(P, "ponchado", "Ponchado (MXN por ubicación)"), one(P, "express", "Cargo express (%)"),
           one(P, "diasExpress", "Días que ahorra express"), one(P, "iva", "IVA (%)"),
-          one(P.minimos, "serigrafia", "Mínimo serigrafía (pzas)"), one(P.minimos, "dtg", "Mínimo DTG (pzas)"), one(P.minimos, "bordado", "Mínimo bordado (pzas)"), one(P.minimos, "full", "Mínimo full print (pzas)")),
+          one(P.minimos, "dtg", "Mínimo DTG (pzas)"), one(P.minimos, "bordado", "Mínimo bordado (pzas)"), one(P.minimos, "full", "Mínimo full print (pzas)")),
         h("p", { class: "hint", text: "Los días hábiles por volumen (serigrafía 8/10/15, DTG 4/6/9, bordado 8/12/18, full print 12/15/20) se ajustan en el código si cambian." }),
         h("div", { class: "row" },
           h("button", { class: "btn accent", type: "button", onclick: async () => {
             for (const p of P.productos) p.id = p.id || "p" + Date.now().toString(36);
-            await save("ajustes", { ...(byId("ajustes", "precios-web") || {}), id: "precios-web", precios: P, ejemplo: ej.v }); toast("Precios del sitio guardados. El sitio los muestra en unos minutos.");
+            const { lista, listaTramos, serigrafia, ...mine } = P;   // the official tables stay in the code
+            await save("ajustes", { ...(byId("ajustes", "precios-web") || {}), id: "precios-web", precios: mine, ejemplo: ej.v }); toast("Precios del sitio guardados. El sitio los muestra en unos minutos.");
           } }, "Guardar precios del sitio"),
           h("a", { class: "btn sm ghost", href: "/#cotizar", target: "_blank", rel: "noopener" }, "Ver el cotizador del sitio ↗")));
     })();

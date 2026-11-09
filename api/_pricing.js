@@ -25,6 +25,25 @@ export async function prices() {
   cache = { at: Date.now(), v: { P: mergePrecios(saved?.precios), ejemplo: saved ? saved.ejemplo !== false : true } };
   return cache.v;
 }
+export const EXTRAS_ELEGIBLES = ["fabric", "antimigrante", "fleece", "export"];
+export const inkIdx = (n) => Math.min(5, Math.floor(Math.max(1, +n || 1) / 2));   // 1 | 2-3 | 4-5 | 6-7 | 8-9 | 10-11
+export const sizeIdx = (S, area) => { const i = S.tamanos.findIndex((x) => x >= area); return i < 0 ? S.tamanos.length - 1 : i; };
+// Extras that apply: the ones picked, the ink's own (HD/puff, glitter) and fleece garments.
+export function extrasOf(c, tec, prod) {
+  const ids = new Set((c.extras || []).filter((x) => EXTRAS_ELEGIBLES.includes(x)));
+  if (tec.id === "hd" || tec.id === "puff") ids.add("hdpuff");
+  if (tec.id === "glitter") ids.add("glitter");
+  if (prod.fleece) ids.add("fleece");
+  return [...ids];
+}
+// Official screen-printing table: per location by size, quantity break and colors, plus extras.
+export function printCost(P, c, tec, prod, q, locs) {
+  const S = P.serigrafia, t = tierOf(q, S.tramos), ik = inkIdx(c.inks);
+  const areas = (c.areas && c.areas.length ? c.areas.slice(0, 4) : Array(locs).fill(+c.size || 300));
+  const ids = extrasOf(c, tec, prod); let base = 0, extra = 0;
+  for (const a of areas) { const k = String(S.tamanos[sizeIdx(S, a)]); base += S.tabla[k][t][ik]; for (const id of ids) extra += S.extras[id][k][t]; }
+  return { base, extra, ids, areas };
+}
 const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
 /* The garment's price per piece: T-shirts from the official list (by line and white/colored), other
    products from their own price breaks. Returns { precio, codigo, tela }. */
@@ -53,12 +72,12 @@ export function quote(P, c, lang = "es") {
   const prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
   const tec = TECS.find((x) => x.id === c.tec) || TECS[0], kind = tec.kind;
   const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos);
-  const locs = Math.min(4, Math.max(1, c.locs | 0 || 1)), inks = Math.min(6, Math.max(1, c.inks | 0 || 1));
-  let unit = 0;
+  const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
+  let unit = 0, pc = null;
   if (kind === "full") unit = P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0;
   else {
     const g = garment(P, prod, c, q); unit += g.precio; var gar = g;
-    if (kind === "serigrafia") unit += ((P.tinta[i] || 0) * inks + (P.baseUbicacion[i] || 0) + ((P.especiales || {})[tec.id] || 0)) * locs + (q ? P.pantalla * inks * locs / q : 0);
+    if (kind === "serigrafia") { pc = printCost(P, c, tec, prod, q, locs); unit += pc.base + pc.extra; }
     else if (kind === "dtg") unit += (P.dtg[i] || 0) * locs;
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
   }
@@ -66,14 +85,18 @@ export function quote(P, c, lang = "es") {
   const table = (P.dias || {})[kind] || [[1e9, 10]];
   let days = (table.find(([lim]) => q <= lim) || table[table.length - 1])[1];
   if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
-  const min = (P.minimos || {})[kind] || 1;
+  const min = Math.max((P.minimos || {})[kind] || 1, kind === "serigrafia" ? P.serigrafia.tramos[0] : 0);
   let err = "";
   if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.");
   else if (kind === "dtg" && prod.nodtg) err = L("DTG no se imprime en ese producto; elige serigrafía o bordado.", "DTG can't print on that product; pick screen printing or embroidery.");
   else if (q < min) err = L(`El mínimo en ${tec.es.toLowerCase()} es de ${min} piezas.`, `The minimum for ${tec.en.toLowerCase()} is ${min} pieces.`);
   const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
   const how = kind === "full" ? L("en full print", "in full print")
-    : kind === "serigrafia" ? L(`en ${tec.es.toLowerCase()}, ${inks} tinta${inks > 1 ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in ${tec.en.toLowerCase()}, ${inks} ink${inks > 1 ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""}`)
+    : kind === "serigrafia" ? (() => {
+      const S = P.serigrafia, ink = S.colores[inkIdx(inks)], med = [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + "), plural = ink !== "1";
+      const ex = pc.ids.filter((x) => !["hdpuff", "glitter"].includes(x)).map((x) => (S.extrasNombres[x][lang === "en" ? "en" : "es"]).toLowerCase());
+      return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"} de ${med}${ex.length ? ", con " + ex.join(" y ") : ""}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""} of ${med}${ex.length ? ", with " + ex.join(" and ") : ""}`);
+    })()
     : kind === "dtg" ? L(`en DTG a todo color, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG, ${locs} location${locs > 1 ? "s" : ""}`)
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;

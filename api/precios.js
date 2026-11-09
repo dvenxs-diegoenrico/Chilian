@@ -7,6 +7,7 @@
    + 5 % payment fee (Mercado Pago / Stripe) + shipping — see "cargos". */
 import { getDoc, fail } from "./_lib.js";
 import { LISTA_PLAYERAS, LISTA_TRAMOS } from "./_lista.js";
+import { SERIGRAFIA } from "./_serigrafia.js";
 
 export const DEFAULTS = {
   tramos: [50, 100, 500, 2000, 10000],   // price breaks by pieces; each list below has one price per break
@@ -17,10 +18,10 @@ export const DEFAULTS = {
     { id: "tiedye", nombre: "Playera teñida en prenda", plural: "playeras teñidas en prenda", en: "Garment-dyed tee", pluralEn: "garment-dyed tees", precios: [158.87, 148.27, 142.98, 137.68, 127.09], tramos: [12, 50, 100, 300, 1000], listaCodigo: "12030" },
     // Factory 1 Direct as the reference (USD price with one print, less the 3 USD print, × 18.5), until Chilian prices them
     { id: "mangalarga", nombre: "Playera manga larga", plural: "playeras manga larga", en: "Long-sleeve tee", pluralEn: "long-sleeve tees", precios: [139, 130, 125, 120, 111], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1" },
-    { id: "crewneck", nombre: "Sudadera cuello redondo (crewneck)", plural: "sudaderas crewneck", en: "Crewneck sweatshirt", pluralEn: "crewneck sweatshirts", precios: [209, 195, 188, 181, 167], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1" },
+    { id: "crewneck", nombre: "Sudadera cuello redondo (crewneck)", plural: "sudaderas crewneck", en: "Crewneck sweatshirt", pluralEn: "crewneck sweatshirts", precios: [209, 195, 188, 181, 167], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1", fleece: true },
     { id: "short", nombre: "Short de algodón", plural: "shorts", en: "Cotton shorts", pluralEn: "shorts", precios: [583, 544, 525, 505, 466], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1", nodtg: false },
     { id: "pants", nombre: "Pants o jogger", plural: "pants", en: "Sweatpants or joggers", pluralEn: "sweatpants", precios: [657, 613, 591, 569, 526], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1" },
-    { id: "sudadera", nombre: "Sudadera o crewneck", plural: "sudaderas", en: "Hoodie or crewneck", pluralEn: "sweatshirts", precios: [285, 265, 240, 225, 212] },
+    { id: "sudadera", nombre: "Sudadera o crewneck", plural: "sudaderas", en: "Hoodie or crewneck", pluralEn: "sweatshirts", precios: [285, 265, 240, 225, 212], fleece: true },
     { id: "polo", nombre: "Polo", plural: "polos", en: "Polo", pluralEn: "polos", precios: [195, 180, 165, 155, 148] },
     { id: "camisa", nombre: "Camisa de uniforme", plural: "camisas de uniforme", en: "Uniform shirt", pluralEn: "uniform shirts", precios: [340, 320, 300, 285, 270] },
     { id: "gorra", nombre: "Gorra", plural: "gorras", en: "Cap", pluralEn: "caps", precios: [78, 70, 62, 57, 53], nodtg: true },
@@ -29,16 +30,13 @@ export const DEFAULTS = {
   ],
   // Chilian Sport Full Print: the price breaks published in the Chilian store (garment + sublimation)
   fullprint: { tramos: [100, 300, 1000, 3000, 10000], precios: [310.8, 199.8, 177.6, 155.4, 133.2] },
-  tinta: [9, 6.5, 2.4, 1.6, 1.2],          // screen printing: per ink, per location, per piece
-  baseUbicacion: [3, 2, 1, 0.8, 0.6],      // per location, per piece
-  pantalla: 380,                           // per screen (one per ink and location), spread over the run
-  especiales: { plastisol: 0, waterbase: 0.8, discharge: 1.6, hd: 2.5, puff: 2, glitter: 3, gitd: 3.5 },   // extra per location
+  serigrafia: SERIGRAFIA,                  // Chilian's official screen-printing table (LN1): by print size, pieces and colors, plus extras
   dtg: [55.5, 55.5, 55.5, 52, 50],        // per location, per piece (Factory 1 reference: 3 USD per front/back print)
   bordado: { chico: [32, 28, 24, 22, 20], mediano: [55, 48, 42, 38, 35], grande: [95, 85, 75, 68, 62] },   // per location
   ponchado: 450,                           // digitizing, per design (one per location)
   express: 18, diasExpress: 3,             // % surcharge and business days saved
   dias: { serigrafia: [[2000, 8], [10000, 10], [1e9, 15]], dtg: [[100, 4], [500, 6], [1e9, 9]], bordado: [[500, 8], [3000, 12], [1e9, 18]], full: [[1000, 12], [5000, 15], [1e9, 20]] },
-  minimos: { serigrafia: 50, dtg: 1, bordado: 12, full: 100 },
+  minimos: { serigrafia: 100, dtg: 1, bordado: 12, full: 100 },   // screen printing: the official table starts at 100 pieces
   iva: 16,
   // Garment lines (Básica, Clásica, Premium). "factor" multiplies the garment price above (Clásica = the
   // price in the list). The specs are what the assistant tells customers; EXAMPLES until Chilian confirms them.
@@ -76,6 +74,8 @@ export function mergePrecios(saved) {
       ...DEFAULTS.productos.filter((p) => !saved.productos.some((x) => x.id === p.id))];
   }
   if (!saved?.lista) { P.lista = DEFAULTS.lista; P.listaTramos = DEFAULTS.listaTramos; }
+  P.serigrafia = DEFAULTS.serigrafia;   // the official table lives in code (_serigrafia.js)
+  for (const p of P.productos) if (DEFAULTS.productos.find((x) => x.id === p.id)?.fleece) p.fleece = true;
   return P;
 }
 

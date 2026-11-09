@@ -450,7 +450,7 @@ El rosa pasa a ocre (`#C9922E`), el blanco a negro (`#0B0B0B`), el negro y gris 
 
 Un solo asistente para el chat del sitio, WhatsApp, Instagram y Messenger. Cotiza paso a paso con botones (prenda → piezas → técnica → tintas o bordado → ubicaciones → entrega). Usa los mismos precios que «Cotiza en un minuto» (`api/_pricing.js`, la versión de servidor de `qzCalc`, que lee `ajustes/precios-web`).
 
-- **Cuándo pasa a una asesora:** pedidos de más de $6,000 MXN con IVA; licencias, programas de marca, paquete completo o quejas; o cuando el cliente lo pide. Fuera del horario (lunes a viernes, 9:00 a 19:00, hora CDMX) avisa cuándo le contestan.
+- **Cuándo pasa a una asesora:** pedidos de más de $7,200 MXN (total con IVA, comisión y envío); licencias, programas de marca, paquete completo o quejas; o cuando el cliente lo pide. Fuera del horario (lunes a viernes, 9:00 a 19:00, hora CDMX) avisa cuándo le contestan.
 - **Cuándo se calla:** si el equipo contesta desde el OS o desde el teléfono, el asistente se calla en esa conversación. También se puede pausar o reanudar desde Solicitudes.
 - **Pagos:** usa Mercado Pago (Checkout Pro) y Stripe (Checkout).
   - `/api/venta?webhook=mp|stripe` registra cada pago una sola vez (por `pid`) en la solicitud (`SOL-`) o la cotización (`COT-`).
@@ -535,3 +535,20 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - **DTG:** 55.50 MXN por ubicación, que equivale a sus 3 USD por impresión extra.
   - **Estudio:** texto con fuentes, revisión de resolución (mínimo 150 DPI a la medida de impresión) y precio en vivo por ubicación.
   - No se copia ninguna imagen de ese sitio.
+
+### Serigrafía: tabla oficial LN1
+
+- **Tabla.** `api/_serigrafia.js` contiene la tabla oficial de Chilian: precio por pieza y por ubicación, antes de IVA, en MXN. Se busca por tamaño del estampado (100, 300, 600, 1,200 o 1,800 cm²), por piezas (100, 250, 500, 1,000, 10,000 o 100,000) y por colores (1, 2-3, 4-5, 6-7, 8-9 o 10-11).
+- **Extras por pieza y por ubicación** (según tamaño y piezas):
+  - Fabric Color.
+  - Antimigrante.
+  - HD / Puff: se suma sola con las tintas HD y puff.
+  - Fleece: se suma sola en sudaderas y crewneck.
+  - Glitter: se suma sola con la tinta glitter.
+  - Calidad exportación.
+- **Mínimo.** Serigrafía desde 100 piezas, que es donde empieza la tabla. Por debajo de eso, DTG.
+- **Ya no hay cargo de pantallas.** El precio de la tabla las incluye.
+- **Cálculo.** Prenda de la lista + impresión de la tabla, y encima IVA 16 % × comisión 5 % + envío.
+- **Dónde se usa.** El cotizador del sitio, el asistente (pregunta colores y tamaño) y el estudio (usa el área real de cada ubicación).
+- **Cambios.** Las tablas están en código: para cambiarlas hay que pasar la nueva lista.
+- **Límite del asistente.** Pasa a una asesora arriba de $7,200 (6,000 + 20 %).

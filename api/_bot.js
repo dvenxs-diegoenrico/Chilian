@@ -7,7 +7,7 @@
      input { text?, button? }
      ctx   { canal, lang, payLinks(doc, amount, concept) -> [{ url, title }] }
 
-   Rules (Ajustes → Asistente de ventas; defaults below): quotes up to $6,000 MXN with VAT are
+   Rules (Ajustes → Asistente de ventas; defaults below): quotes up to $7,200 MXN (final total) are
    paid on the spot; above that, licenses, brand programs, full package, complaints or "person"
    go to an advisor. Advisors work Monday to Friday, 9:00–19:00 (Mexico City).
    It only talks about Chilian: products, techniques, prices, times, orders and payments. */
@@ -15,7 +15,7 @@ import { prices, quote, TECS, EMB } from "./_pricing.js";
 import { getDoc, listDocs } from "./_lib.js";
 import { understand } from "./_ai.js";
 
-export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
 export async function botSettings() {
   const st = await getDoc("ajustes", "asistente").catch(() => null);
   return { ...BOT_DEFAULTS, ...(st || {}), activo: { ...BOT_DEFAULTS.activo, ...(st?.activo || {}) }, horario: { ...BOT_DEFAULTS.horario, ...(st?.horario || {}) } };
@@ -38,8 +38,14 @@ function parse(text, d) {
   for (const [id, rx] of PRODS) if (rx.test(t)) { d.prod = id; break; }
   for (const [id, rx] of TEC_RX) if (rx.test(t)) { d.tec = id; break; }
   const qty = t.match(/(\d[\d,.]*)\s*(pzas?|piezas?|playeras|sudaderas|polos|camisas|gorras|bolsas|unidades|pcs|pieces|shirts|tees)?/);
-  const inks = t.match(/(\d)\s*(tintas?|colou?res|colors?|inks?)/);
-  if (inks) d.inks = +inks[1];
+  const inks = t.match(/(\d{1,2})\s*(tintas?|colou?res|colors?|inks?)/);
+  if (inks) d.inks = Math.min(11, Math.max(1, +inks[1]));
+  const cm = t.match(/(\d{1,2}(?:[.,]\d)?)\s*(?:x|por|×)\s*(\d{1,2}(?:[.,]\d)?)\s*cm/);
+  if (cm) d.size = Math.round(parseFloat(cm[1].replace(",", ".")) * parseFloat(cm[2].replace(",", ".")));
+  else if (/doble carta/.test(t)) d.size = 1200; else if (/media carta/.test(t)) d.size = 300; else if (/\bcarta\b/.test(t)) d.size = 600;
+  else if (/escudo|pecho izquierdo|logo chico/.test(t)) d.size = 100; else if (/frente completo|full front/.test(t)) d.size = 1800;
+  const ex = [/antimigr|barrier|barrera/.test(t) && "antimigrante", /exportaci|export quality/.test(t) && "export", /fabric color|tono sobre tono/.test(t) && "fabric"].filter(Boolean);
+  if (ex.length) d.extras = [...new Set([...(d.extras || []), ...ex])];
   if (qty && (!inks || qty.index !== inks.index)) { const n = parseInt(qty[1].replace(/[,.]/g, ""), 10); if (n >= 1 && n < 1e6 && (qty[2] || !d.qty)) d.qty = n; }
   const where = ["frente", "espalda", "manga", "nuca", "pecho", "front", "back", "sleeve"].filter((w) => t.includes(w)).length;
   if (where) d.locs = Math.min(4, where);
@@ -140,6 +146,7 @@ export async function botTurn(doc, input, ctx) {
   else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
   else if (pre === "tec") d.tec = val;
   else if (pre === "inks") d.inks = +val;
+  else if (pre === "size") d.size = +val;
   else if (pre === "emb") d.emb = val;
   else if (pre === "locs") d.locs = +val;
   else if (pre === "del") d.del = val;
@@ -154,9 +161,11 @@ export async function botTurn(doc, input, ctx) {
     if (ai) {   // what Claude understood wins over the patterns
       const c = ai.campos, okInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
       for (const k of ["perfil", "uso", "prod", "tec", "emb", "del", "linea", "color"]) if (c[k]) d[k] = c[k];
+      if ([100, 300, 600, 1200, 1800].includes(c.size)) d.size = c.size;
+      if (Array.isArray(c.extras) && c.extras.length) d.extras = [...new Set([...(d.extras || []), ...c.extras])];
       if (c.prod) b.prodElegido = true;
       if (okInt(c.qty, 1, 999999)) d.qty = c.qty;
-      if (okInt(c.inks, 1, 6)) d.inks = c.inks;
+      if (okInt(c.inks, 1, 11)) d.inks = c.inks;
       if (okInt(c.locs, 1, 4)) d.locs = c.locs;
       if (c.spec) { d.spec = String(c.spec).slice(0, 160); if (!c.linea) { delete d.linea; parseMore("", d); } }
       if (c.nombre && (!doc.nombre || /^(Chat del sitio|Cliente)$/.test(doc.nombre))) doc.nombre = String(c.nombre).slice(0, 80);
@@ -241,10 +250,10 @@ export async function botTurn(doc, input, ctx) {
   const specs = P.specs?.[prod.id];
   if (specs && !d.linea) {
     const rec = uso?.linea || "clasica";
-    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
+    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, size: d.size || 300, extras: d.extras, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
       return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
-    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
+    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta de unos 17×17 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink of about 17×17 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
       [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
     b.paso = "linea"; return done();
   }
@@ -272,7 +281,12 @@ export async function botTurn(doc, input, ctx) {
     say(L("¿Qué sistema de impresión?", "Which printing system?"), opts); b.paso = "tec"; return done();
   }
   const tec = TECS.find((x) => x.id === d.tec) || TECS[0];
-  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [1, 2, 3, 4, 5, 6].map((n) => ({ id: "inks:" + n, title: String(n) }))); b.paso = "inks"; return done(); }
+  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [["1", 1], ["2-3", 2], ["4-5", 4], ["6-7", 6], ["8-9", 8], ["10-11", 10]].map(([title, n]) => ({ id: "inks:" + n, title }))); b.paso = "inks"; return done(); }
+  if (tec.kind === "serigrafia" && !d.size) {
+    const S = P.serigrafia;
+    say(L("¿De qué tamaño es el estampado? Unos 10×10 cm es un logo de pecho; unos 42×42 cm cubre el frente completo.", "How big is the print? About 10×10 cm is a chest logo; about 42×42 cm covers the whole front."),
+      S.tamanos.map((a, i) => ({ id: "size:" + a, title: `${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i]}`.slice(0, 24) }))); b.paso = "size"; return done();
+  }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
   if (tec.kind !== "full" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }
   if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return done(); }
