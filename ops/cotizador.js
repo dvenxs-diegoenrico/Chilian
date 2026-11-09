@@ -675,6 +675,7 @@
         h("button", { class: "btn ghost", type: "button", onclick: () => X.copy(sendText()) }, "Copiar texto"),
         X.isPhone(contact && contact.contacto) ? h("a", { class: "btn ghost", href: X.waLink(contact.contacto, sendText()), target: "_blank", rel: "noopener" }, "WhatsApp") : null,
         h("button", { class: "btn ghost", type: "button", onclick: async () => { await flush(); printSheet(q); } }, "PDF"),
+        X.onPayLink && q.estado !== "pre" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await flush(); X.onPayLink(byIdFresh()); } }, "Link de pago") : null,
         q.estado !== "aceptada" ? h("button", { class: "btn", type: "button", onclick: async () => { await flush(); await X.onSent(byIdFresh()); } }, q.estado === "enviada" ? "Enviada ✓" : "Marcar enviada") : null,
         q.estado !== "aceptada" ? h("button", { class: "btn accent", type: "button", onclick: async () => { await flush(); await X.onAccept(byIdFresh()); } }, "Aceptada → crear OT")
           : q.otId ? h("a", { class: "btn accent", href: "#ot/" + q.otId }, "Ver " + q.otId) : null

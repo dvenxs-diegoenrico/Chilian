@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Pago · Chilian</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  @font-face { font-family: "Jost"; font-weight: 300 800; font-display: swap; src: url(/fonts/jost.woff2) format("woff2"); }
+  @font-face { font-family: "Questrial"; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); }
+  :root { --paper: #0B0B0B; --card: #171512; --ink: #F3EBDD; --steel: #B9AF9E; --rule: rgba(243,235,221,.16); --ocre: #C9922E; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 17px/1.6 "Questrial", "Century Gothic", sans-serif; padding: 2rem max(16px, env(safe-area-inset-left)); }
+  main { max-width: 520px; display: grid; gap: 1rem; }
+  img { width: 52px; height: 52px; }
+  h1 { font: 650 clamp(1.8rem, 6vw, 2.6rem)/1.05 "Jost", sans-serif; text-transform: uppercase; margin: 0; }
+  p { color: var(--steel); margin: 0; }
+  .ref { font: 500 .8rem "Jost", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--ocre); }
+  nav { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; }
+  a { display: inline-flex; align-items: center; min-height: 46px; padding: .6rem 1.1rem; border: 1px solid var(--ink); color: var(--ink); text-decoration: none; font: 600 .8rem "Jost", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+  a.accent { background: var(--ocre); border-color: var(--ocre); color: var(--paper); }
+  a:focus-visible { outline: 2px solid var(--ocre); outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/logos/chilian-icono.png" alt="Chilian" width="52" height="52">
+  <span class="ref" id="ref"></span>
+  <h1 id="t">Gracias por tu pago</h1>
+  <p id="m">En cuanto el pago se acredite queda registrado en tu pedido y te confirmamos por el mismo chat.</p>
+  <nav><a class="accent" href="/">Volver a Chilian</a><a href="https://wa.me/522226925404">WhatsApp</a></nav>
+</main>
+<script>
+  const q = new URLSearchParams(location.search), e = q.get("estado"), ref = (q.get("ref") || "").replace(/[^\w-]/g, "");
+  document.getElementById("ref").textContent = ref ? "Folio " + ref : "";
+  const T = { pendiente: ["Pago pendiente", "Si pagaste en OXXO o por SPEI, se acredita cuando el banco lo confirma; te avisamos por el chat."],
+    error: ["El pago no se completó", "No se hizo ningún cargo. Puedes intentarlo de nuevo desde el mismo link o escribirnos por WhatsApp."],
+    cancelado: ["Pago cancelado", "No se hizo ningún cargo. Cuando quieras, vuelve al link de pago o escríbenos."] }[e];
+  if (T) { document.getElementById("t").textContent = T[0]; document.getElementById("m").textContent = T[1]; }
+</script>
+</body>
+</html>

@@ -445,3 +445,31 @@ Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, S
 ## Paleta (noviembre 2026): ocre, negro y crema
 
 El rosa pasa a ocre (`#C9922E`), el blanco a negro (`#0B0B0B`), el negro y gris oscuro a crema (`#F3EBDD`, texto secundario `#B9AF9E`) y el azul a negro. Aplica a todo: sitio, versión en inglés, páginas por tipo de cliente, OS, hoja de cotización, páginas de cliente, 404, tutorial y logos (círculo negro con la C en crema; favicon e íconos del OS). `tools/palette.py` agrega un bloque final de colores en cada página y regenera lo necesario; las hojas que se imprimen en planta (hoja viajera y lista de empaque) siguen en negro sobre papel. Las fotos de producto del catálogo conservan su fondo blanco.
+
+## Venta por mensaje: asistente, chat del sitio y pagos en línea
+
+Un solo asistente para el chat del sitio, WhatsApp, Instagram y Messenger. Cotiza paso a paso con botones (prenda → piezas → técnica → tintas o bordado → ubicaciones → entrega). Usa los mismos precios que «Cotiza en un minuto» (`api/_pricing.js`, la versión de servidor de `qzCalc`, que lee `ajustes/precios-web`).
+
+- **Cuándo pasa a una asesora:** pedidos de más de $6,000 MXN con IVA; licencias, programas de marca, paquete completo o quejas; o cuando el cliente lo pide. Fuera del horario (lunes a viernes, 9:00 a 19:00, hora CDMX) avisa cuándo le contestan.
+- **Cuándo se calla:** si el equipo contesta desde el OS o desde el teléfono, el asistente se calla en esa conversación. También se puede pausar o reanudar desde Solicitudes.
+- **Pagos:** usa Mercado Pago (Checkout Pro) y Stripe (Checkout).
+  - `/api/venta?webhook=mp|stripe` registra cada pago una sola vez (por `pid`) en la solicitud (`SOL-`) o la cotización (`COT-`).
+  - Al registrarlo, avisa al equipo y le confirma al cliente en su chat.
+  - El OS abre la OT con el pago ya registrado y crea una tarea para confirmar arte, tallas y fecha.
+  - «Link de pago» en solicitudes y cotizaciones propone el anticipo o el saldo.
+- **Encendido por canal:** se activa por canal en Ajustes → *Asistente de ventas* (`ajustes/asistente`) y viene apagado. Para probarlo sin publicarlo, abre `/?asistente=1`. El widget es `chat.js` y se carga en todas las páginas.
+- **Archivos:**
+
+  | Archivo | Qué hace |
+  | --- | --- |
+  | `api/_bot.js` | Flujo guiado y extracción opcional con IA |
+  | `api/_channels.js` | Envío con botones o listas por canal |
+  | `api/_pay.js` | Links de pago y webhooks |
+  | `api/venta.js` | Endpoint del chat, links y webhooks |
+  | `pago.html` | Página de regreso después de pagar |
+
+- **Variables en Vercel (todas Sensitive):**
+  - `MP_ACCESS_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+  - Opcionales: `ANTHROPIC_API_KEY` (y `BOT_MODEL`) y `SITE_URL`.
+  - Paso a paso: `/ops/conectar.html#pagos`.
+- **Funciones de Vercel:** `/api/instagram` se reescribe a `/api/meta` (`vercel.json`), así el proyecto se mantiene en 11 funciones.

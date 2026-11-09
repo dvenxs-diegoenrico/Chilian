@@ -213,6 +213,7 @@ def page(p):
 </main>
 <footer><div class="wrap">© 2026 Grupo Chilian · Industrias Chilian, S.A. de C.V. · Tlacomulco No. 2, San Pablo Ahuatempan, Santa Isabel Cholula, Puebla, C.P. 74355 · {L("Lun–Vie 9:00–18:00", "Mon–Fri 9:00–18:00")} · <a href="https://wa.me/522226925404" rel="noopener">WhatsApp 222 692 5404</a></div></footer>
 <a class="wa" href="{wa}" rel="noopener">WhatsApp</a>
+<script src="/chat.js" defer></script>
 </body>
 </html>
 '''

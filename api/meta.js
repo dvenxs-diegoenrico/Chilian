@@ -6,7 +6,8 @@
    GET  ?hub.mode=subscribe&hub.verify_token=…&hub.challenge=…   Meta verifies the webhook
    GET  ?estado=1                       (main account) -> what is configured, for Ajustes
    POST (from Meta, signed X-Hub-Signature-256)          -> messages
-   POST { accion: "responder", id, texto }  (signed in)  -> reply from the OS (Meta's 24 h window)
+   POST { accion: "responder", id, texto }  (signed in)  -> reply from the OS (Meta's 24 h window; website chat: stored, the page reads it)
+   POST { accion: "asistente", id, activo }  (signed in) -> pause or resume the sales assistant on that conversation
 
    Environment (Vercel):
      META_VERIFY_TOKEN (or IG_VERIFY_TOKEN)   any secret string, pasted in Meta as "Verify token"
@@ -17,6 +18,8 @@
 import crypto from "node:crypto";
 import { sessionOf, getDoc, saveDoc, getIndex, setIndex, json, fail } from "./_lib.js";
 import { notifySafe } from "./_push.js";
+import { botSettings } from "./_bot.js";
+import { assistantTurn } from "./venta.js";
 
 const IG_GRAPH = process.env.IG_GRAPH_URL || "https://graph.instagram.com/v21.0";
 const FB_GRAPH = process.env.FB_GRAPH_URL || "https://graph.facebook.com/v21.0";
@@ -41,6 +44,18 @@ const fmtPhone = (s) => { const d = digits(s).slice(-10); return d.length === 10
 
 /* ---------- one message into its conversation's request ---------- */
 // m: { canal, person, mid, text, fecha, echo, name, user, line: { id, numero, linea } }
+// The sales assistant answers when it is on for this channel and nobody took the conversation.
+// Returns true when it handled the message (the team is told only on a hand-off).
+async function assist(doc, m) {
+  const st = await botSettings();
+  if (!st.activo[m.canal] || doc.bot?.pausado || doc.bot?.estado === "asesora") return false;
+  doc.nuevoMensaje = false;
+  const r = await assistantTurn(doc, { text: m.button ? "" : m.text, button: m.button || "" }, { canal: m.canal, lang: "es", base: env("SITE_URL") || "https://chilian.vercel.app", send: true });
+  await saveDoc("solicitudes", doc, "Asistente Chilian");
+  if (r.handoff) await notifySafe("all", { title: `${doc.nombre}: pasa a asesora`, body: r.handoff, url: "#solicitudes", tag: doc.id, urgent: true });
+  return true;
+}
+
 async function file(m) {
   const idxKind = m.canal === "whatsapp" ? "wa" : m.canal === "messenger" ? "fb" : "ig";
   const idxKey = m.canal === "whatsapp" ? `${m.line.id}-${m.person}` : m.person;
@@ -59,8 +74,9 @@ async function file(m) {
       ...(m.canal === "instagram" ? { igId: m.person, igUser: m.user || "" } : {}),
       ...(m.canal === "messenger" ? { fbId: m.person } : {}),
       ...(m.canal === "whatsapp" ? { waId: m.person, waLine: m.line.id, whatsapp: { wa: digits(m.line.numero), numero: m.line.numero || "", asesor: m.line.linea || "" } } : {}) };
-    const saved = await saveDoc("solicitudes", doc, label);
+    let saved = await saveDoc("solicitudes", doc, label);
     await setIndex(idxKind, idxKey, { id: saved.id });
+    if (await assist(saved, m)) return;
     await notifySafe("all", { title: `Nuevo ${label}: ${doc.nombre}`, body: `${where} · ${msg.texto}`, url: "#solicitudes", tag: saved.id, urgent: true });
     return;
   }
@@ -69,7 +85,9 @@ async function file(m) {
   if (!m.echo) { doc.nuevoMensaje = true; doc.ultimoMensaje = msg.fecha; if (doc.estado === "descartada") doc.estado = "nueva"; }
   else doc.nuevoMensaje = false;   // answered from the phone
   if (m.name && /^(WhatsApp|Instagram|Messenger) /.test(doc.nombre || "")) doc.nombre = m.name;
-  await saveDoc("solicitudes", doc, label);
+  if (m.echo && doc.bot && !doc.bot.pausado) doc.bot.pausado = true;   // someone answered from the phone: the assistant steps back
+  doc = await saveDoc("solicitudes", doc, label);
+  if (!m.echo && await assist(doc, m)) return;
   if (!m.echo && !wasWaiting) await notifySafe("all", { title: `${label}: ${doc.nombre}`, body: `${where} · ${msg.texto}`, url: "#solicitudes", tag: doc.id });
 }
 
@@ -89,7 +107,7 @@ async function intake(d) {
       const known = lines.find((l) => l.wa && digits(md.display_phone_number).endsWith(l.wa.slice(-10)));
       const line = { id: md.phone_number_id || "", numero: known?.numero || fmtPhone(md.display_phone_number), linea: known?.linea || "" };
       const names = Object.fromEntries((v.contacts || []).map((c) => [c.wa_id, c.profile?.name || ""]));
-      for (const x of v.messages || []) await file({ canal: "whatsapp", person: x.from, mid: x.id, text: waText(x), fecha: new Date((+x.timestamp || Date.now() / 1000) * 1000).toISOString(), echo: false, name: names[x.from], line });
+      for (const x of v.messages || []) await file({ canal: "whatsapp", person: x.from, mid: x.id, text: waText(x), button: x.interactive?.button_reply?.id || x.interactive?.list_reply?.id || x.button?.payload || "", fecha: new Date((+x.timestamp || Date.now() / 1000) * 1000).toISOString(), echo: false, name: names[x.from], line });
       // WhatsApp Business app + Cloud API (coexistence): what the team sends from the phone
       for (const x of v.message_echoes || []) await file({ canal: "whatsapp", person: x.to, mid: x.id, text: waText(x), fecha: new Date((+x.timestamp || Date.now() / 1000) * 1000).toISOString(), echo: true, line });
     }
@@ -105,7 +123,7 @@ async function intake(d) {
         if (canal === "instagram" && env("IG_ACCESS_TOKEN")) { const p = await getJSON(`${IG_GRAPH}/${encodeURIComponent(person)}?fields=name,username`, env("IG_ACCESS_TOKEN")); name = p.name || ""; user = p.username ? "@" + p.username : ""; }
         if (canal === "messenger" && env("META_PAGE_TOKEN")) { const p = await getJSON(`${FB_GRAPH}/${encodeURIComponent(person)}?fields=first_name,last_name`, env("META_PAGE_TOKEN")); name = [p.first_name, p.last_name].filter(Boolean).join(" "); }
       }
-      await file({ canal, person, mid: m.mid, text: igText(m), fecha: new Date(ev.timestamp || Date.now()).toISOString(), echo, name, user }).catch((e) => console.error("meta intake", e));
+      await file({ canal, person, mid: m.mid, text: igText(m), button: m.quick_reply?.payload || "", fecha: new Date(ev.timestamp || Date.now()).toISOString(), echo, name, user }).catch((e) => console.error("meta intake", e));
     }
   }
 }
@@ -155,11 +173,22 @@ export async function POST(req) {
       const s = await sessionOf(req);
       if (!s) return json({ error: "Tu sesión terminó. Vuelve a entrar." }, 401);
       const doc = await getDoc("solicitudes", d.id);
-      if (!doc || !(doc.igId || doc.fbId || doc.waId)) return json({ error: "Esta solicitud no viene de WhatsApp, Instagram ni Messenger." }, 400);
+      if (!doc || !(doc.igId || doc.fbId || doc.waId || doc.canal === "chat")) return json({ error: "Esta solicitud no viene de WhatsApp, Instagram, Messenger ni del chat del sitio." }, 400);
       const texto = clip(d.texto, 1000).trim(); if (!texto) return json({ error: "Escribe el mensaje." }, 400);
-      const mid = await reply(doc, texto);
+      const mid = doc.canal === "chat" && !(doc.igId || doc.fbId || doc.waId) ? "" : await reply(doc, texto);   // website chat: the page reads it
       doc.mensajes = [...(doc.mensajes || []), { mid: clip(mid, 200), de: "chilian", por: s.name, texto, fecha: new Date().toISOString() }].slice(-200);
       doc.nuevoMensaje = false;
+      if (doc.bot) doc.bot = { ...doc.bot, pausado: true };   // a person took over: the assistant stays quiet
+      return json({ doc: await saveDoc("solicitudes", doc, s.name) });
+    }
+
+    if (d.accion === "asistente") {   // pause or resume the assistant on one conversation
+      const s = await sessionOf(req);
+      if (!s) return json({ error: "Tu sesión terminó. Vuelve a entrar." }, 401);
+      const doc = await getDoc("solicitudes", d.id);
+      if (!doc) return json({ error: "No encontramos la solicitud." }, 404);
+      const on = !!d.activo;
+      doc.bot = { ...(doc.bot || { paso: "inicio", d: {} }), pausado: !on, ...(on && doc.bot?.estado === "asesora" ? { estado: "" } : {}) };
       return json({ doc: await saveDoc("solicitudes", doc, s.name) });
     }
 

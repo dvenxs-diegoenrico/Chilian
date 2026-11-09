@@ -69,6 +69,8 @@
     <li><a href="#probar">8. Probar que todo llega</a></li>
     <li><a href="#que">9. Qué avisos llegan y a quién</a></li>
     <li><a href="#problemas">10. Si algo no funciona</a></li>
+    <li><a href="#pagos">11. Cobrar en línea: Mercado Pago y Stripe</a></li>
+    <li><a href="#asistente">12. Encender el asistente de ventas</a></li>
   </ul>
 
   <h2 id="avisos"><span class="n">01</span>Activar los avisos en cada teléfono</h2>
@@ -199,6 +201,10 @@
       <tr><td><code>META_PAGE_TOKEN</code></td><td>Token de la página de Facebook (paso 6).</td><td>Falta</td></tr>
       <tr><td><code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code></td><td>Llaves de las notificaciones push (Ajustes → Generar llaves de avisos).</td><td>Falta</td></tr>
       <tr><td><code>CRON_SECRET</code></td><td>Protege el resumen de cada mañana (se genera junto con las llaves).</td><td>Falta</td></tr>
+      <tr><td><code>MP_ACCESS_TOKEN</code></td><td>Access token de producción de Mercado Pago (paso 11).</td><td>Falta</td></tr>
+      <tr><td><code>STRIPE_SECRET_KEY</code>, <code>STRIPE_WEBHOOK_SECRET</code></td><td>Clave secreta de Stripe y secreto del webhook (paso 11).</td><td>Falta</td></tr>
+      <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Opcional: que el asistente entienda mensajes escritos libremente (paso 12).</td><td>Opcional</td></tr>
+      <tr><td><code>SITE_URL</code></td><td>Opcional: la dirección del sitio si usas un dominio propio (ej. <code>https://grupochilian.com</code>), para los links de pago que salen por WhatsApp.</td><td>Opcional</td></tr>
     </tbody>
   </table></div>
   <ol>
@@ -244,6 +250,41 @@
     <li><b>No llegan mensajes de WhatsApp:</b> revisa que el campo <code>messages</code> esté suscrito y que el número aparezca como <b>Conectado</b> en el Administrador de WhatsApp.</li>
     <li><b>"Meta no aceptó el mensaje" al contestar:</b> pasaron más de 24 horas desde el último mensaje del cliente. Contesta desde el teléfono o con una plantilla aprobada.</li>
     <li><b>No me llegan las notificaciones:</b> en Avisos, toca <b>Mandar aviso de prueba</b>. En iPhone, el OS debe abrirse desde el ícono de la pantalla de inicio. En Android, revisa que el navegador tenga permiso de notificaciones y no esté en ahorro de batería extremo.</li>
+  </ul>
+
+  <h2 id="pagos"><span class="n">11</span>Cobrar en línea: Mercado Pago y Stripe</h2>
+  <p>Con las dos conectadas, cada link de pago ofrece las dos: <b>Mercado Pago</b> para México (SPEI, OXXO, tarjeta, meses sin intereses) y <b>Stripe</b> para tarjetas, sobre todo de EE. UU. Puedes conectar solo una.</p>
+  <p><b>Mercado Pago</b> <span class="who">Admin</span></p>
+  <ol>
+    <li>Entra a <a href="https://www.mercadopago.com.mx/developers/panel/app" target="_blank" rel="noopener">Mercado Pago Developers → Tus integraciones</a> con la cuenta de Chilian y crea una aplicación (tipo <b>Pagos online</b>, producto <b>Checkout Pro</b>).</li>
+    <li>En <b>Credenciales de producción</b> copia el <b>Access Token</b> (empieza con <code>APP_USR-</code>) y pégalo en Vercel como <code>MP_ACCESS_TOKEN</code>, marcado como <b>Sensitive</b>.</li>
+    <li>En <b>Webhooks</b> pega la URL que muestra Chilian OS → Ajustes → <b>Asistente de ventas</b> (termina en <code>/api/venta?webhook=mp</code>) y marca el evento <b>Pagos</b>. Cada link ya trae esta URL, así que este paso es un respaldo.</li>
+  </ol>
+  <p><b>Stripe</b> <span class="who">Admin</span></p>
+  <ol>
+    <li>En <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">dashboard.stripe.com</a> activa la cuenta (México) y ve a <b>Developers → API keys</b>. Copia la <b>Secret key</b> (<code>sk_live_…</code>) a Vercel como <code>STRIPE_SECRET_KEY</code>, Sensitive.</li>
+    <li>En <b>Developers → Webhooks → Add endpoint</b> pega la URL de Ajustes que termina en <code>/api/venta?webhook=stripe</code> y elige los eventos <code>checkout.session.completed</code> y <code>checkout.session.async_payment_succeeded</code>.</li>
+    <li>Copia el <b>Signing secret</b> (<code>whsec_…</code>) a Vercel como <code>STRIPE_WEBHOOK_SECRET</code>, Sensitive. Haz <b>Redeploy</b>.</li>
+  </ol>
+  <p><b>Cómo se usa</b></p>
+  <ul>
+    <li>En una <b>solicitud</b> o una <b>cotización</b>, toca <b>Link de pago</b>: propone el anticipo (o el saldo si ya pagó algo). Puedes copiar el mensaje o mandarlo directo a la conversación de WhatsApp, Instagram, Messenger o el chat del sitio.</li>
+    <li>El asistente también ofrece el link solo, cuando el pedido queda por debajo del límite que pongas.</li>
+    <li>Cuando el pago se acredita: queda en la solicitud o la cotización, el cliente recibe la confirmación en su chat, el equipo recibe un aviso, y el OS abre la <b>OT</b> con el pago ya registrado y una tarea para confirmar arte, tallas y fecha.</li>
+  </ul>
+  <div class="box warn"><p>Prueba primero con un pago real pequeño (por ejemplo $10) y reembólsalo desde Mercado Pago o Stripe.</p></div>
+
+  <h2 id="asistente"><span class="n">12</span>Encender el asistente de ventas</h2>
+  <ol>
+    <li><b>Precios reales primero.</b> En Ajustes → <b>Precios del sitio</b> captura los precios de Chilian y desmarca «ejemplo». El asistente cotiza con esos mismos precios.</li>
+    <li><b>Pruébalo sin publicarlo:</b> abre el sitio con <code>?asistente=1</code> al final (por ejemplo <code>chilian.vercel.app/?asistente=1</code>). Aparece «Cotiza por chat» solo para ti; la conversación llega a Solicitudes como cualquier otra.</li>
+    <li>En Ajustes → <b>Asistente de ventas</b> marca dónde atiende (chat del sitio, WhatsApp, Instagram, Messenger), el monto a partir del cual pasa a una asesora (hoy $6,000 con IVA), el anticipo y el horario de asesoras (lunes a viernes, 9:00 a 19:00). Guarda.</li>
+    <li>Opcional: con <code>ANTHROPIC_API_KEY</code> en Vercel (Sensitive) entiende mensajes como «quiero 200 playeras negras con logo al frente a una tinta». Sin la llave funciona con botones y frases sencillas.</li>
+  </ol>
+  <ul>
+    <li><b>Siempre pasa a una asesora</b> cuando el cliente lo pide, cuando el pedido supera el límite, o si habla de licencias, programas de marca, paquete completo o una queja. Fuera de horario le avisa al cliente cuándo le contestan.</li>
+    <li><b>Si alguien del equipo contesta</b> (desde el OS o desde el teléfono), el asistente se calla en esa conversación. En la solicitud puedes <b>Pausar</b> o <b>Reanudar</b> el asistente.</li>
+    <li>WhatsApp permite asistentes que atienden temas del negocio, como este; no permite asistentes de conversación general.</li>
   </ul>
 </main>
 </body>

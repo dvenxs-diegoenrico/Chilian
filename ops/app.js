@@ -676,7 +676,10 @@
         h("span", { class: "pill " + (s.fuente === "instagram" || ig ? "p-acc" : "p-info"), text: fuenteName(ig ? "instagram" : social || s.fuente) }),
         h("span", { class: "pill " + (specific(s) ? "p-ok" : "p-mut"), text: specific(s) ? `Mercancía específica · ${s.modelos.length} modelo(s)` : "Sin mercancía específica" }),
         (s.herramientas || []).includes("estudio") ? h("span", { class: "pill p-info", text: "Usó Estampa tu idea" }) : null,
-        waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null),
+        waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null,
+        s.canal === "chat" ? h("span", { class: "pill p-info", text: "Chat del sitio" }) : null,
+        s.bot ? h("span", { class: "pill p-info", text: "Cotizó con el asistente" }) : null,
+        s.pagos?.length ? h("span", { class: "pill p-ok", text: `Pagó ${money(s.pagos.reduce((a, p) => a + (+p.monto || 0), 0))} en línea` }) : null),
       h("p", { class: "small muted", style: "margin:0" }, h("b", { text: "Llegó por: " }), arrivedBy(s)),
       h("div", { class: "grid g4" },
         h("div", {}, h("div", { class: "label", text: "Contacto" }), h("b", { text: s.nombre }), h("div", { class: "small", text: s.empresa }), h("div", { class: "small mono", text: contact })),
@@ -684,9 +687,11 @@
         h("div", {}, h("div", { class: "label", text: "Piezas" }), h("b", { class: "num", text: piezas ? fmtN(piezas) : "—" })),
         h("div", {}, h("div", { class: "label", text: "Para el" }), h("div", { text: s.fechaNecesaria ? fmtDate(s.fechaNecesaria) : "Flexible" }), h("div", { class: "small muted", text: s.asesor ? "Asesora: " + s.asesor : "" }))),
       s.modelos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Mercancía que pidió (catálogo)" }), h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.modelos.map((m) => h("li", { text: `${m.titulo}${m.modelos?.length ? " (" + m.modelos.join(", ") + ")" : ""} — ${fmtN(m.piezas)} pzas${m.color ? " · " + m.color : ""}${m.catalogo ? " · " + m.catalogo + " p. " + m.pagina : ""}` })))) : null,
-      s.estimados?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Lo que cotizó en el sitio (Cotiza en un minuto, precios de referencia)" }),
+      s.estimados?.length ? h("div", { class: "small" }, h("div", { class: "label", text: s.estimados[0]?.origen === "asistente" ? "Lo que cotizó con el asistente (precios del sitio)" : "Lo que cotizó en el sitio (Cotiza en un minuto, precios de referencia)" }),
         h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.estimados.map((e) => h("li", {}, e.resumen || `${fmtN(e.piezas)} × ${e.nombre}`, e.unitario ? h("span", { class: "muted" }, ` — ${money(e.unitario)}/pza · ${money(e.total)} + IVA · ${e.dias} días hábiles${e.origen === "estudio" ? " · desde Estampa tu idea" : ""}`) : null)))) : null,
       s.correo && s.correo !== s.contacto ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Correo: " }), h("a", { href: "mailto:" + s.correo, text: s.correo })) : null,
+      pagosBox(s.pagos),
+      s.otId && byId("ots", s.otId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "Orden " + s.otId }), " · abierta con el pago en línea"), h("a", { class: "btn sm", href: "#ot/" + s.otId }, "Abrir OT")) : null,
       pre ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" },
         h("span", { class: "small" }, h("b", { text: "Pre-cotización " + pre.id }), preC.total > 0 ? ` · ${money(preC.total)} estimado con precios anteriores` : " · lista para poner precios"),
         h("a", { class: "btn sm", href: "#cotizacion/" + pre.id }, "Abrir pre-cotización")) : specific(s) || s.estimados?.length ? h("p", { class: "small muted", text: "Preparando la pre-cotización…" }) : null,
@@ -704,19 +709,57 @@
         isPhone(contact) ? h("a", { class: "btn ghost", href: waLink(contact, `Hola ${s.nombre.split(" ")[0]}, soy ${S.name} de Chilian. Recibimos tu solicitud ${s.id}. `), target: "_blank", rel: "noopener" }, "WhatsApp") : null,
         s.igUser ? h("a", { class: "btn ghost", href: "https://ig.me/m/" + encodeURIComponent(s.igUser), target: "_blank", rel: "noopener" }, "Abrir en Instagram") : null,
         isEmail(contact) ? h("button", { class: "btn ghost", type: "button", onclick: () => copy(contact) }, "Copiar correo") : null,
+        s.estado !== "descartada" && !s.otId ? h("button", { class: "btn ghost", type: "button", onclick: () => { const e = s.estimados?.[0], anti = (S.settings.tarifas?.anticipo ?? 50) / 100;
+          payLinkModal(s.id, e?.total ? e.total * iva() * anti : 0, e ? `Anticipo ${Math.round(anti * 100)} % · ${e.resumen || s.prenda || "pedido"}`.slice(0, 200) : `Pedido ${s.id}`, s); } }, "Link de pago") : null,
         s.nuevoMensaje ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, nuevoMensaje: false }, { quiet: true }); rerender(); } }, "Marcar leído") : null,
         s.estado === "nueva" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "descartada", nuevoMensaje: false }); rerender(); } }, "Descartar")
           : s.estado === "descartada" ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await save("solicitudes", { ...s, estado: "nueva" }); rerender(); } }, "Recuperar") : null));
   }
+  // A payment link (Mercado Pago and/or Stripe) for a request or a quote; it can go straight into the conversation.
+  async function payLinkModal(ref, monto, concepto, sol) {
+    const amt = h("input", { class: "i num", type: "number", min: "1", step: "any", value: Math.round(monto * 100) / 100 || "", required: true });
+    const what = h("input", { class: "i", value: concepto, maxlength: "200" });
+    const out = h("div", { class: "grid", style: "gap:.5rem" });
+    const f = h("form", { class: "grid", onsubmit: async (e) => {
+      e.preventDefault(); const b = e.target.querySelector("button[type=submit]"); b.disabled = true;
+      try {
+        const { links } = await api("POST", "/api/venta", { accion: "link", ref, monto: +amt.value, concepto: what.value.trim() || `Pago ${ref}` });
+        const text = `${what.value.trim() || "Pago " + ref}: ${money(+amt.value)}\n\n${links.map((l) => `${l.title}: ${l.url}`).join("\n\n")}`;
+        const canSend = sol && (sol.igId || sol.fbId || sol.waId || sol.canal === "chat");
+        out.replaceChildren(...links.map((l) => h("div", { class: "row between" }, h("span", { class: "small", text: l.title }), h("a", { class: "btn sm ghost", href: l.url, target: "_blank", rel: "noopener" }, "Abrir"))),
+          h("div", { class: "row" }, h("button", { class: "btn ghost", type: "button", onclick: () => copy(text) }, "Copiar mensaje con links"),
+            canSend ? h("button", { class: "btn accent", type: "button", onclick: async (ev) => { ev.currentTarget.disabled = true;
+              try { const { doc } = await api("POST", "/api/meta", { accion: "responder", id: sol.id, texto: text }); S.data.solicitudes.set(doc.id, doc); toast("Link enviado al cliente."); closeModal(); rerender(); }
+              catch (err) { if (err.message !== "401") toast(err.message, true); ev.currentTarget.disabled = false; } } }, "Enviar en la conversación") : null),
+          h("p", { class: "hint", text: "Cuando el pago se acredita queda registrado solo: en la solicitud o cotización, y en su OT." }));
+      } catch (err) { if (err.message !== "401") toast(err.message, true); }
+      b.disabled = false;
+    } },
+      h("label", { class: "f" }, h("span", { text: "Monto a cobrar (MXN, con IVA)" }), amt),
+      h("label", { class: "f" }, h("span", { text: "Concepto (lo ve el cliente)" }), what),
+      h("div", { class: "row" }, h("button", { class: "btn accent", type: "submit" }, "Crear link de pago")), out);
+    modal(`Link de pago · ${ref}`, f);
+  }
+  const iva = () => 1 + (+(S.settings.tarifas?.iva ?? 16)) / 100;
+  const pagosBox = (pagos) => pagos?.length ? h("div", { class: "small" }, h("div", { class: "label", text: "Pagos en línea" }),
+    h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, pagos.map((p) => h("li", { text: `${fmtDate(p.fecha)} · ${money(p.monto)} · ${p.metodo}` })))) : null;
+
   // The Instagram conversation, with a reply box (works once Instagram is connected in Ajustes).
   function igThread(s) {
-    const msgs = (s.mensajes || []).slice(-8);
-    const via = s.waId ? "WhatsApp" : s.fbId ? "Messenger" : "Instagram";
+    const msgs = (s.mensajes || []).slice(-12);
+    const via = s.waId ? "WhatsApp" : s.fbId ? "Messenger" : s.canal === "chat" ? "el chat del sitio" : "Instagram";
+    const bot = s.bot, botOn = bot && !bot.pausado && bot.estado !== "asesora";
     const box = h("textarea", { class: "i", rows: "2", placeholder: `Responder por ${via}…` });
     return h("div", { class: "grid", style: "gap:.4rem" },
-      h("div", { class: "label", text: `Conversación de ${via}${s.waId && s.whatsapp?.numero ? " (llegó al " + s.whatsapp.numero + ")" : ""} · ${(s.mensajes || []).length} mensaje(s)` }),
-      h("ul", { class: "log" }, msgs.map((m) => h("li", {}, h("time", { text: fmtDT(m.fecha) }), h("span", {}, h("b", { text: m.de === "cliente" ? s.nombre + ": " : (m.por || "Chilian") + ": " }), h("span", { style: "white-space:pre-wrap", text: m.texto }))))),
-      s.igId || s.fbId || s.waId ? h("form", { class: "row", style: "flex-wrap:nowrap;align-items:end", onsubmit: async (e) => {
+      h("div", { class: "label", text: `Conversación ${s.canal === "chat" && !s.waId ? "del chat del sitio" : "de " + via}${s.waId && s.whatsapp?.numero ? " (llegó al " + s.whatsapp.numero + ")" : ""} · ${(s.mensajes || []).length} mensaje(s)` }),
+      bot ? h("div", { class: "row", style: "gap:.5rem" },
+        h("span", { class: "pill " + (botOn ? "p-info" : bot.pausado ? "p-mut" : "p-bad"), text: botOn ? "El asistente está atendiendo" : bot.pausado ? "Asistente en pausa (atiende el equipo)" : "Pidió asesora: te toca" }),
+        h("button", { class: "btn sm ghost", type: "button", onclick: async (e) => { e.currentTarget.disabled = true;
+          try { const { doc } = await api("POST", "/api/meta", { accion: "asistente", id: s.id, activo: !botOn }); S.data.solicitudes.set(doc.id, doc); toast(botOn ? "Asistente en pausa en esta conversación." : "El asistente vuelve a atender esta conversación."); rerender(); }
+          catch (err) { if (err.message !== "401") toast(err.message, true); } } }, botOn ? "Pausar asistente" : "Reanudar asistente")) : null,
+      h("ul", { class: "log" }, msgs.map((m) => h("li", {}, h("time", { text: fmtDT(m.fecha) }), h("span", {}, h("b", { text: m.de === "cliente" ? (s.nombre === "Chat del sitio" ? "Cliente" : s.nombre) + ": " : m.de === "bot" ? "Asistente: " : (m.por || "Chilian") + ": " }), h("span", { style: "white-space:pre-wrap", text: m.texto }),
+        (m.links || []).length ? h("span", { class: "small muted", text: " · link de pago enviado" }) : null, (m.botones || []).length ? h("span", { class: "small muted", text: ` · opciones: ${m.botones.map((b) => b.title).join(", ")}` }) : null)))),
+      s.igId || s.fbId || s.waId || s.canal === "chat" ? h("form", { class: "row", style: "flex-wrap:nowrap;align-items:end", onsubmit: async (e) => {
         e.preventDefault(); const texto = box.value.trim(); if (!texto) return;
         const btn = e.target.querySelector("button"); btn.disabled = true;
         try { const { doc } = await api("POST", "/api/meta", { accion: "responder", id: s.id, texto }); S.data.solicitudes.set(doc.id, doc); toast(`Enviado por ${via}.`); rerender(); }
@@ -776,6 +819,7 @@
     } catch (e) { console.error(e); }
     finally { preBusy = false; }
     made += await ensurePreOTs();
+    made += await ensurePaid();
     if (made && !(window.__czDirty && window.__czDirty()) && ["solicitudes", "ots"].includes(route().r)) rerender();
   }
   // A request made with Estampa tu idea brings its mockup and design files: they become a draft
@@ -1253,7 +1297,10 @@
       }
       return saved;
     }, rerender: () => rerender(),
-    onSent: (q) => markSent(q), onAccept: (q) => acceptQuote(q), onDuplicate: (q) => duplicateQuote(q), onDelete: (q) => deleteQuote(q)
+    onSent: (q) => markSent(q), onAccept: (q) => acceptQuote(q), onDuplicate: (q) => duplicateQuote(q), onDelete: (q) => deleteQuote(q),
+    onPayLink: (q) => { const c = calcCot(q), paid = (q.pagos || []).reduce((a, p) => a + (+p.monto || 0), 0), anti = (+q.anticipo || S.settings.tarifas?.anticipo || 50) / 100;
+      const sol = q.solicitudId ? byId("solicitudes", q.solicitudId) : null;
+      payLinkModal(q.id, paid ? c.total - paid : c.total * anti, `${paid ? "Saldo" : `Anticipo ${Math.round(anti * 100)} %`} · cotización ${q.id}`, sol); }
   });
   const leadBusy = new Set();
   function quoteTable(qs) {
@@ -1372,10 +1419,10 @@
     toast(`Enviada. ${o.titulo} está en ${stageName(OPP_STAGES, o.etapa === "ganado" ? "ganado" : stage)} por ${moneyK(c.sub)}; seguimiento en 2 días.`);
     rerender();
   }
-  async function acceptQuote(q) {
+  async function acceptQuote(q, { silent = false, pagos = [] } = {}) {
     const nq = CZ.normalize(q);
     let lineas = nq.lineas;
-    if (nq.opciones && lineas.length > 1) {   // options: the client picked one
+    if (nq.opciones && lineas.length > 1 && !silent) {   // options: the client picked one
       const labels = lineas.map((l, i) => `${String.fromCharCode(65 + i)} · ${l.concepto}`);
       const pick = await askText("¿Qué opción eligió el cliente?", labels);
       if (pick == null) return;
@@ -1392,14 +1439,44 @@
       lineas: lineas.filter((l) => !l.nopcs).map((l, i) => ({ id: l.id, descripcion: l.concepto, modelo: "", color: l.color, piezas: +l.piezas || 0, catId: l.catId,
         ubicaciones: (l.ubicaciones || []).length ? l.ubicaciones : (draft?.lineas?.[Math.min(i, draft.lineas.length - 1)]?.ubicaciones || []), tallas: Object.fromEntries(SIZES.map((s) => [s, 0])) })),
       total: c.total, anticipo: +nq.anticipo || 0, notas: nq.notas,
+      pagos: mergePagos(draft?.pagos, q.pagos, pagos),
       arte: draft?.arte || { estado: "pendiente", archivos: [] }, programacion: draft?.programacion || [], merma: draft?.merma || [],
       historial: [...(draft?.historial || []), { etapa: draft?.etapa || "arte", fecha: new Date().toISOString(), por: S.name, nota: draft ? `OT previa confirmada con ${q.id}` : `Creada desde ${q.id}` }]
     }, { quiet: true });
     await save("cotizaciones", { ...q, estado: "aceptada", aceptadaEn: new Date().toISOString(), otId: ot.id }, { quiet: true });
     const o = byId("oportunidades", q.oportunidadId);
     if (o) await save("oportunidades", { ...o, etapa: "ganado", probabilidad: 100, valor: c.sub, cerradaEn: new Date().toISOString(), actividad: [...(o.actividad || []), { fecha: new Date().toISOString(), tipo: "Nota", texto: `${q.id} aceptada. ${ot.id} creada.`, por: S.name }] }, { quiet: true });
+    if (silent) return ot;
     toast(draft ? `${ot.id} confirmada con el mockup del cliente.` : `${ot.id} creada.`);
     go("ot/" + ot.id);
+  }
+  // Online payments (Mercado Pago, Stripe) land on the request or the quote; the work order carries them, once each.
+  const mergePagos = (...lists) => { const out = [], seen = new Set(); for (const p of lists.flat().filter(Boolean)) { const k = p.pid || `${p.monto}|${p.fecha}|${p.metodo}|${p.nota}`; if (!seen.has(k)) { seen.add(k); out.push(p); } } return out; };
+  let paidBusy = false;
+  async function ensurePaid() {
+    if (paidBusy) return 0; paidBusy = true; let made = 0;
+    try {
+      // a paid request with no order yet: lead, accept its pre-quote (the price the assistant gave) and open the OT
+      for (const s of list("solicitudes").filter((x) => x.pagos?.length && x.preCotizacionId && !x.otId && x.estado !== "descartada")) {
+        let q = byId("cotizaciones", s.preCotizacionId); if (!q) continue;
+        if (q.otId) { await save("solicitudes", { ...byId("solicitudes", s.id), otId: q.otId }, { quiet: true }); continue; }
+        if (!q.oportunidadId) { await leadFromRequest(s); q = byId("cotizaciones", q.id); }
+        const ot = await acceptQuote(q, { silent: true, pagos: s.pagos });
+        await save("solicitudes", { ...byId("solicitudes", s.id), otId: ot.id }, { quiet: true });
+        await save("tareas", { tipo: "Llamada", texto: `${s.nombre} pagó en línea (${s.id}). Confirmar arte, tallas y fecha de ${ot.id}`, fecha: localDate(), cuentaId: ot.cuentaId || "", oportunidadId: ot.oportunidadId || "", asesor: S.name, hecha: false }, { quiet: true });
+        made++;
+      }
+      // a paid quote that was not accepted yet: paying is accepting
+      for (const q of list("cotizaciones").filter((x) => x.pagos?.length && !x.otId && x.estado !== "pre")) { await acceptQuote(q, { silent: true }); made++; }
+      // later payments (a balance) reach the order that already exists
+      for (const src of [...list("solicitudes"), ...list("cotizaciones")].filter((x) => x.pagos?.length && x.otId)) {
+        const ot = byId("ots", src.otId); if (!ot) continue;
+        const all = mergePagos(ot.pagos, src.pagos);
+        if (all.length !== (ot.pagos || []).length) { await save("ots", { ...ot, pagos: all }, { quiet: true }); made++; }
+      }
+    } catch (e) { console.error(e); }
+    finally { paidBusy = false; }
+    return made;
   }
   async function duplicateQuote(q) {
     const d = structuredClone(q);
@@ -2002,6 +2079,43 @@
   }
 
   // The prices the website's "Cotiza en un minuto" shows (sale prices before VAT, per piece).
+  // The sales assistant (website chat, WhatsApp, Instagram, Messenger) and online payments. Saved in ajustes/asistente.
+  function assistantCard() {
+    const DEF = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+    const cur = byId("ajustes", "asistente") || {};
+    const a = { ...DEF, ...cur, activo: { ...DEF.activo, ...(cur.activo || {}) }, horario: { ...DEF.horario, ...(cur.horario || {}) } };
+    const prices = byId("ajustes", "precios-web"), example = !prices || prices.ejemplo !== false;
+    const status = h("div", { class: "grid", style: "gap:.35rem" }, h("p", { class: "muted small", text: "Revisando pagos e IA…" }));
+    api("GET", "/api/venta?accion=estado").then((j) => {
+      const ok = (b, t) => h("div", { class: "row", style: "flex-wrap:nowrap" }, h("span", { class: "pill " + (b ? "p-ok" : "p-warn"), text: b ? "listo" : "falta" }), h("span", { class: "small", style: "min-width:0", text: t }));
+      status.replaceChildren(ok(j.pagos.mp, "Mercado Pago (MP_ACCESS_TOKEN): SPEI, OXXO, tarjeta y meses"), ok(j.pagos.stripe, "Stripe (STRIPE_SECRET_KEY): tarjetas, EE. UU."),
+        ok(j.pagos.stripeHook, "Stripe confirma pagos (STRIPE_WEBHOOK_SECRET)"), ok(j.ia, "Entiende mensajes libres con IA (ANTHROPIC_API_KEY, opcional)"),
+        h("p", { class: "small", style: "margin:.3rem 0 0" }, "Webhook de Mercado Pago: ", h("code", { class: "mono", text: j.webhooks.mp })),
+        h("p", { class: "small", style: "margin:0" }, "Webhook de Stripe (checkout.session.completed): ", h("code", { class: "mono", text: j.webhooks.stripe })),
+        h("a", { class: "btn sm ghost", style: "justify-self:start", href: "/ops/conectar.html#pagos", target: "_blank", rel: "noopener" }, "Cómo conectar los pagos"));
+    }).catch(() => status.replaceChildren(h("p", { class: "small muted", text: "No se pudo revisar el estado." })));
+    const chk = (k, label) => h("label", { class: "row small", style: "gap:.4rem" }, h("input", { type: "checkbox", checked: !!a.activo[k], onchange: (e) => { a.activo[k] = e.target.checked; } }), label);
+    const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    return h("div", { class: "card" }, h("h2", { text: "Asistente de ventas" }),
+      h("p", { class: "hint", text: "Cotiza por mensaje con botones, con los mismos precios del sitio, manda links de pago y pasa a una asesora en pedidos grandes, licencias, paquete completo o quejas. Lo que platica queda en Solicitudes; si alguien del equipo responde, el asistente se calla en esa conversación." }),
+      example ? h("p", { class: "small", style: "background:var(--shade);padding:.5rem .7rem;margin:0" }, h("b", { text: "Antes de activarlo: " }), "los precios del sitio siguen marcados como ejemplo. Captura los reales en «Precios del sitio» y desmarca «ejemplo»; el asistente cotiza con ellos.") : null,
+      h("div", { class: "label", text: "Dónde atiende" }),
+      h("div", { class: "grid g2", style: "gap:.3rem" }, chk("web", "Chat del sitio"), chk("whatsapp", "WhatsApp"), chk("instagram", "Instagram Direct"), chk("messenger", "Messenger")),
+      h("p", { class: "small muted", style: "margin:0" }, "Para probarlo sin publicarlo: abre el sitio con ", h("a", { href: "/?asistente=1", target: "_blank", rel: "noopener", text: "?asistente=1" }), "."),
+      h("div", { class: "grid g3" },
+        h("label", { class: "f" }, h("span", { text: "Pasa a asesora arriba de (MXN con IVA)" }), h("input", { class: "i", type: "number", min: "0", step: "100", value: a.limite, oninput: (e) => { a.limite = +e.target.value; } })),
+        h("label", { class: "f" }, h("span", { text: "Anticipo que cobra (%)" }), h("input", { class: "i", type: "number", min: "0", max: "100", value: a.anticipo, oninput: (e) => { a.anticipo = +e.target.value; } })),
+        h("label", { class: "f" }, h("span", { text: "Horario de asesoras (hora CDMX)" }), h("div", { class: "row", style: "flex-wrap:nowrap;gap:.3rem" },
+          h("input", { class: "i", type: "number", min: "0", max: "23", value: a.horario.desde, "aria-label": "Desde", oninput: (e) => { a.horario.desde = +e.target.value; } }), "a",
+          h("input", { class: "i", type: "number", min: "1", max: "24", value: a.horario.hasta, "aria-label": "Hasta", oninput: (e) => { a.horario.hasta = +e.target.value; } })))),
+      h("div", { class: "row", style: "gap:.6rem" }, DIAS.map((n, i) => h("label", { class: "row small", style: "gap:.25rem" }, h("input", { type: "checkbox", checked: a.horario.dias.includes(i), onchange: (e) => { a.horario.dias = e.target.checked ? [...new Set([...a.horario.dias, i])].sort() : a.horario.dias.filter((x) => x !== i); } }), n))),
+      h("button", { class: "btn accent", type: "button", style: "justify-self:start", onclick: async () => {
+        if ((a.activo.web || a.activo.whatsapp || a.activo.instagram || a.activo.messenger) && example && !(await confirmBox("Los precios del sitio siguen marcados como ejemplo: el asistente cotizaría con ellos. ¿Activarlo de todos modos?"))) return;
+        await save("ajustes", { ...(byId("ajustes", "asistente") || {}), ...a, id: "asistente" }); toast("Asistente guardado. Los cambios aplican en un minuto.");
+      } }, "Guardar asistente"),
+      h("div", { class: "label", text: "Pagos en línea" }), status);
+  }
+
   // Saved apart from the rest of the settings (ajustes/precios-web) because the site reads them publicly.
   function webPricesCard() {
     const box = h("div", { class: "grid", style: "gap:.6rem" }, h("p", { class: "small muted", text: "Cargando…" }));
@@ -2156,6 +2270,7 @@
               paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
           instagramCard(),
           webPricesCard(),
+          assistantCard(),
           h("div", { class: "card" }, h("h2", { text: "Equipo y acceso" }), h("p", { class: "small", text: "Cada persona entra con su propia cuenta. Créalas, restablece contraseñas y asigna tareas y clientes en Equipo." }),
             h("a", { class: "btn sm", href: "#equipo" }, "Ir a Equipo")))));
     const toc = h("nav", { class: "toc", "aria-label": "Secciones de ajustes" }, [...root.querySelectorAll(".card > h2")].map((h2) => h("button", { type: "button", onclick: () => h2.scrollIntoView({ behavior: "smooth", block: "start" }) }, h2.textContent)));

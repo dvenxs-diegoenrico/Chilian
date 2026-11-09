@@ -47,5 +47,11 @@
       "path": "/api/avisos?resumen=1",
       "schedule": "5 14 * * 1-6"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/instagram",
+      "destination": "/api/meta"
+    }
   ]
 }
