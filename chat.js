@@ -74,7 +74,7 @@
   }
 
   async function send(text, button, label) {
-    if (busy) return; busy = true;
+    if (busy) return; busy = true; quietSince = Date.now();
     if (text || label) render([{ de: "cliente", texto: text || label }]);
     const typing = el("div", "cc-typing", T("Escribiendo…", "Typing…")); log.append(typing); log.scrollTop = log.scrollHeight;
     try {
@@ -89,13 +89,15 @@
     } finally { busy = false; }
   }
 
+  let quietSince = Date.now();
   async function poll() {
     if (!st.sid || busy || !root.classList.contains("open")) return;
+    if (document.visibilityState !== "visible" || Date.now() - quietSince > 15 * 60_000) return;   // tab hidden or 15 min without news
     try {
       const r = await fetch(`${API}?accion=chat&sid=${encodeURIComponent(st.sid)}&t=${encodeURIComponent(st.t)}&desde=${total}`);
       if (r.status === 401 || r.status === 404) { st = {}; total = 0; save(); return; }
       const j = await r.json();
-      if (j.mensajes?.length) { total = st.total = j.total; save(); render(j.mensajes.filter((m) => m.de !== "cliente")); }
+      if (j.mensajes?.length) { quietSince = Date.now(); total = st.total = j.total; save(); render(j.mensajes.filter((m) => m.de !== "cliente")); }
     } catch (e) {}
   }
 
@@ -112,7 +114,7 @@
   async function open() {
     root.classList.add("open"); btn.setAttribute("aria-expanded", "true");
     if (!started) { started = true; if (!(await history())) await send("", ""); }
-    clearInterval(timer); timer = setInterval(poll, 4000);
+    clearInterval(timer); timer = setInterval(poll, 8000);   // storage reads are limited: every 8 s while open
     if (matchMedia("(min-width: 561px)").matches) input.focus();
   }
   function close() { root.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); clearInterval(timer); btn.focus(); }

@@ -45,12 +45,26 @@ async function writePath(p, data, contentType = "application/json") {
   }
   const { put } = await sdk();
   await put(p, body, { access: "private", allowOverwrite: true, addRandomSuffix: false, contentType, cacheControlMaxAge: 60 });
+  touchList(p, Date.now());
 }
 async function removePath(p) {
   cache.delete(p);
   if (LOCAL) { await fs.rm(path.join(LOCAL, p), { force: true }); return; }
   const { del } = await sdk();
   await del(p);
+  touchList(p, 0);
+}
+/* list() is an "advanced operation" and the Hobby plan allows few of them a month (the store was
+   suspended once for this). This instance keeps each listing for a while and patches it on its own
+   writes and deletes, so the OS refreshing does not list the store every time. */
+const LIST_TTL = 2 * 60_000;   // a new request written by another instance shows up within 2 minutes
+const lists = new Map();   // prefix -> { at, items }
+function touchList(p, t) {
+  for (const [prefix, l] of lists) {
+    if (!p.startsWith(prefix)) continue;
+    l.items = l.items.filter((x) => x.pathname !== p);
+    if (t) l.items.push({ pathname: p, t });
+  }
 }
 // Every pathname under a prefix, with its upload time (to reuse cached reads).
 async function listPaths(prefix) {
@@ -60,6 +74,8 @@ async function listPaths(prefix) {
     try { names = await fs.readdir(dir); } catch { return []; }
     return Promise.all(names.map(async (n) => ({ pathname: prefix + n, t: (await fs.stat(path.join(dir, n))).mtimeMs })));
   }
+  const hit = lists.get(prefix);
+  if (hit && Date.now() - hit.at < LIST_TTL) return hit.items.slice();
   const { list } = await sdk();
   const out = []; let cursor;
   do {
@@ -67,6 +83,7 @@ async function listPaths(prefix) {
     for (const b of r.blobs) out.push({ pathname: b.pathname, t: new Date(b.uploadedAt).getTime() });
     cursor = r.hasMore ? r.cursor : undefined;
   } while (cursor);
+  lists.set(prefix, { at: Date.now(), items: out.slice() });
   return out;
 }
 

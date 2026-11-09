@@ -2301,10 +2301,10 @@
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal" || e.target.closest("[data-close]")) closeModal(); });
   // Other people (and clients approving art) change records too: refresh before
   // showing a view when what we hold is more than a few seconds old.
-  addEventListener("hashchange", async () => { if ($("#modal").open) closeModal(); if (S.token && Date.now() - S.loadedAt > 8000) await loadAll(true); render(); });
+  addEventListener("hashchange", async () => { if ($("#modal").open) closeModal(); if (S.token && Date.now() - S.loadedAt > 60_000) await loadAll(true); render(); });
   addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
   // keep data fresh while the app is open (other people are working too)
-  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); notifyLocal(); } }, 90_000);
+  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); notifyLocal(); } }, 5 * 60_000);   // every 5 minutes: storage operations are limited
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/ops/sw.js", { scope: "/ops/" }).catch(() => {});
     navigator.serviceWorker.addEventListener("message", (e) => { if (e.data?.go) location.href = e.data.go; });
