@@ -109,8 +109,8 @@
       { wa: "522226512650", numero: "222 651 2650", linea: "Itzel González · merch y marketing" }
     ],
     tarifas: {
-      descVol: [[1, 0], [100, 0], [500, 3], [1000, 5], [5000, 8], [20000, 10]], expressPct: 30, factor: 1.4, margenPrenda: 20, margenEstampado: 30,
-      ajusteTabla: 0, tablaTintas: null, costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15,
+      descVol: [[1, 0], [100, 0], [500, 3], [1000, 5], [5000, 8], [20000, 10]], expressPct: 30, factor: 1.4, margenPrenda: 20, margenEstampado: 0,   // screen printing: the LN1 table is Chilian's price list, so no margin on top
+      ajusteTabla: 0, tablaTintas: null, tablaVersion: "LN1-2026-11", costoPantalla: 350, minPantalla: 7, transicion: 10, impHora: 400, iva: 16, anticipo: 50, vigencia: 15,
       // DTG (one garment at a time) and embroidery (one cycle = one garment per head)
       minDTG: 3, minDTGOscura: 4.5, setupDTG: 5, rpmBordado: 750, efBordado: 75, minAro: 1.5, setupBordado: 15,
       ejemploDB: true, costoMilPuntadas: 3, costoPonchado: 450, margenBordado: 40, dtgCostos: { 100: 28, 300: 48, 600: 75, 1200: 115 }, dtgOscura: 18, margenDTG: 40
@@ -197,7 +197,10 @@
   const mergeSettings = (st) => {
     const d = structuredClone(DEFAULT_SETTINGS);
     if (!st) return d;
-    return { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, whatsapps: st.whatsapps?.length ? st.whatsapps : d.whatsapps, pulpos: st.pulpos?.length ? [...st.pulpos, ...d.pulpos.filter((m) => m.tipo && !st.pulpos.some((x) => x.id === m.id || (x.tipo || "serigrafia") === m.tipo))] : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
+    const out = { ...d, ...st, turno: { ...d.turno, ...(st.turno || {}) }, tarifas: { ...d.tarifas, ...(st.tarifas || {}) }, whatsapps: st.whatsapps?.length ? st.whatsapps : d.whatsapps, pulpos: st.pulpos?.length ? [...st.pulpos, ...d.pulpos.filter((m) => m.tipo && !st.pulpos.some((x) => x.id === m.id || (x.tipo || "serigrafia") === m.tipo))] : d.pulpos, equipo: st.equipo?.length ? st.equipo : d.equipo };
+    // the official LN1 table replaces the one saved before (and its margin and adjustment), once; saving the settings keeps the new version
+    if ((st.tarifas || {}).tablaVersion !== d.tarifas.tablaVersion) Object.assign(out.tarifas, { tablaTintas: null, margenEstampado: d.tarifas.margenEstampado, ajusteTabla: 0, tablaVersion: d.tarifas.tablaVersion });
+    return out;
   };
   // Save with a check: if someone saved this record meanwhile, keep theirs and say so.
   async function save(col, doc, { quiet } = {}) {
@@ -2245,8 +2248,8 @@
               h("button", { class: "x", type: "button", "aria-label": "Quitar escala", onclick: () => { st.tarifas.descVol.splice(i, 1); paint(); } }, "×"))),
               h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => { st.tarifas.descVol.push([(st.tarifas.descVol.at(-1)?.[0] || 0) * 2 || 100, 0]); paint(); } }, "+ Escala"));
               paint(); return box; })(h("div", { class: "grid", style: "gap:.4rem" }))),
-          h("div", { class: "card" }, h("h2", { text: "Tabla de costos por tintas" }),
-            h("p", { class: "hint", text: "Costo por pieza (MXN) por tamaño en cm² (100, 300, 600, 1200, 1800) y escala (100, 250, 500, 1,000, 10,000 y 100,000 pz). Columnas: 1, 2–3, 4–5, 6–7, 8–9 y 10–11 tintas, prenda de color, antimigrante, HD/puff, fleece, glitter y calidad exportación. Para un cambio parejo usa el ajuste en %." }),
+          h("div", { class: "card" }, h("h2", { text: "Tabla de precios de serigrafía (LN1)" }),
+            h("p", { class: "hint", text: "Precio de lista por pieza (MXN, antes de IVA) por tamaño en cm² (100, 300, 600, 1200, 1800) y escala (100, 250, 500, 1,000, 10,000 y 100,000 pz). Columnas: 1, 2–3, 4–5, 6–7, 8–9 y 10–11 tintas, prenda de color, antimigrante, HD/puff, fleece, glitter y calidad exportación. Para un cambio parejo usa el ajuste en %." }),
             ((ta) => h("div", { class: "grid", style: "gap:.4rem" }, ta, h("div", { class: "row" },
               h("button", { class: "btn sm", type: "button", onclick: () => { try { const v = JSON.parse(ta.value); if (!["100", "300", "600", "1200", "1800"].every((k) => Array.isArray(v[k]) && v[k].length === 6 && v[k].every((r) => r.length === 12 && r.every((x) => typeof x === "number")))) throw 0; st.tarifas.tablaTintas = v; toast("Tabla lista; guarda los ajustes."); } catch { toast("La tabla no tiene el formato esperado (5 tamaños × 6 escalas × 12 columnas).", true); } } }, "Usar esta tabla"),
               h("button", { class: "btn sm ghost", type: "button", onclick: () => { st.tarifas.tablaTintas = null; ta.value = JSON.stringify(window.CZ_DEFAULT_TABLE); toast("Tabla base restablecida; guarda los ajustes."); } }, "Restablecer la tabla base"))))(

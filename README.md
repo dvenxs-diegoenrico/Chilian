@@ -552,3 +552,19 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
 - **Dónde se usa.** El cotizador del sitio, el asistente (pregunta colores y tamaño) y el estudio (usa el área real de cada ubicación).
 - **Cambios.** Las tablas están en código: para cambiarlas hay que pasar la nueva lista.
 - **Límite del asistente.** Pasa a una asesora arriba de $7,200 (6,000 + 20 %).
+
+### Precios de estampado en todo el sistema
+
+- **Una sola tabla.** La tabla LN1 de serigrafía se usa en:
+  - el cotizador del sitio;
+  - el estudio «Estampa tu idea» (cada ubicación por su área real);
+  - el asistente en el chat, WhatsApp, Instagram y Messenger;
+  - el cotizador de serigrafía por tintas del OS.
+- **Colores de prenda y extras:**
+  - **Prenda de color:** suma la columna «prenda de color» (Fabric Color) y una base blanca.
+  - **HD, puff y glitter:** cada tinta suma su extra.
+  - **Prendas afelpadas:** las sudaderas y crewneck suman fleece.
+  - **Opcionales:** antimigrante y calidad exportación.
+- **OS: la tabla es lista de precios.** En Ajustes se llama «Tabla de precios de serigrafía (LN1)» y el margen de estampado queda en 0 %: el OS cobra el precio de la tabla más IVA. Si se quiere un margen, se pone en Ajustes o en la cotización.
+- **Cambio de versión.** `tarifas.tablaVersion` (hoy `LN1-2026-11`) marca la versión de la tabla. Si los ajustes guardados traen otra, la tabla, el margen de estampado y el ajuste en % vuelven a los valores nuevos una sola vez. Al guardar los ajustes queda la versión nueva.
+- **Diferencia con el sitio.** El sitio suma además 5 % de comisión de pago en línea y envío; el OS no, porque ahí el cobro lo registra el equipo.

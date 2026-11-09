@@ -44,7 +44,7 @@ function parse(text, d) {
   if (cm) d.size = Math.round(parseFloat(cm[1].replace(",", ".")) * parseFloat(cm[2].replace(",", ".")));
   else if (/doble carta/.test(t)) d.size = 1200; else if (/media carta/.test(t)) d.size = 300; else if (/\bcarta\b/.test(t)) d.size = 600;
   else if (/escudo|pecho izquierdo|logo chico/.test(t)) d.size = 100; else if (/frente completo|full front/.test(t)) d.size = 1800;
-  const ex = [/antimigr|barrier|barrera/.test(t) && "antimigrante", /exportaci|export quality/.test(t) && "export", /fabric color|tono sobre tono/.test(t) && "fabric"].filter(Boolean);
+  const ex = [/antimigr|barrier|barrera/.test(t) && "antimigrante", /exportaci|export quality/.test(t) && "export", /afelpad|fleece/.test(t) && "fleece"].filter(Boolean);
   if (ex.length) d.extras = [...new Set([...(d.extras || []), ...ex])];
   if (qty && (!inks || qty.index !== inks.index)) { const n = parseInt(qty[1].replace(/[,.]/g, ""), 10); if (n >= 1 && n < 1e6 && (qty[2] || !d.qty)) d.qty = n; }
   const where = ["frente", "espalda", "manga", "nuca", "pecho", "front", "back", "sleeve"].filter((w) => t.includes(w)).length;
@@ -250,7 +250,7 @@ export async function botTurn(doc, input, ctx) {
   const specs = P.specs?.[prod.id];
   if (specs && !d.linea) {
     const rec = uso?.linea || "clasica";
-    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, size: d.size || 300, extras: d.extras, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
+    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, size: d.size || 300, extras: d.extras, color: d.color || "color", locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
       return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
     say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta de unos 17×17 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink of about 17×17 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
@@ -281,6 +281,11 @@ export async function botTurn(doc, input, ctx) {
     say(L("¿Qué sistema de impresión?", "Which printing system?"), opts); b.paso = "tec"; return done();
   }
   const tec = TECS.find((x) => x.id === d.tec) || TECS[0];
+  if (tec.kind === "serigrafia" && !d.color) {   // on colored garments the ink needs a white base: it costs a little more
+    say(L("¿La prenda es clara (blanca) o de color u oscura? En prendas de color se imprime una base blanca debajo, que suma un poco.", "Is the garment light (white) or colored/dark? On colored garments a white base goes underneath, which adds a little."),
+      [{ id: "color:blanca", title: L("Blanca o clara", "White or light") }, { id: "color:color", title: L("De color u oscura", "Colored or dark") }]);
+    b.paso = "color"; return done();
+  }
   if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [["1", 1], ["2-3", 2], ["4-5", 4], ["6-7", 6], ["8-9", 8], ["10-11", 10]].map(([title, n]) => ({ id: "inks:" + n, title }))); b.paso = "inks"; return done(); }
   if (tec.kind === "serigrafia" && !d.size) {
     const S = P.serigrafia;

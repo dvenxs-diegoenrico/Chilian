@@ -1,7 +1,7 @@
 /* Chilian's official screen-printing price table (LN1), MXN per piece, per print location, before VAT.
    Rows: print size (cm²) → quantity break → number of colors (1, 2-3, 4-5, 6-7, 8-9, 10-11).
    Extras are added per piece and per location, by size and quantity:
-     fabric (Fabric Color), antimigrante (barrier base), hdpuff (HD / puff), fleece, glitter, export (export quality).
+     fabric (Fabric Color: it applies by itself on colored garments), antimigrante (barrier base), hdpuff (HD / puff), fleece, glitter, export (export quality).
    The website and the assistant add VAT, the online payment fee and shipping on top (see precios.js → cargos). */
 export const SERIGRAFIA = {
   tramos: [100, 250, 500, 1000, 10000, 100000],        // pieces from
@@ -10,7 +10,7 @@ export const SERIGRAFIA = {
   medidas: ["10×10 cm", "17×17 cm", "24×24 cm", "35×35 cm", "42×42 cm"],
   nombres: [{ es: "Chico", en: "Small" }, { es: "Mediano", en: "Medium" }, { es: "Grande", en: "Large" }, { es: "XL", en: "XL" }, { es: "Completo", en: "Full" }],
   extrasNombres: {
-    fabric: { es: "Fabric Color", en: "Fabric Color" },
+    fabric: { es: "Prenda de color (Fabric Color)", en: "Colored garment (Fabric Color)" },
     antimigrante: { es: "Antimigrante (base barrera)", en: "Anti-migration (barrier base)" },
     hdpuff: { es: "HD / Puff", en: "HD / Puff" },
     fleece: { es: "Prenda afelpada (fleece)", en: "Fleece garment" },

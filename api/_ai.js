@@ -51,7 +51,7 @@ const TOOLS = [
       tec: str("Técnica", ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"]),
       inks: int("Número de tintas o colores del diseño (1 a 11)"),
       size: { anyOf: [{ type: "integer", enum: [100, 300, 600, 1200, 1800] }, { type: "null" }], description: "Área de impresión en cm²: 100 (≈10×10 cm, logo de pecho), 300 (≈17×17), 600 (≈24×24, carta), 1200 (≈35×35, doble carta), 1800 (≈42×42, frente completo)" },
-      extras: { anyOf: [{ type: "array", items: { type: "string", enum: ["fabric", "antimigrante", "fleece", "export"] } }, { type: "null" }], description: "Extras de serigrafía que pidió: fabric (Fabric Color), antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación)" },
+      extras: { anyOf: [{ type: "array", items: { type: "string", enum: ["antimigrante", "fleece", "export"] } }, { type: "null" }], description: "Extras de serigrafía que pidió: antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación). La prenda de color, HD, puff y glitter se suman solos." },
       locs: int("Número de ubicaciones de impresión (1 a 4)"),
       emb: str("Tamaño de bordado", ["chico", "mediano", "grande"]),
       del: str("Entrega", ["estandar", "express"]),

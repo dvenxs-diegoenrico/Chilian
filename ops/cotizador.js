@@ -19,7 +19,7 @@
 (() => {
   "use strict";
 
-  // Costo por pieza (MXN) por tamaño de impresión (cm²) y escala de piezas (100, 250, 500, 1k, 10k, 100k).
+  // Precio de lista por pieza (MXN, antes de IVA) por tamaño de impresión (cm²) y escala de piezas (100, 250, 500, 1k, 10k, 100k).
   // Columnas: 0–5 tintas (1, 2–3, 4–5, 6–7, 8–9, 10–11) · 6 prenda de color · 7 antimigrante · 8 HD/puff ·
   // 9 fleece · 10 glitter · 11 calidad exportación. Tabla base editable en Ajustes.
   const DEFAULT_TABLE = {"100":[[9.13,15.97,20.53,25.1,29.66,34.22,1.76,3.51,3.51,3.51,1.76,7.02],[7.3,12.78,16.43,20.08,23.73,27.38,1.4,2.81,2.81,2.81,1.4,5.62],[5.93,10.38,13.35,16.31,19.28,22.24,1.14,2.28,2.28,2.28,1.14,4.56],[4.56,7.99,10.27,12.55,14.83,17.11,0.88,1.76,1.76,1.76,0.88,3.51],[4.11,7.19,9.24,11.29,13.35,15.4,0.79,1.58,1.58,1.58,0.79,3.16],[3.65,6.39,8.21,10.04,11.86,13.69,0.7,1.4,1.4,1.4,0.7,2.81]],"300":[[15.97,20.53,25.1,29.66,34.22,38.79,3.51,5.27,3.51,5.27,3.51,12.29],[12.78,16.43,20.08,23.73,27.38,31.03,2.81,4.21,2.81,4.21,2.81,9.83],[10.38,13.35,16.31,19.28,22.24,25.21,2.28,3.42,2.28,3.42,2.28,7.99],[7.99,10.27,12.55,14.83,17.11,19.39,1.76,2.63,1.76,2.63,1.76,6.14],[7.19,9.24,11.29,13.35,15.4,17.45,1.58,2.37,1.58,2.37,1.58,5.53],[6.39,8.21,10.04,11.86,13.69,15.51,1.4,2.11,1.4,2.11,1.4,4.91]],"600":[[18.25,22.82,27.38,31.94,36.5,41.07,5.27,7.02,5.27,7.02,7.02,14.04],[14.6,18.25,21.9,25.55,29.2,32.85,4.21,5.62,4.21,5.62,5.62,11.23],[11.86,14.83,17.8,20.76,23.73,26.69,3.42,4.56,3.42,4.56,4.56,9.13],[9.13,11.41,13.69,15.97,18.25,20.53,2.63,3.51,2.63,3.51,3.51,7.02],[8.21,10.27,12.32,14.37,16.43,18.48,2.37,3.16,2.37,3.16,3.16,6.32],[7.3,9.13,10.95,12.78,14.6,16.43,2.11,2.81,2.11,2.81,2.81,5.62]],"1200":[[22.82,27.38,31.94,36.5,41.07,45.63,10.53,14.04,10.53,8.78,14.04,17.55],[18.25,21.9,25.55,29.2,32.85,36.5,8.42,11.23,8.42,7.02,11.23,14.04],[14.83,17.8,20.76,23.73,26.69,29.66,6.84,9.13,6.84,5.7,9.13,11.41],[11.41,13.69,15.97,18.25,20.53,22.82,5.27,7.02,5.27,4.39,7.02,8.78],[10.27,12.32,14.37,16.43,18.48,20.53,4.74,6.32,4.74,3.95,6.32,7.9],[9.13,10.95,12.78,14.6,16.43,18.25,4.21,5.62,4.21,3.51,5.62,7.02]],"1800":[[25.1,34.22,38.79,43.35,47.91,52.47,14.04,19.31,15.8,10.53,19.31,19.31],[20.08,27.38,31.03,34.68,38.33,41.98,11.23,15.44,12.64,8.42,15.44,15.44],[16.31,22.24,25.21,28.18,31.14,34.11,9.13,12.55,10.27,6.84,12.55,12.55],[12.55,17.11,19.39,21.67,23.96,26.24,7.02,9.65,7.9,5.27,9.65,9.65],[11.29,15.4,17.45,19.51,21.56,23.61,6.32,8.69,7.11,4.74,8.69,8.69],[10.04,13.69,15.51,17.34,19.16,20.99,5.62,7.72,6.32,4.21,7.72,7.72]]};
@@ -371,9 +371,9 @@
     }
 
     /* ---------- ink calculator state (per person, this browser) ---------- */
-    const TQK = "chilian-os-tintas-v1";
+    const TQK = "chilian-os-tintas-v2";   // v2: the LN1 table is the price list (margin 0), older saved sessions are dropped
     const loadTQ = () => { try { const v = JSON.parse(localStorage.getItem(TQK) || "null"); if (v && Array.isArray(v.pos)) return v; } catch {} return null; };
-    let TQ = loadTQ() || { mkP: String(T().margenEstampado ?? 30), mkG: String(T().margenPrenda ?? 20), qty: "500", tec: "Plastisol", prenda: "color", fleece: false, garment: "", gcost: "", screens: false,
+    let TQ = loadTQ() || { mkP: String(T().margenEstampado ?? 0), mkG: String(T().margenPrenda ?? 20), qty: "500", tec: "Plastisol", prenda: "color", fleece: false, garment: "", gcost: "", screens: false,
       pos: [{ name: "Frente", size: 300, ink: 1, fx: [], w: "", hh: "" }, { name: "Espalda", size: 600, ink: 1, fx: [], w: "", hh: "" }] };
     const saveTQ = () => { try { localStorage.setItem(TQK, JSON.stringify(TQ)); } catch {} };
     const tierIdx = (q) => { let i = 0; QT.forEach((m, j) => { if (q >= m) i = j; }); return i; };
@@ -628,12 +628,12 @@
           const c = tqCalc(), g = BYKEY[TQ.garment];
           res.replaceChildren(...[
             h("div", { class: "cz-big" }, h("div", {}, h("div", { class: "k", text: "Precio de venta por pieza" }), h("div", { class: "v", text: money(c.sale) })), h("div", {}, h("div", { class: "k", text: `Total ${int(c.qty)} pz` }), h("div", { class: "v", text: money(c.total) }))),
-            h("table", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "r", text: "Costo" }), h("th", { class: "r", text: "Venta" })),
+            h("table", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "r", text: "Tabla LN1" }), h("th", { class: "r", text: "Precio" })),
               c.rows.map((x) => h("tr", {}, h("td", {}, `${x.p.name} · ${sizeName(x.p.size)} · ${INKS[x.p.ink]} ${x.p.ink === 0 ? "tinta" : "tintas"}`, h("div", { class: "muted", text: "Base " + money(x.base) + (x.add.length ? " + " + x.add.map((y) => y[0] + " " + money(y[1])).join(" + ") : "") })),
                 h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.cost * (1 + n(TQ.mkP) / 100)) }))),
               g ? h("tr", {}, h("td", {}, "Prenda: " + g.name.split(" · ")[0], h("div", { class: "muted", text: `Margen prenda ${n(TQ.mkG)} %` })), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(TQ.mkG) / 100)) })) : null,
               h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
-            h("p", { class: "hint", text: `Escala de la tabla: ${int(c.tier)} pz${c.below ? " (menos de 100 pz se cotiza con la escala de 100)" : ""}. Pantallas estimadas: ${c.screens}${TQ.prenda === "color" ? " (incluye la base blanca por posición)" : ""}. El costo solo se ve aquí; en la hoja sale el precio de venta.${TQ.tec !== "Plastisol" ? " " + TQ.tec + " aplica solo en prenda 100 % algodón." : ""}` }),
+            h("p", { class: "hint", text: `Escala de la tabla: ${int(c.tier)} pz${c.below ? " (menos de 100 pz se cotiza con la escala de 100)" : ""}. Pantallas estimadas: ${c.screens}${TQ.prenda === "color" ? " (incluye la base blanca por posición)" : ""}. En la hoja sale el precio con el margen que pongas (0 % = el precio de la tabla).${TQ.tec !== "Plastisol" ? " " + TQ.tec + " aplica solo en prenda 100 % algodón." : ""}` }),
             g && !(n(TQ.gcost) > 0) ? h("p", { class: "hint warn", text: "Escribe el costo de la prenda para sumarla al precio." }) : null,
             h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: !!TQ.screens, onchange: (e) => { TQ.screens = e.target.checked; saveTQ(); } }), h("span", { text: `Agregar las ${c.screens} pantallas como renglón aparte (${money(n(T().costoPantalla))} c/u)` })),
             h("button", { type: "button", class: "btn accent", style: "width:100%", onclick: () => {
@@ -653,7 +653,7 @@
         }
         tqBox.replaceChildren(
           h("div", { class: "cz-tq-head" }, h("div", {}, h("h2", { text: "Cotizador de serigrafía por tintas" }),
-            h("p", { class: "hint", text: "Elige piezas, posiciones, tamaño, tintas y efectos; opcionalmente la prenda del catálogo con su costo. Venta = costo de la tabla + margen. La tabla se ajusta en Ajustes." })),
+            h("p", { class: "hint", text: "Elige piezas, posiciones, tamaño, tintas y efectos; opcionalmente la prenda del catálogo con su costo. Precio = precio de la tabla LN1 + margen (0 % por defecto). El site cobra esa misma tabla más IVA y comisión de pago." })),
             h("div", { class: "cz-fields" }, field("Margen estampado (%)", tqIn("mkP")), field("Margen prenda (%)", tqIn("mkG")))),
           h("div", { class: "cz-tq-grid" },
             h("div", { class: "cz-tq-form" },

@@ -25,7 +25,7 @@ export async function prices() {
   cache = { at: Date.now(), v: { P: mergePrecios(saved?.precios), ejemplo: saved ? saved.ejemplo !== false : true } };
   return cache.v;
 }
-export const EXTRAS_ELEGIBLES = ["fabric", "antimigrante", "fleece", "export"];
+export const EXTRAS_ELEGIBLES = ["antimigrante", "fleece", "export"];   // fabric (colored garment), HD/puff, glitter and fleece garments apply by themselves
 export const inkIdx = (n) => Math.min(5, Math.floor(Math.max(1, +n || 1) / 2));   // 1 | 2-3 | 4-5 | 6-7 | 8-9 | 10-11
 export const sizeIdx = (S, area) => { const i = S.tamanos.findIndex((x) => x >= area); return i < 0 ? S.tamanos.length - 1 : i; };
 // Extras that apply: the ones picked, the ink's own (HD/puff, glitter) and fleece garments.
@@ -34,6 +34,7 @@ export function extrasOf(c, tec, prod) {
   if (tec.id === "hd" || tec.id === "puff") ids.add("hdpuff");
   if (tec.id === "glitter") ids.add("glitter");
   if (prod.fleece) ids.add("fleece");
+  if (c.color === "color") ids.add("fabric");   // colored garment: white base underneath
   return [...ids];
 }
 // Official screen-printing table: per location by size, quantity break and colors, plus extras.
@@ -95,7 +96,9 @@ export function quote(P, c, lang = "es") {
     : kind === "serigrafia" ? (() => {
       const S = P.serigrafia, ink = S.colores[inkIdx(inks)], med = [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + "), plural = ink !== "1";
       const ex = pc.ids.filter((x) => !["hdpuff", "glitter"].includes(x)).map((x) => (S.extrasNombres[x][lang === "en" ? "en" : "es"]).toLowerCase());
-      return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"} de ${med}${ex.length ? ", con " + ex.join(" y ") : ""}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""} of ${med}${ex.length ? ", with " + ex.join(" and ") : ""}`);
+      const ex2 = ex.filter((x) => !x.startsWith(S.extrasNombres.fabric.es.toLowerCase().slice(0, 10)) && !x.startsWith(S.extrasNombres.fabric.en.toLowerCase().slice(0, 10)));
+      const onG = !prod.lista && !prod.listaCodigo && c.color ? L(c.color === "color" ? ", sobre prenda de color" : ", sobre prenda clara", c.color === "color" ? ", on a colored garment" : ", on a light garment") : "";
+      return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"} de ${med}${ex2.length ? ", con " + ex2.join(" y ") : ""}${onG}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""} of ${med}${ex2.length ? ", with " + ex2.join(" and ") : ""}${onG}`);
     })()
     : kind === "dtg" ? L(`en DTG a todo color, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG, ${locs} location${locs > 1 ? "s" : ""}`)
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
