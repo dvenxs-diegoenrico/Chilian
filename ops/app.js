@@ -2120,9 +2120,17 @@
         h("label", { class: "f" }, h("span", { text: "Tipo de cambio (MXN por USD)" }), h("input", { class: "i", type: "number", min: "1", step: "0.1", value: a.tipoCambio, oninput: (e) => { a.tipoCambio = +e.target.value; } })),
         h("p", { class: "small muted", style: "margin:0;align-self:end" }, "Estos se marcan «Vale la pena», suben al inicio de Solicitudes y le llega un aviso al equipo.")),
       h("div", { class: "row", style: "gap:.6rem" }, DIAS.map((n, i) => h("label", { class: "row small", style: "gap:.25rem" }, h("input", { type: "checkbox", checked: a.horario.dias.includes(i), onchange: (e) => { a.horario.dias = e.target.checked ? [...new Set([...a.horario.dias, i])].sort() : a.horario.dias.filter((x) => x !== i); } }), n))),
+      ((pw) => { const cg = { comision: 5, ...(pw?.precios?.cargos || {}) }; cg.envio = { porPedido: 199, gratisDesde: 0, ...(cg.envio || {}) }; a._cargos = cg;
+        return h("div", { class: "grid g3" },
+          h("label", { class: "f" }, h("span", { text: "Comisión de pago en línea (%)" }), h("input", { class: "i", type: "number", min: "0", step: "0.1", value: cg.comision, oninput: (e) => { cg.comision = +e.target.value; } })),
+          h("label", { class: "f" }, h("span", { text: "Envío por pedido (MXN)" }), h("input", { class: "i", type: "number", min: "0", step: "1", value: cg.envio.porPedido, oninput: (e) => { cg.envio.porPedido = +e.target.value; cg.envio.ejemplo = false; } })),
+          h("label", { class: "f" }, h("span", { text: "Envío gratis desde (MXN, 0 = nunca)" }), h("input", { class: "i", type: "number", min: "0", step: "100", value: cg.envio.gratisDesde, oninput: (e) => { cg.envio.gratisDesde = +e.target.value; } }))); })(byId("ajustes", "precios-web")),
+      h("p", { class: "small muted", style: "margin:0" }, "El sitio y el asistente cobran: (prenda de la lista oficial + impresión) + IVA 16 % + comisión + envío."),
       h("button", { class: "btn accent", type: "button", style: "justify-self:start", onclick: async () => {
+        const pw = byId("ajustes", "precios-web") || { id: "precios-web", ejemplo: true, precios: {} };
+        await save("ajustes", { ...pw, id: "precios-web", precios: { ...(pw.precios || {}), cargos: a._cargos } }, { quiet: true });
         if ((a.activo.web || a.activo.whatsapp || a.activo.instagram || a.activo.messenger) && example && !(await confirmBox("Los precios del sitio siguen marcados como ejemplo: el asistente cotizaría con ellos. ¿Activarlo de todos modos?"))) return;
-        await save("ajustes", { ...(byId("ajustes", "asistente") || {}), ...a, id: "asistente" }); toast("Asistente guardado. Los cambios aplican en un minuto.");
+        const { _cargos, ...conf } = a; await save("ajustes", { ...(byId("ajustes", "asistente") || {}), ...conf, id: "asistente" }); toast("Asistente guardado. Los cambios aplican en un minuto.");
       } }, "Guardar asistente"),
       h("div", { class: "label", text: "Pagos en línea" }), status);
   }

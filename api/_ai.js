@@ -30,7 +30,8 @@ Datos de Chilian (úsalos solo si preguntan):
 - Planta y showroom en Santa Isabel Cholula, Puebla; asesoras de lunes a viernes de 9:00 a 19:00.
 
 Solo hablas de Chilian y de pedidos de ropa y promocionales. Valores para registrar_pedido:
-prod: playera | sport (playera deportiva Chilian Sport) | sudadera | polo | camisa | gorra | bolsa | propia (prenda del cliente)
+prod: playera (cuello redondo) | sport (playera deportiva Chilian Sport) | tiedye (teñida en prenda) | mangalarga | crewneck (sudadera cuello redondo) | sudadera (con capucha) | polo | camisa | short | pants (o jogger) | gorra | bolsa | propia (prenda del cliente)
+Los precios que ve el cliente ya incluyen IVA y la comisión de pago; el envío se suma aparte.
 tec: plastisol | waterbase | discharge | hd | puff | glitter | gitd | dtg | embroidery | fullprint
 uso: carrera | evento | negocio | uniforme | banda | marca | regalo
 perfil: experto (ya sabe tela, gramaje y sistema de impresión, o compara cotizaciones) | intermedio (sabe el producto, necesita asesoría) | explorador (no sabe qué cotizar) | cliente (ya le compra a Chilian)`;
@@ -44,7 +45,8 @@ const TOOLS = [
     input_schema: obj({
       perfil: str("Tipo de cliente", ["experto", "intermedio", "explorador", "cliente"]),
       uso: str("Para qué es", ["carrera", "evento", "negocio", "uniforme", "banda", "marca", "regalo"]),
-      prod: str("Producto", ["playera", "sport", "sudadera", "polo", "camisa", "gorra", "bolsa", "propia"]),
+      prod: str("Producto", ["playera", "sport", "tiedye", "mangalarga", "crewneck", "sudadera", "polo", "camisa", "short", "pants", "gorra", "bolsa", "propia"]),
+      color: str("Color de la prenda: blanca o de color", ["blanca", "color"]),
       qty: int("Piezas"),
       tec: str("Técnica", ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"]),
       inks: int("Número de tintas o colores del diseño (1 a 6)"),

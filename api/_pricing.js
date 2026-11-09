@@ -2,7 +2,7 @@
    (index.html → qzCalc), so the chat assistant, WhatsApp and the site quote the same.
    Prices come from /api/precios defaults merged with Ajustes → Precios del cotizador web. */
 import { getDoc } from "./_lib.js";
-import { DEFAULTS } from "./precios.js";
+import { mergePrecios } from "./precios.js";
 
 export const TECS = [
   { id: "plastisol", kind: "serigrafia", es: "Plastisol", en: "Plastisol" },
@@ -18,20 +18,33 @@ export const TECS = [
 ];
 export const EMB = { chico: ["chico", "small", "≤ 7 cm"], mediano: ["mediano", "medium", "≤ 12 cm"], grande: ["grande", "large", "≤ 25 cm"] };
 
-const merge = (d, s) => {
-  if (!s || typeof s !== "object" || Array.isArray(d)) return s ?? d;
-  const out = { ...d };
-  for (const k of Object.keys(s)) out[k] = d[k] && typeof d[k] === "object" && !Array.isArray(d[k]) ? merge(d[k], s[k]) : s[k];
-  return out;
-};
 let cache = { at: 0, v: null };
 export async function prices() {
   if (cache.v && Date.now() - cache.at < 60_000) return cache.v;
   const saved = await getDoc("ajustes", "precios-web").catch(() => null);
-  cache = { at: Date.now(), v: { P: merge(DEFAULTS, saved?.precios), ejemplo: saved ? saved.ejemplo !== false : true } };
+  cache = { at: Date.now(), v: { P: mergePrecios(saved?.precios), ejemplo: saved ? saved.ejemplo !== false : true } };
   return cache.v;
 }
 const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
+/* The garment's price per piece: T-shirts from the official list (by line and white/colored), other
+   products from their own price breaks. Returns { precio, codigo, tela }. */
+export function garment(P, prod, c, q) {
+  const lineOf = c.linea && P.lineas?.[c.linea] ? c.linea : "clasica", white = c.color === "blanca";
+  const row = (code) => (P.lista || []).find((r) => r.codigo === code && (white ? /blanc/i.test(r.color) : !/^blanc/i.test(r.color))) || (P.lista || []).find((r) => r.codigo === code);
+  let r = null;
+  if (prod.lista) r = row(P.lineas[lineOf].codigos?.[white ? "blanca" : "color"]);
+  else if (prod.listaCodigo) r = row(prod.listaCodigo);
+  if (r) return { precio: r.precios[tierOf(q, P.listaTramos || [12, 50, 100, 300, 1000])] || 0, codigo: r.codigo, tela: r.tela };
+  const ln = c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? +P.lineas[c.linea].factor || 1 : 1;
+  return { precio: (prod.precios[tierOf(q, prod.tramos || P.tramos)] || 0) * ln, codigo: "", tela: "" };
+}
+// What the customer pays: base × (1 + VAT) × (1 + payment fee), plus shipping per order.
+export function charges(P, base, q) {
+  const iva = (P.iva ?? 16) / 100, fee = (P.cargos?.comision ?? 5) / 100, env = P.cargos?.envio || {};
+  const unitFinal = base * (1 + iva) * (1 + fee), sub = unitFinal * q;
+  const envio = q ? (env.gratisDesde && sub >= env.gratisDesde ? 0 : +env.porPedido || 0) : 0;
+  return { unitFinal, envio, totalFinal: sub + envio };
+}
 export function addBusinessDays(n, from = new Date()) { const d = new Date(from); d.setHours(12, 0, 0, 0); while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n--; } return d; }
 
 /* c: { prod, qty, tec, inks, locs, emb, del } -> { unit, total, totalIva, days, date, min, err, sentence } */
@@ -44,8 +57,7 @@ export function quote(P, c, lang = "es") {
   let unit = 0;
   if (kind === "full") unit = P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0;
   else {
-    const ln = c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? P.lineas[c.linea] : null;   // garment line (Básica, Clásica, Premium)
-    unit += (prod.precios[i] || 0) * (ln ? +ln.factor || 1 : 1);
+    const g = garment(P, prod, c, q); unit += g.precio; var gar = g;
     if (kind === "serigrafia") unit += ((P.tinta[i] || 0) * inks + (P.baseUbicacion[i] || 0) + ((P.especiales || {})[tec.id] || 0)) * locs + (q ? P.pantalla * inks * locs / q : 0);
     else if (kind === "dtg") unit += (P.dtg[i] || 0) * locs;
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
@@ -65,6 +77,8 @@ export function quote(P, c, lang = "es") {
     : kind === "dtg" ? L(`en DTG a todo color, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG, ${locs} location${locs > 1 ? "s" : ""}`)
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
+  const ch = charges(P, unit, q);
   return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
+    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null,
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

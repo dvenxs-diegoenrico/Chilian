@@ -510,3 +510,28 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
 - marca la solicitud como «Vale la pena»;
 - la sube al inicio de Solicitudes (filtro «Valen la pena»);
 - avisa al equipo una sola vez.
+
+### Precios: lista oficial de Chilian y lo que paga el cliente
+
+- **Lista oficial.** `api/_lista.js` contiene la lista de precios de playera cuello redondo, entregada por Chilian en noviembre de 2026: 113 renglones, precios por 12, 50, 100, 300 y 1,000 piezas.
+- **Líneas del sitio y del asistente.** Usan modelos Óptima de la lista:
+
+  | Línea | Blanca | De color |
+  | --- | --- | --- |
+  | Básica | OP-STPB | OP-STPC |
+  | Clásica | OP-PRB | OP-PRC |
+  | Premium | OP-MXB | OP-MXC |
+
+  - **Básica:** 50/50, 155 g.
+  - **Clásica:** 100 % algodón, 155 g.
+  - **Premium:** peso completo, 190 g.
+
+  Otros productos de la lista:
+  - La Chilian Sport usa `CH-SPORT`.
+  - La playera teñida en prenda usa `12030`.
+- **Precio final.** El cliente paga (prenda + impresión) × 1.16 (IVA) × 1.05 (comisión de Mercado Pago o Stripe), más el envío por pedido. La comisión y el envío se configuran en Ajustes → Asistente de ventas (`precios-web.precios.cargos`).
+- **Referencias de Factory 1 Direct** (factory1direct.com):
+  - **Productos que Chilian aún no tiene en lista:** manga larga, crewneck, short y pants. Precio = precio USD con una impresión, menos 3 USD, × 18.5.
+  - **DTG:** 55.50 MXN por ubicación, que equivale a sus 3 USD por impresión extra.
+  - **Estudio:** texto con fuentes, revisión de resolución (mínimo 150 DPI a la medida de impresión) y precio en vivo por ubicación.
+  - No se copia ninguna imagen de ese sitio.

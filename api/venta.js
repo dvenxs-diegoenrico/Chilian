@@ -24,7 +24,7 @@ export async function assistantTurn(doc, input, { canal, lang, base, send }) {
   if (doc.bot?.cot && (!doc.estimados?.[0] || doc.estimados[0].resumen !== doc.bot.cot.sentence)) {
     const c = doc.bot.cot;   // what was quoted: the OS makes the pre-quote from it, at this price
     doc.estimados = [{ producto: c.d.prod, nombre: (c.nombre || c.d.prod) + (c.linea ? ` · línea ${{ basica: "básica", clasica: "clásica", premium: "premium" }[c.linea]}` : ""), piezas: +c.d.qty, tecnica: c.d.tec, tecnicaNombre: c.tecNombre || c.d.tec, tintas: c.d.inks || 0, ubicaciones: c.d.locs || 0, bordado: c.d.emb || "", entrega: c.d.del || "estandar",
-      unitario: c.unit, total: c.total, dias: c.days, fechaEstimada: c.fecha, resumen: c.sentence, origen: "asistente" }];
+      unitario: c.unit, total: c.total, unitarioFinal: c.unitFinal, totalFinal: c.totalFinal, envio: c.envio, prenda: c.prenda || "", color: c.d.color || "", dias: c.days, fechaEstimada: c.fecha, resumen: c.sentence, origen: "asistente" }];
     doc.prenda = c.sentence; doc.piezas = +c.d.qty;
     if (c.linea) doc.estimados[0].linea = c.linea;
     if (c.spec) { doc.estimados[0].especificacion = c.spec; doc.especificacion = c.spec; }

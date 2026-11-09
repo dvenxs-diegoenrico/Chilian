@@ -27,7 +27,8 @@ export function inHours(h, now = new Date()) {
 const money = (n) => "$" + Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-const PRODS = [["playera", /playera|camiseta|t-?shirt|tee/], ["sport", /sport|deportiv|jersey|sublimad/], ["sudadera", /sudadera|hoodie|crewneck|sueter/], ["polo", /\bpolo/],
+const PRODS = [["mangalarga", /manga larga|long ?sleeve/], ["tiedye", /tie ?dye|tenid|garment.?dyed|lavad/], ["crewneck", /crewneck|crew neck|sudadera (de )?cuello redondo/], ["short", /\bshorts?\b/], ["pants", /\bpants\b|jogger|pantalon deportivo/],
+  ["sport", /sport|deportiv|jersey|sublimad/], ["playera", /playera|camiseta|t-?shirt|tee/], ["sudadera", /sudadera|hoodie|crewneck|sueter/], ["polo", /\bpolo/],
   ["camisa", /camisa|uniforme/], ["gorra", /gorra|cap\b|cachucha/], ["bolsa", /bolsa|tote/], ["propia", /mi prenda|propia|la envio|own garment/]];
 const TEC_RX = [["fullprint", /full ?print|sublima/], ["dtg", /\bdtg|digital|foto/], ["embroidery", /bordad|embroider/], ["plastisol", /serigraf|plastisol|screen/]];
 const HANDOFF_RX = /asesor|persona|humano|agente|llamar|hablar con|licencia|paquete completo|maquila|programa de|queja|reclamo|factura|human|advisor|license/;
@@ -43,6 +44,7 @@ function parse(text, d) {
   const where = ["frente", "espalda", "manga", "nuca", "pecho", "front", "back", "sleeve"].filter((w) => t.includes(w)).length;
   if (where) d.locs = Math.min(4, where);
   if (/express|urgente|rapido|rush/.test(t)) d.del = "express";
+  if (/\bblanc[oa]s?\b|\bwhite\b/.test(t)) d.color = "blanca"; else if (/\b(negr|azul|roj|gris|verde|amarill|rosa|morad|cafe|beige|marino|color)\w*|\b(black|navy|colou?red)\b/.test(t)) d.color = "color";
   for (const k of Object.keys(EMB)) if (t.includes(k)) d.emb = k;
   return d;
 }
@@ -131,7 +133,8 @@ export async function botTurn(doc, input, ctx) {
   const pre = btn.split(":")[0], val = btn.slice(pre.length + 1);
   if (pre === "perfil") d.perfil = val;
   else if (pre === "uso") d.uso = val;
-  else if (pre === "prod") { if (val === "otro") b.todos = true; else d.prod = val; }
+  else if (pre === "prod") { if (val === "otro") b.todos = true; else if (val === "mas") { b.todos = true; b.mas = true; } else { d.prod = val; b.prodElegido = true; } }
+  else if (pre === "color") d.color = val;
   else if (pre === "linea") { if (val === "otra") { b.paso = "spec"; say(L("Escríbeme la tela, la composición y el gramaje que buscas (por ejemplo: 100 % algodón peinado, 180 g/m², corte oversize).", "Tell me the fabric, blend and weight you need (for example: 100% combed cotton, 180 gsm, oversized fit).")); return done(); } d.linea = val; }
   else if (pre === "qty") d.qty = +val;
   else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
@@ -150,7 +153,8 @@ export async function botTurn(doc, input, ctx) {
     parse(text, d); parseMore(text, d);
     if (ai) {   // what Claude understood wins over the patterns
       const c = ai.campos, okInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
-      for (const k of ["perfil", "uso", "prod", "tec", "emb", "del", "linea"]) if (c[k]) d[k] = c[k];
+      for (const k of ["perfil", "uso", "prod", "tec", "emb", "del", "linea", "color"]) if (c[k]) d[k] = c[k];
+      if (c.prod) b.prodElegido = true;
       if (okInt(c.qty, 1, 999999)) d.qty = c.qty;
       if (okInt(c.inks, 1, 6)) d.inks = c.inks;
       if (okInt(c.locs, 1, 4)) d.locs = c.locs;
@@ -165,12 +169,12 @@ export async function botTurn(doc, input, ctx) {
   if (d.prod === "sport" && d.uso === undefined && !d.perfil) d.uso = "carrera";
 
   if (btn === "pagar" && b.cot) {
-    const amount = Math.round(b.cot.totalIva * st.anticipo) / 100;
+    const due = b.cot.totalFinal || b.cot.totalIva, amount = Math.round(due * st.anticipo) / 100;
     const links = await ctx.payLinks(doc, amount, `Anticipo ${st.anticipo}% · ${b.cot.sentence}`);
     if (!links.length) return handoff("Quiso pagar el anticipo y aún no hay pagos en línea conectados");
     b.paso = "pago";
-    say(L(`Aquí tu link para pagar el anticipo de ${money(amount)} (${st.anticipo}% de ${money(b.cot.totalIva)} con IVA). Con Mercado Pago puedes pagar con SPEI, OXXO, tarjeta o meses sin intereses. Cuando se acredite te confirmo aquí y te pedimos tu logo para el arte.`,
-      `Here is your link to pay the ${st.anticipo}% deposit of ${money(amount)} MXN (of ${money(b.cot.totalIva)} with VAT). Once it clears I'll confirm here and we'll ask for your artwork.`), null, links);
+    say(L(`Aquí tu link para pagar el anticipo de ${money(amount)} (${st.anticipo}% de ${money(due)}). Con Mercado Pago puedes pagar con SPEI, OXXO, tarjeta o meses sin intereses. Cuando se acredite te confirmo aquí y te pedimos tu logo para el arte.`,
+      `Here is your link to pay the ${st.anticipo}% deposit of ${money(amount)} MXN (of ${money(due)} MXN). Once it clears I'll confirm here and we'll ask for your artwork.`), null, links);
     return done();
   }
 
@@ -216,11 +220,15 @@ export async function botTurn(doc, input, ctx) {
   const uso = USOS[d.uso];
 
   // 3. the product: three suggestions for its use, or the whole list
+  if (advise && uso && d.prod && !b.prodElegido && !b.todos && d.prod !== uso.prods[0] && !d.qty) delete d.prod;   // e.g. a race: offer the Chilian Sport first
   if (!d.prod) {
     if (advise && uso && !b.todos) {
       say(`${L(uso.tip[0], uso.tip[1])}\n\n${L("Te sugiero una de estas tres:", "I suggest one of these three:")}`,
         [...uso.prods.map((id, i) => ({ id: "prod:" + id, title: (i === 0 ? "⭐ " : "") + prodName(id) })), { id: "prod:otro", title: L("Otro producto", "Other product") }]);
-    } else say(L("¿Qué producto necesitas?", "What product do you need?"), ALL_PRODS);
+    } else {   // WhatsApp lists hold 10 options: the rest go on a second page
+      const page = ALL_PRODS.length <= 10 ? ALL_PRODS : b.mas ? ALL_PRODS.slice(9) : [...ALL_PRODS.slice(0, 9), { id: "prod:mas", title: L("Más productos", "More products") }];
+      say(L("¿Qué producto necesitas?", "What product do you need?"), page);
+    }
     b.paso = "prod"; return done();
   }
   if (!d.qty) {
@@ -235,10 +243,18 @@ export async function botTurn(doc, input, ctx) {
     const rec = uso?.linea || "clasica";
     const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
-      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unit)} por pieza`, `About ${money(r.unit)} MXN per piece`)}`; });
-    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar; lo ajusto con tu diseño.)", "(Price in full color in 1 location; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano; lo ajusto con tu diseño.)", "(Price with 1 medium embroidery; I'll adjust it to your design.)") : L("(Precio con 1 tinta en 1 lugar; lo ajusto con tu diseño.)", "(Price with 1 ink in 1 location; I'll adjust it to your design.)"))}`,
+      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
+    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
       [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
     b.paso = "linea"; return done();
+  }
+
+  // 4b. white or colored garment: the official list prices them apart
+  if ((prod.lista || prod.listaCodigo === "12030") && !d.color) {
+    const pr = (color) => { const r = quote(P, { prod: prod.id, qty: d.qty, linea: d.linea, color, tec: "plastisol", inks: 1, locs: 1, del: "estandar" }, b.lang); return r.err ? "" : ` · ${money(r.unitFinal)}`; };
+    say(L("¿La prenda es blanca o de color? La blanca cuesta un poco menos.", "White or colored garment? White costs a little less."),
+      [{ id: "color:blanca", title: L("Blanca", "White") + pr("blanca") }, { id: "color:color", title: L("De color", "Colored") + pr("color") }]);
+    b.paso = "color"; return done();
   }
 
   // 5. how it is printed: the expert picks the system; the rest describe their design and we suggest
@@ -264,13 +280,16 @@ export async function botTurn(doc, input, ctx) {
   // 6. the quote
   const r = quote(P, d, b.lang);
   if (r.err) { say(r.err + " " + L("¿Cambiamos las piezas o la técnica?", "Shall we change the pieces or the technique?"), [{ id: "qty:" + r.min, title: L(`Usar ${r.min} piezas`, `Use ${r.min} pieces`) }, { id: "reiniciar", title: L("Empezar de nuevo", "Start over") }]); delete d.qty; b.paso = "qty"; return done(); }
-  b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, linea: d.linea || "", spec: d.spec || "", sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva, days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
+  b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, linea: d.linea || "", spec: d.spec || "", sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva,
+    unitFinal: r.unitFinal, envio: r.envio, totalFinal: r.totalFinal, prenda: r.prenda?.codigo || "", days: r.days, fecha: r.date.toISOString().slice(0, 10), d: { ...d } };
   const when = r.date.toLocaleDateString(b.lang === "en" ? "en-US" : "es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Mexico_City" });
-  const specLine = d.spec ? L(`\n• Tu especificación: ${d.spec} (tu asesora confirma el precio exacto con esa tela)`, `\n• Your spec: ${d.spec} (your advisor confirms the exact price for that fabric)`) : specs && d.linea ? `\n• ${specs[d.linea]}` : "";
-  const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unit)} por pieza\n• Total ${money(r.total)} más IVA (${money(r.totalIva)} con IVA)\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
-    `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unit)} MXN per piece\n• Total ${money(r.total)} MXN plus VAT (${money(r.totalIva)} with VAT)\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
+  const specLine = d.spec ? L(`\n• Tu especificación: ${d.spec} (tu asesora confirma el precio exacto con esa tela)`, `\n• Your spec: ${d.spec} (your advisor confirms the exact price for that fabric)`)
+    : r.prenda?.tela ? `\n• ${r.prenda.tela}${d.color ? L(d.color === "blanca" ? ", blanca" : ", de color", d.color === "blanca" ? ", white" : ", colored") : ""}` : specs && d.linea ? `\n• ${specs[d.linea]}` : "";
+  const ship = r.envio ? L(`\n• Envío: ${money(r.envio)}`, `\n• Shipping: ${money(r.envio)} MXN`) : "";
+  const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} por pieza (IVA y comisión de pago incluidos)${ship}\n• Total: ${money(r.totalFinal)}\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
+    `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} MXN per piece (VAT and payment fee included)${ship}\n• Total: ${money(r.totalFinal)} MXN\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
   b.paso = "cotizado";
-  if (r.totalIva > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalIva)} con IVA`); }
+  if (r.totalFinal > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalFinal)} total`); }
   if (d.spec) { say(body); return handoff(`Cotizó con una especificación propia (${d.spec}): ${r.sentence}`); }
   say(body, [{ id: "pagar", title: L(`Pagar anticipo ${st.anticipo}%`, `Pay ${st.anticipo}% deposit`) }, { id: "reiniciar", title: L("Cambiar algo", "Change something") }, { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }]);
   return done();

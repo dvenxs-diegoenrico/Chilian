@@ -538,6 +538,8 @@
   .qz-links { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
   .qz-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
   .qz-row .qz-step[hidden] { display: none; }
+  .qz-line { display: grid; gap: .5rem; margin-top: .9rem; }
+  .qz-line[hidden], .qz-line [hidden] { display: none; }
   .qz-seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--rule); width: max-content; max-width: 100%; }
   .qz-seg label { position: relative; }
   .qz-seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
@@ -771,6 +773,15 @@
   .st-drop span { font-size: .82rem; color: var(--steel); }
   .st-drop.over, .st-drop:focus-within { border-color: var(--ink); background: var(--paper); }
   .st-file { font: 400 .78rem var(--f-mono); color: var(--steel); overflow-wrap: anywhere; }
+  .st-text summary { cursor: pointer; font-size: .85rem; color: var(--steel); padding: .35rem 0; }
+  .st-text-row { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .4rem; }
+  .st-text-in { flex: 1 1 10rem; min-width: 0; min-height: 44px; padding: 0 .7rem; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font: inherit; font-size: 16px; }
+  .st-text-row select { min-height: 44px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); padding: 0 .5rem; font: inherit; }
+  .st-text-row input[type=color] { width: 44px; height: 44px; padding: 2px; border: 1px solid var(--rule); background: var(--paper); }
+  .st-price { margin: .2rem 0 .5rem; font-size: .9rem; }
+  .st-price b { font-size: 1.05rem; }
+  .st-price small { display: block; color: var(--steel); font-size: .78rem; margin-top: .15rem; }
+  .st-lowres { color: #E8A33D; }
   .st-sections .chip span { display: inline-flex; align-items: center; gap: .45rem; }
   .st-sections .dot { width: .5rem; height: .5rem; border-radius: 50%; border: 1.5px solid currentColor; }
   .st-sections .dot.on { background: currentColor; }
@@ -1634,6 +1645,12 @@
 <div class="qz-step">
 <label class="qz-label" for="qz-prod"><span class="n">01</span><span data-en="Product" data-es="Producto">Product</span></label>
 <select id="qz-prod"></select>
+<div class="qz-line" hidden="" id="qz-line-step">
+<span class="qz-label" data-en="Quality" data-es="Calidad">Quality</span>
+<div class="qz-seg wide" id="qz-line"></div>
+<div class="qz-seg" id="qz-color"></div>
+<p class="qz-hint" id="qz-line-note"></p>
+</div>
 <div class="qz-links"><button class="q-cat-link" id="qz-cat" type="button"></button><button class="q-cat-link" data-en="Already have a design? Print your idea →" data-es="¿Ya tienes diseño? Estampa tu idea →" data-studio="" type="button">Already have a design? Print your idea →</button></div>
 </div>
 <div class="qz-step">
@@ -1675,7 +1692,7 @@
 <dl class="qz-break" id="qz-break"></dl>
 <div class="qz-price">
 <div><span data-en="Price per piece" data-es="Precio por pieza">Price per piece</span><strong id="qz-unit">—</strong></div>
-<div><span data-en="Estimated total" data-es="Total estimado">Estimated total</span><strong id="qz-total">—</strong><small data-en="plus VAT" data-es="más IVA" id="qz-iva">plus VAT</small></div>
+<div><span data-en="Estimated total" data-es="Total estimado">Estimated total</span><strong id="qz-total">—</strong><small data-en="with VAT, fee and shipping" data-es="con IVA, comisión y envío" id="qz-iva">with VAT, fee and shipping</small></div>
 </div>
 <div class="qz-eta"><span data-en="Estimated delivery" data-es="Entrega estimada">Estimated delivery</span><strong id="qz-date">—</strong><small id="qz-days"></small></div>
 <p class="qz-nudge" hidden="" id="qz-nudge"></p>
@@ -1797,7 +1814,7 @@
 <div class="qp-foot"><span><span data-en="Total" data-es="Total">Total</span>: <strong id="qp-total">0</strong> <span data-en="pieces" data-es="piezas">pieces</span></span><button class="qp-add" data-en="+ Add more models" data-es="+ Agregar más modelos" id="qp-add" type="button">+ Add more models</button></div>
 <span class="err" id="qp-err"></span>
 </div>
-<div class="mq-total" hidden="" id="mq-total"><span data-en="Estimated total" data-es="Total estimado">Estimated total</span><strong id="mq-total-n">—</strong><small data-en="plus VAT · reference prices" data-es="más IVA · precios de referencia">plus VAT · reference prices</small></div>
+<div class="mq-total" hidden="" id="mq-total"><span data-en="Estimated total" data-es="Total estimado">Estimated total</span><strong id="mq-total-n">—</strong><small data-en="with VAT, payment fee and shipping" data-es="con IVA, comisión de pago y envío">with VAT, payment fee and shipping</small></div>
 <div class="mq-more"><button class="q-cat-link" data-en="+ Quote another product" data-es="+ Cotizar otro producto" id="mq-more-qz" type="button">+ Quote another product</button><button class="q-cat-link" data-en="+ Pick models from the catalog" data-es="+ Elegir modelos del catálogo" id="mq-more-cat" type="button">+ Pick models from the catalog</button></div>
 </section>
 <form class="quote-form" id="quote" novalidate="">
@@ -1942,6 +1959,22 @@
 <span data-en="PNG, JPG, SVG or WebP · you can also paste it (Ctrl+V)" data-es="PNG, JPG, SVG o WebP · también puedes pegarlo (Ctrl+V)">PNG, JPG, SVG or WebP · you can also paste it (Ctrl+V)</span>
 </label>
 <p aria-live="polite" class="st-file" id="st-file-name"></p>
+<details class="st-text" id="st-text">
+<summary data-en="No file? Write a text" data-es="¿Sin archivo? Escribe un texto">No file? Write a text</summary>
+<div class="st-text-row">
+<input aria-label="Text" class="st-text-in" data-en-label="Text" data-en-placeholder="Your text" data-es-label="Texto" id="st-text-in" maxlength="40" placeholder="Tu texto"/>
+<select aria-label="Font" data-en-label="Font" data-es-label="Fuente" id="st-text-font">
+<option value='700 "Jost", sans-serif'>Jost</option>
+<option value='400 "Questrial", sans-serif'>Questrial</option>
+<option value='700 Georgia, "Times New Roman", serif'>Georgia</option>
+<option value='400 Impact, "Arial Black", sans-serif'>Impact</option>
+<option value='700 "Courier New", monospace'>Courier</option>
+<option value='italic 700 "Brush Script MT", "Segoe Script", cursive'>Script</option>
+</select>
+<input aria-label="Text color" data-en-label="Text color" data-es-label="Color del texto" id="st-text-color" type="color" value="#111111"/>
+<button class="btn btn-ghost" data-en="Use text" data-es="Usar texto" id="st-text-go" type="button">Use text</button>
+</div>
+</details>
 <div class="st-file-row">
 <label class="st-check"><input id="st-knockout" type="checkbox"/><span data-en="Remove white background" data-es="Quitar fondo blanco">Remove white background</span></label>
 <button class="st-remove" data-en="Remove graphic" data-es="Quitar gráfico" id="st-remove" type="button">Remove graphic</button>
@@ -1963,6 +1996,7 @@
 <label class="st-qty-in"><input aria-label="Piezas" id="st-qty" inputmode="numeric" min="1" step="1" type="number"/><span data-en="pieces" data-es="piezas">pieces</span></label>
 <span class="st-color-name" id="st-qty-note"></span>
 </fieldset>
+<p aria-live="polite" class="st-price" id="st-price"></p>
 <button class="btn btn-accent" id="st-quote" type="button"><span data-en="Quote with this design" data-es="Cotizar con este diseño">Quote with this design</span> <span aria-hidden="true" class="arrow">→</span></button>
 </div>
 <div class="st-actions">
@@ -2167,9 +2201,9 @@
   // "Cotiza en un minuto": the configuration on screen and the estimates added to "Mi cotización".
   // Reference prices come from /api/precios (the team edits them in Chilian OS → Ajustes);
   // this copy keeps the quote working if that call fails.
-  const PRECIOS_BASE = {"tramos":[50,100,500,2000,10000],"productos":[{"id":"playera","nombre":"Playera de algodón","plural":"playeras de algodón","en":"Cotton T-shirt","pluralEn":"cotton T-shirts","precios":[98,88,76,70,65]},{"id":"sport","nombre":"Playera deportiva Chilian Sport","plural":"playeras Chilian Sport","en":"Chilian Sport performance tee","pluralEn":"Chilian Sport tees","precios":[110,100,92,86,82],"fullprint":true},{"id":"sudadera","nombre":"Sudadera o crewneck","plural":"sudaderas","en":"Hoodie or crewneck","pluralEn":"sweatshirts","precios":[285,265,240,225,212]},{"id":"polo","nombre":"Polo","plural":"polos","en":"Polo","pluralEn":"polos","precios":[195,180,165,155,148]},{"id":"camisa","nombre":"Camisa de uniforme","plural":"camisas de uniforme","en":"Uniform shirt","pluralEn":"uniform shirts","precios":[340,320,300,285,270]},{"id":"gorra","nombre":"Gorra","plural":"gorras","en":"Cap","pluralEn":"caps","precios":[78,70,62,57,53],"nodtg":true},{"id":"bolsa","nombre":"Bolsa de tela","plural":"bolsas de tela","en":"Tote bag","pluralEn":"tote bags","precios":[45,40,34,31,29]},{"id":"propia","nombre":"Mi prenda (la envío yo)","plural":"prendas del cliente","en":"My own garment (I ship it)","pluralEn":"customer garments","precios":[0,0,0,0,0]}],"fullprint":{"tramos":[100,300,1000,3000,10000],"precios":[310.8,199.8,177.6,155.4,133.2]},"tinta":[9,6.5,2.4,1.6,1.2],"baseUbicacion":[3,2,1,0.8,0.6],"pantalla":380,"especiales":{"plastisol":0,"waterbase":0.8,"discharge":1.6,"hd":2.5,"puff":2,"glitter":3,"gitd":3.5},"dtg":[85,75,65,60,58],"bordado":{"chico":[32,28,24,22,20],"mediano":[55,48,42,38,35],"grande":[95,85,75,68,62]},"ponchado":450,"express":18,"diasExpress":3,"dias":{"serigrafia":[[2000,8],[10000,10],[1000000000,15]],"dtg":[[100,4],[500,6],[1000000000,9]],"bordado":[[500,8],[3000,12],[1000000000,18]],"full":[[1000,12],[5000,15],[1000000000,20]]},"minimos":{"serigrafia":50,"dtg":1,"bordado":12,"full":100},"iva":16};
+  const PRECIOS_BASE = {"tramos":[50,100,500,2000,10000],"productos":[{"id":"playera","nombre":"Playera cuello redondo","plural":"playeras cuello redondo","en":"Crew-neck T-shirt","pluralEn":"crew-neck T-shirts","precios":[98,88,76,70,65],"lista":true},{"id":"sport","nombre":"Playera deportiva Chilian Sport","plural":"playeras Chilian Sport","en":"Chilian Sport performance tee","pluralEn":"Chilian Sport tees","precios":[110,100,92,86,82],"fullprint":true,"listaCodigo":"CH-SPORT"},{"id":"tiedye","nombre":"Playera teñida en prenda","plural":"playeras teñidas en prenda","en":"Garment-dyed tee","pluralEn":"garment-dyed tees","precios":[158.87,148.27,142.98,137.68,127.09],"tramos":[12,50,100,300,1000],"listaCodigo":"12030"},{"id":"mangalarga","nombre":"Playera manga larga","plural":"playeras manga larga","en":"Long-sleeve tee","pluralEn":"long-sleeve tees","precios":[139,130,125,120,111],"tramos":[12,50,100,300,1000],"ref":"Factory 1"},{"id":"crewneck","nombre":"Sudadera cuello redondo (crewneck)","plural":"sudaderas crewneck","en":"Crewneck sweatshirt","pluralEn":"crewneck sweatshirts","precios":[209,195,188,181,167],"tramos":[12,50,100,300,1000],"ref":"Factory 1"},{"id":"short","nombre":"Short de algodón","plural":"shorts","en":"Cotton shorts","pluralEn":"shorts","precios":[583,544,525,505,466],"tramos":[12,50,100,300,1000],"ref":"Factory 1","nodtg":false},{"id":"pants","nombre":"Pants o jogger","plural":"pants","en":"Sweatpants or joggers","pluralEn":"sweatpants","precios":[657,613,591,569,526],"tramos":[12,50,100,300,1000],"ref":"Factory 1"},{"id":"sudadera","nombre":"Sudadera o crewneck","plural":"sudaderas","en":"Hoodie or crewneck","pluralEn":"sweatshirts","precios":[285,265,240,225,212]},{"id":"polo","nombre":"Polo","plural":"polos","en":"Polo","pluralEn":"polos","precios":[195,180,165,155,148]},{"id":"camisa","nombre":"Camisa de uniforme","plural":"camisas de uniforme","en":"Uniform shirt","pluralEn":"uniform shirts","precios":[340,320,300,285,270]},{"id":"gorra","nombre":"Gorra","plural":"gorras","en":"Cap","pluralEn":"caps","precios":[78,70,62,57,53],"nodtg":true},{"id":"bolsa","nombre":"Bolsa de tela","plural":"bolsas de tela","en":"Tote bag","pluralEn":"tote bags","precios":[45,40,34,31,29]},{"id":"propia","nombre":"Mi prenda (la envío yo)","plural":"prendas del cliente","en":"My own garment (I ship it)","pluralEn":"customer garments","precios":[0,0,0,0,0]}],"fullprint":{"tramos":[100,300,1000,3000,10000],"precios":[310.8,199.8,177.6,155.4,133.2]},"tinta":[9,6.5,2.4,1.6,1.2],"baseUbicacion":[3,2,1,0.8,0.6],"pantalla":380,"especiales":{"plastisol":0,"waterbase":0.8,"discharge":1.6,"hd":2.5,"puff":2,"glitter":3,"gitd":3.5},"dtg":[55.5,55.5,55.5,52,50],"bordado":{"chico":[32,28,24,22,20],"mediano":[55,48,42,38,35],"grande":[95,85,75,68,62]},"ponchado":450,"express":18,"diasExpress":3,"dias":{"serigrafia":[[2000,8],[10000,10],[1000000000,15]],"dtg":[[100,4],[500,6],[1000000000,9]],"bordado":[[500,8],[3000,12],[1000000000,18]],"full":[[1000,12],[5000,15],[1000000000,20]]},"minimos":{"serigrafia":50,"dtg":1,"bordado":12,"full":100},"iva":16,"lineas":{"basica":{"nombre":"Básica","en":"Basic","factor":0.85,"codigos":{"blanca":"OP-STPB","color":"OP-STPC"},"para":"eventos, promociones y activaciones","paraEn":"events, promotions and activations"},"clasica":{"nombre":"Clásica","en":"Classic","factor":1,"codigos":{"blanca":"OP-PRB","color":"OP-PRC"},"para":"uniformes, equipos y merch de uso diario","paraEn":"uniforms, teams and everyday merch"},"premium":{"nombre":"Premium","en":"Premium","factor":1.4,"codigos":{"blanca":"OP-MXB","color":"OP-MXC"},"para":"marcas de ropa, bandas y merch premium","paraEn":"apparel brands, bands and premium merch"}},"specs":{"playera":{"basica":"Peso medio 50 % algodón 50 % poliéster · 155 g","clasica":"Peso medio 100 % algodón · 155 g","premium":"Peso completo 100 % algodón · 190 g"},"sudadera":{"basica":"50 % algodón 50 % poliéster afelpada · 240 g/m²","clasica":"80 % algodón 20 % poliéster · 280 g/m²","premium":"100 % algodón french terry · 330 g/m² o más"},"polo":{"basica":"Piqué 50 % algodón 50 % poliéster · 180 g/m²","clasica":"Piqué 100 % algodón · 200 g/m²","premium":"Piqué algodón peinado · 220 g/m², o dry fit premium"}},"listaTramos":[12,50,100,300,1000],"lista":[{"codigo":"OP-MXC","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"Peso completo 100% algodón (190 gr)","iva":"IVA","precios":[68.85,64.26,61.97,59.67,55.08]},{"codigo":"OP-MXC2","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"Peso completo 100% algodón (190 gr)","iva":"IVA","precios":[85.64,79.93,77.07,74.22,68.51]},{"codigo":"OP-MXB","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Peso completo 100% algodón (190 gr)","iva":"IVA","precios":[58.77,54.85,52.89,50.93,47.02]},{"codigo":"OP-MXB2","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"Peso completo 100% algodón (190 gr)","iva":"IVA","precios":[73.04,68.17,65.73,63.3,58.43]},{"codigo":"OP-PRC","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[62.13,57.99,55.92,53.85,49.7]},{"codigo":"OP-PRC2","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[75.56,70.52,68,65.48,60.44]},{"codigo":"OP-PRB","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[54.57,50.93,49.11,47.29,43.66]},{"codigo":"OP-PRB2","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[68.84,64.25,61.95,59.66,55.07]},{"codigo":"OP-STPC","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"Peso medio 50% algodón 50% poliéster (155 gr)","iva":"IVA","precios":[60.92,56.85,54.82,52.79,48.73]},{"codigo":"OP-STPC2","marca":"Óptima","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"Peso medio 50% algodón 50% poliéster (155 gr)","iva":"IVA","precios":[68.54,63.97,61.68,59.4,54.83]},{"codigo":"OP-STPB","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Peso medio 50% algodón 50% poliéster (155 gr)","iva":"IVA","precios":[50.76,47.38,45.68,43.99,40.61]},{"codigo":"OP-STPB2","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"Peso medio 50% algodón 50% poliéster (155 gr)","iva":"IVA","precios":[58.38,54.49,52.54,50.6,46.7]},{"codigo":"OP-SUBLI","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% poliéster (160 gr)","iva":"IVA","precios":[77.24,72.09,69.51,66.94,61.79]},{"codigo":"OP-PRMB","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón peinado (150 gr)","iva":"IVA","precios":[65.49,61.12,58.94,56.76,52.39]},{"codigo":"OP-PRMC","marca":"Óptima","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"100% algodón peinado (150 gr)","iva":"IVA","precios":[76.4,71.3,68.76,66.21,61.12]},{"codigo":"OP-SNOW","marca":"Óptima","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"50% algodón peinado 50% poliéster (140 gr)","iva":"IVA","precios":[70.52,65.81,63.46,61.11,56.41]},{"codigo":"OP-SNOW","marca":"Óptima","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"50% algodón peinado 50% poliéster (140 gr)","iva":"IVA","precios":[70.52,65.81,63.46,61.11,56.41]},{"codigo":"RM-CAMP","marca":"Romer","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G-XG","tela":"Publicitaria","iva":"IVA","precios":[45,42,40.5,39,36]},{"codigo":"RM-ST","marca":"Romer","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G","tela":"Peso medio 100% algodón (165 gr)","iva":"IVA","precios":[53,49.46,47.7,45.93,42.4]},{"codigo":"RM-CT","marca":"Romer","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G","tela":"Peso completo 100% algodón (180 gr)","iva":"IVA","precios":[56.25,52.5,50.63,48.75,45]},{"codigo":"CC-TN","marca":"Turkstyle","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G-XG","tela":"Chilian cotton (93% algodón turco 7% spandex)","iva":"SIN IVA","precios":[112.5,105,101.25,97.5,90]},{"codigo":"CC-TEG","marca":"Turkstyle","genero":"Caballero","color":"Color / Blanca","tallas":"XXG","tela":"Chilian cotton XXL (93% algodón turco 7% spandex)","iva":"SIN IVA","precios":[141,131.6,126.9,122.2,112.8]},{"codigo":"AK-ALGB","marca":"AK","genero":"Caballero/Dama","color":"Blanco","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"SIN IVA","precios":[73.88,68.95,66.49,64.03,59.1]},{"codigo":"AK-ALGC","marca":"AK","genero":"Caballero/Dama","color":"Colores","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"SIN IVA","precios":[76.88,71.75,69.19,66.63,61.5]},{"codigo":"AK-CAMPB","marca":"AK","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Campañera","iva":"SIN IVA","precios":[30,28,27,26,24]},{"codigo":"AK-CAMPC","marca":"AK","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"Campañera","iva":"SIN IVA","precios":[42,39.2,37.8,36.4,33.6]},{"codigo":"AK-MED","marca":"AK","genero":"Caballero/Dama","color":"Blanca","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster","iva":"SIN IVA","precios":[66.38,61.95,59.74,57.53,53.1]},{"codigo":"AK-MEDC","marca":"AK","genero":"Caballero/Dama","color":"Colores","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster","iva":"SIN IVA","precios":[72.38,67.55,65.14,62.73,57.9]},{"codigo":"AK-PEDB","marca":"AK","genero":"Caballero/Dama","color":"Blanca","tallas":"CH-M-G-XG","tela":"50% algodón peinado 50% poliéster","iva":"SIN IVA","precios":[122.49,114.32,110.24,106.16,97.99]},{"codigo":"AK-PEDC","marca":"AK","genero":"Caballero/Dama","color":"Colores","tallas":"CH-M-G-XG","tela":"50% algodón peinado 50% poliéster","iva":"SIN IVA","precios":[126.99,118.52,114.29,110.06,101.59]},{"codigo":"KG-CCR","marca":"King","genero":"Caballero","color":"Blanco","tallas":"CH-M-G-XG","tela":"100% algodón 165 gr","iva":"IVA","precios":[63.5,59.26,57.15,55.03,50.8]},{"codigo":"KG-CCR","marca":"King","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"100% algodón 165 gr","iva":"IVA","precios":[71.25,66.5,64.13,61.75,57]},{"codigo":"KG-CCR50","marca":"King","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster 160 gr","iva":"IVA","precios":[79.5,74.2,71.55,68.9,63.6]},{"codigo":"KG-CCRPOL","marca":"King","genero":"Caballero","color":"Color / Blanca","tallas":"CH-M-G-XG","tela":"100% poliéster 145 gr","iva":"IVA","precios":[109.01,101.74,98.1,94.47,87.2]},{"codigo":"YZ-WWB","marca":"Yazbek","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[73.71,68.8,66.34,63.88,58.97]},{"codigo":"YZ-WWC","marca":"Yazbek","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"Peso medio 100% algodón (155 gr)","iva":"IVA","precios":[78.06,72.86,70.25,67.65,62.45]},{"codigo":"YZ-PC5050B","marca":"Yazbek","genero":"Caballero","color":"Jaspe","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster","iva":"IVA","precios":[79.8,74.48,71.82,69.16,63.84]},{"codigo":"YZ-PC5050C","marca":"Yazbek","genero":"Caballero","color":"Neón","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster","iva":"IVA","precios":[87.03,81.23,78.33,75.43,69.62]},{"codigo":"YZ-PCB","marca":"Yazbek","genero":"Caballero","color":"Blanco","tallas":"CH-M-G-XG","tela":"Peso completo 100% algodón (195 gr)","iva":"IVA","precios":[81.81,76.36,73.63,70.9,65.45]},{"codigo":"YZ-PCC","marca":"Yazbek","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"Peso completo 100% algodón (195 gr)","iva":"IVA","precios":[87.03,81.23,78.33,75.43,69.62]},{"codigo":"YZ-C13POLB","marca":"Yazbek","genero":"Caballero","color":"Blanco","tallas":"CH-M-G-XG","tela":"100% poliéster 160 gr","iva":"IVA","precios":[119.27,111.31,107.34,103.36,95.41]},{"codigo":"CH-SPORT","marca":"Chilian","genero":"Caballero/Dama","color":"Blanco / Color","tallas":"CH-M-G-XG","tela":"100% poliéster (140 gr)","iva":"","precios":[94.05,87.78,84.65,81.51,75.24]},{"codigo":"MYK750","marca":"Mayork","genero":"Caballero/Dama","color":"Colores","tallas":"CH-M-G-XG","tela":"Algodón peinado 150 gr 100% algodón","iva":"IVA","precios":[112.8,105.28,101.52,97.76,90.24]},{"codigo":"MN760","marca":"Mayork","genero":"Pekes","color":"Colores","tallas":"CH-M-G-XG","tela":"Microfibra 135 gr/m² 100% poliéster","iva":"","precios":[192,179.2,172.8,166.4,153.6]},{"codigo":"MYK751","marca":"Mayork","genero":"Caballero/Dama","color":"Colores","tallas":"XXG","tela":"Algodón peinado 150 gr 100% algodón","iva":"IVA","precios":[128.93,120.33,116.03,111.74,103.14]},{"codigo":"MYK760","marca":"Mayork","genero":"Caballero/Dama","color":"Colores","tallas":"CH-M-G-XG","tela":"Microfibra 135 gr 100% poliéster (deportiva)","iva":"IVA","precios":[156.66,146.22,140.99,135.77,125.33]},{"codigo":"MYK761","marca":"Mayork","genero":"Caballero/Dama","color":"Colores","tallas":"XXG","tela":"Microfibra 135 gr 100% poliéster (deportiva)","iva":"IVA","precios":[177.92,166.05,160.12,154.19,142.33]},{"codigo":"MYK850","marca":"Mayork","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"190 gr 50% PET 50% algodón reciclado","iva":"IVA","precios":[74.94,69.94,67.45,64.95,59.95]},{"codigo":"MYK850","marca":"Mayork","genero":"Caballero","color":"Color","tallas":"XXG","tela":"191 gr 50% PET 50% algodón reciclado","iva":"IVA","precios":[100.22,93.53,90.19,86.85,80.17]},{"codigo":"MKC","marca":"Mark","genero":"Caballero","color":"Blanco","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"IVA","precios":[81.03,75.63,72.93,70.23,64.82]},{"codigo":"MKC","marca":"Mark","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"SIN IVA","precios":[91.4,85.3,82.26,79.21,73.12]},{"codigo":"MKPUB","marca":"Mark","genero":"Dama/Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"Publicitaria","iva":"SIN IVA","precios":[58.5,54.6,52.65,50.7,46.8]},{"codigo":"410C","marca":"Playerytees","genero":"Caballero","color":"Colores","tallas":"S-M-L-XL-2XL-3XL","tela":"90% algodón 10% poliéster, 185 g/m²","iva":"","precios":[108,100.8,97.2,93.6,86.4]},{"codigo":"410D","marca":"Playerytees","genero":"Dama","color":"Colores","tallas":"S-M-L-XL-2XL","tela":"90% algodón 10% poliéster, 185 g/m²","iva":"","precios":[96.29,89.87,86.66,83.45,77.03]},{"codigo":"ECB","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón 180 gr","iva":"IVA","precios":[82.13,76.65,73.91,71.18,65.7]},{"codigo":"ECB","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"100% algodón 180 gr","iva":"IVA","precios":[119.25,111.3,107.33,103.35,95.4]},{"codigo":"ECC","marca":"Eurocotton","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"100% algodón 180 gr","iva":"IVA","precios":[87.38,81.55,78.64,75.73,69.9]},{"codigo":"ECB","marca":"Eurocotton","genero":"Caballero","color":"Color","tallas":"XXG","tela":"100% algodón 180 gr","iva":"IVA","precios":[128.25,119.7,115.43,111.15,102.6]},{"codigo":"ECBP","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón peinado","iva":"IVA","precios":[114.75,107.1,103.28,99.45,91.8]},{"codigo":"ECBP","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"100% algodón peinado","iva":"IVA","precios":[122.25,114.1,110.03,105.95,97.8]},{"codigo":"ECBP","marca":"Eurocotton","genero":"Caballero","color":"Color","tallas":"CH-M-G-XG","tela":"100% algodón peinado","iva":"IVA","precios":[117,109.2,105.3,101.4,93.6]},{"codigo":"ECBP","marca":"Eurocotton","genero":"Caballero","color":"Color","tallas":"XXG","tela":"100% algodón peinado","iva":"IVA","precios":[129.75,121.1,116.78,112.45,103.8]},{"codigo":"ECWA","marca":"Eurocotton","genero":"Caballero/Dama","color":"Color acabado vintage","tallas":"CH-M-G-XG","tela":"100% algodón 180 gr","iva":"IVA","precios":[148.88,138.95,133.99,129.03,119.1]},{"codigo":"ECFD","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón 180 gr","iva":"IVA","precios":[82.13,76.65,73.91,71.18,65.7]},{"codigo":"EC AB","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% poliéster (deportiva)","iva":"IVA","precios":[132.75,123.9,119.48,115.05,106.2]},{"codigo":"EC AB","marca":"Eurocotton","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"100% poliéster (deportiva)","iva":"IVA","precios":[141.75,132.3,127.58,122.85,113.4]},{"codigo":"EC AB","marca":"Eurocotton","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"100% poliéster (deportiva)","iva":"IVA","precios":[134.25,125.3,120.83,116.35,107.4]},{"codigo":"EC AB","marca":"Eurocotton","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"100% poliéster (deportiva)","iva":"IVA","precios":[145.5,135.8,130.95,126.1,116.4]},{"codigo":"ECCR","marca":"Eurocotton","genero":"Caballero/Dama","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% poliéster 160 gr","iva":"IVA","precios":[105.38,98.35,94.84,91.33,84.3]},{"codigo":"BW3001","marca":"Basic Wear","genero":"Caballero/Dama","color":"Blanca / Color","tallas":"CH-M-G-XG","tela":"Microfibra 150 gr 100% poliéster (deportiva)","iva":"IVA","precios":[99.2,92.58,89.28,85.97,79.36]},{"codigo":"BW3001","marca":"Basic Wear","genero":"Caballero/Dama","color":"Blanca / Color","tallas":"XXG-XXXG","tela":"Microfibra 150 gr 100% poliéster (deportiva)","iva":"IVA","precios":[116,108.26,104.4,100.53,92.8]},{"codigo":"BW3002","marca":"Basic Wear","genero":"Caballero/Dama","color":"Catiónica / Neón","tallas":"CH-M-G-XG","tela":"Microfibra 150 gr 100% poliéster (deportiva)","iva":"IVA","precios":[110.96,103.56,99.86,96.16,88.76]},{"codigo":"BW3002","marca":"Basic Wear","genero":"Caballero/Dama","color":"Catiónica / Neón","tallas":"XXG-XXXG","tela":"Microfibra 150 gr 100% poliéster (deportiva)","iva":"IVA","precios":[131.13,122.39,118.02,113.65,104.9]},{"codigo":"BO3700M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"100% algodón peinado 160 gr","iva":"IVA","precios":[135.08,126.07,121.57,117.07,108.06]},{"codigo":"BO3700M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"100% algodón peinado 160 gr","iva":"IVA","precios":[168.39,157.16,151.55,145.94,134.71]},{"codigo":"BO3700M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón peinado 160 gr","iva":"IVA","precios":[116.6,108.82,104.94,101.05,93.28]},{"codigo":"BO3700M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"100% algodón peinado 160 gr","iva":"IVA","precios":[143.12,133.57,128.8,124.03,114.49]},{"codigo":"BO3704M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster 160 gr","iva":"IVA","precios":[133.13,124.26,119.82,115.38,106.51]},{"codigo":"BO3704M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"50% algodón 50% poliéster 160 gr","iva":"IVA","precios":[163.4,152.5,147.06,141.61,130.72]},{"codigo":"BO3704M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"50% algodón 50% poliéster 160 gr","iva":"IVA","precios":[114.02,106.41,102.61,98.81,91.21]},{"codigo":"BO3704M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"50% algodón 50% poliéster 160 gr","iva":"IVA","precios":[138.02,128.81,124.21,119.61,110.41]},{"codigo":"BO3705M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"94% algodón 6% poliéster 150 gr","iva":"IVA","precios":[146.67,136.89,132,127.11,117.34]},{"codigo":"BO3705M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"94% algodón 6% poliéster 150 gr","iva":"IVA","precios":[174.18,162.57,156.76,150.96,139.34]},{"codigo":"BO3705M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"94% algodón 6% poliéster 150 gr","iva":"IVA","precios":[128.79,120.2,115.91,111.62,103.03]},{"codigo":"BO3705M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"94% algodón 6% poliéster 150 gr","iva":"IVA","precios":[151.88,141.75,136.69,131.63,121.5]},{"codigo":"BO3707M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"92% algodón 8% elastano 180 gr","iva":"IVA","precios":[147.03,137.23,132.33,127.43,117.62]},{"codigo":"BO3707M","marca":"Bones","genero":"Caballero","color":"Colores","tallas":"XXG","tela":"92% algodón 8% elastano 180 gr","iva":"IVA","precios":[181.86,169.74,163.67,157.61,145.49]},{"codigo":"BO3707M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"92% algodón 8% elastano 180 gr","iva":"IVA","precios":[126.62,118.17,113.95,109.73,101.29]},{"codigo":"BO3707M","marca":"Bones","genero":"Caballero","color":"Blanca","tallas":"XXG","tela":"92% algodón 8% elastano 180 gr","iva":"IVA","precios":[154.64,144.33,139.17,134.02,123.71]},{"codigo":"PY410C","marca":"Playeritees","genero":"Caballero","color":"Colores","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"IVA","precios":[85.81,80.09,77.23,74.37,68.65]},{"codigo":"PY410C","marca":"Playeritees","genero":"Caballero","color":"Blanca","tallas":"CH-M-G-XG","tela":"100% algodón","iva":"IVA","precios":[72.14,67.33,64.92,62.52,57.71]},{"codigo":"J0300","marca":"Yazbek","genero":"Joven","color":"Blanca","tallas":"ECH-M-G-XG","tela":"100% algodón chifón 195 gr/m²","iva":"IVA","precios":[62.3,58.14,56.07,53.99,49.84]},{"codigo":"J0300","marca":"Yazbek","genero":"Joven","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% algodón chifón 195 gr/m²","iva":"IVA","precios":[67.08,62.61,60.37,58.14,53.66]},{"codigo":"M&O","marca":"M&O","genero":"Adulto","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% algodón peinado","iva":"IVA","precios":[108.06,100.86,97.25,93.65,86.45]},{"codigo":"5601","marca":"Mark-playeras","genero":"Adulto","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% poliéster, 135 g/m²","iva":"IVA","precios":[83.09,77.55,74.78,72.01,66.47]},{"codigo":"LLAC3106","marca":"Llaca","genero":"Kids","color":"Blanca","tallas":"ECH-M-G-XG","tela":"100% poliéster (155 gr)","iva":"IVA","precios":[145.2,135.52,130.68,125.84,116.16]},{"codigo":"LLAC3106","marca":"Llaca","genero":"Adulto","color":"Blanca","tallas":"ECH-M-G-XG","tela":"100% poliéster (155 gr)","iva":"IVA","precios":[162.6,151.76,146.34,140.92,130.08]},{"codigo":"SIMBK01","marca":"BK Simón Tex","genero":"Adulto","color":"Blanco / Color","tallas":"ECH-M-G-XG","tela":"50% poliéster 50% algodón","iva":"IVA","precios":[93.96,87.7,84.56,81.43,75.17]},{"codigo":"AK-PEIN","marca":"AK","genero":"Adulto","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% algodón peinado","iva":"IVA","precios":[127.5,119,114.75,110.5,102]},{"codigo":"MOTORS001","marca":"Playeras AK","genero":"Adulto","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% algodón peinado","iva":"IVA","precios":[156.6,146.16,140.94,135.72,125.28]},{"codigo":"MOTORS002","marca":"Playeras AK","genero":"Adulto","color":"Colores","tallas":"2XL","tela":"100% algodón peinado","iva":"IVA","precios":[165.3,154.28,148.77,143.26,132.24]},{"codigo":"MOTORS003","marca":"Playeras AK","genero":"Adulto","color":"Colores","tallas":"3XL","tela":"100% algodón peinado","iva":"IVA","precios":[174,162.4,156.6,150.8,139.2]},{"codigo":"PY-KIDS","marca":"Playeritees","genero":"Kids","color":"Blanca","tallas":"","tela":"100% poliéster","iva":"IVA","precios":[108.44,101.21,97.59,93.98,86.75]},{"codigo":"YZ-KIDS","marca":"Yazbek","genero":"Kids","color":"Blanca","tallas":"CH-M-G-XG-XXG","tela":"100% poliéster","iva":"IVA","precios":[112.5,105,101.25,97.5,90]},{"codigo":"10010","marca":"Formatees","genero":"Adulto","color":"Blanco","tallas":"CH-M-G-XG-XXG-XXXG","tela":"Regular, 150 gr","iva":"IVA","precios":[103.91,96.98,93.51,90.05,83.12]},{"codigo":"10010","marca":"Formatees","genero":"Adulto","color":"Colores","tallas":"CH-M-G-XG-XXG-XXXG","tela":"Regular, 150 gr","iva":"IVA","precios":[112.91,105.38,101.61,97.85,90.32]},{"codigo":"12030","marca":"Formatees","genero":"Adulto","color":"Blanco","tallas":"CH-M-G-XG-XXG","tela":"Teñido en prenda","iva":"IVA","precios":[158.87,148.27,142.98,137.68,127.09]},{"codigo":"12030","marca":"Formatees","genero":"Adulto","color":"Colores","tallas":"CH-M-G-XG-XXG","tela":"Teñido en prenda","iva":"IVA","precios":[158.87,148.27,142.98,137.68,127.09]},{"codigo":"3712U","marca":"Bones","genero":"Adulto","color":"Colores","tallas":"ECH-M-G-XG","tela":"100% algodón (170 gr/m²)","iva":"","precios":[181.49,169.39,163.34,157.29,145.19]},{"codigo":"3712U","marca":"Bones","genero":"Adulto","color":"Antique graphite","tallas":"ECH-M-G-XG","tela":"100% algodón (170 gr/m²)","iva":"","precios":[193.83,180.91,174.45,167.99,155.06]},{"codigo":"C0300/D0300","marca":"Yazbek","genero":"Caballero/Dama","color":"Blanco","tallas":"ECH-M-G-XG","tela":"Peso completo 195 gr/m² chifón, 100% algodón","iva":"","precios":[72.12,67.31,64.91,62.5,57.7]},{"codigo":"C0300/D0300","marca":"Yazbek","genero":"Caballero/Dama","color":"Colores","tallas":"ECH-M-G-XG","tela":"Peso completo 195 gr/m² chifón, 100% algodón","iva":"","precios":[79.52,74.21,71.56,68.91,63.61]},{"codigo":"N0300","marca":"Yazbek","genero":"Kids","color":"Blanco","tallas":"CH-M-G-XG","tela":"Peso completo 195 gr/m² chifón, 100% algodón","iva":"","precios":[43.89,40.96,39.5,38.04,35.11]},{"codigo":"N0300","marca":"Yazbek","genero":"Kids","color":"Colores","tallas":"CH-M-G-XG","tela":"Peso completo 195 gr/m² chifón, 100% algodón","iva":"","precios":[51.72,48.27,46.55,44.82,41.38]}],"cargos":{"comision":5,"envio":{"porPedido":199,"gratisDesde":0,"ejemplo":true}}};
   let PR = PRECIOS_BASE, PR_EJEMPLO = true;
-  let qz = (() => { try { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar", ...JSON.parse(store.get("chilian-qz") || "{}") }; } catch (e) { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar" }; } })();
+  let qz = (() => { try { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar", linea: "clasica", color: "color", ...JSON.parse(store.get("chilian-qz") || "{}") }; } catch (e) { return { prod: "playera", qty: 500, tec: "plastisol", inks: 2, locs: 1, emb: "mediano", del: "estandar", linea: "clasica", color: "color" }; } })();
   let cart = (() => { try { return JSON.parse(store.get("chilian-cotizacion") || "[]").filter((c) => c && c.uid); } catch (e) { return []; } })();
 
   /* ================================================================
@@ -2336,9 +2370,9 @@
     const L = lang === "en"
       ? ["Hi Chilian, I'd like a quote:", "Project", "Garment", "Pieces", "Technique", "Needed by", "Name", "Company", "Contact", "Notes"]
       : ["Hola Chilian, quiero cotizar:", "Proyecto", "Prenda", "Piezas", "Técnica", "Para el", "Nombre", "Empresa", "Contacto", "Notas"];
-    const estTotal = s.est.reduce((a, r) => a + (r.err ? 0 : r.total), 0);
+    const estTotal = s.est.reduce((a, r) => a + (r.err ? 0 : r.sub), 0) + Math.max(0, ...s.est.map((r) => (r.err ? 0 : r.envio)));
     const rows = [[L[1], t(s.ty.label)], [L[2], s.garment], [L[3], s.qty ? fmt(s.qty) : ""],
-                  [lang === "en" ? "Online estimate" : "Estimado en línea", s.est.length ? s.est.map((r) => "\n   – " + qzLine(r)).join("") + (estTotal ? `\n   ${lang === "en" ? "Estimated total" : "Total estimado"}: ${money(estTotal)} ${lang === "en" ? "plus VAT" : "más IVA"}` : "") : ""],
+                  [lang === "en" ? "Online estimate" : "Estimado en línea", s.est.length ? s.est.map((r) => "\n   – " + qzLine(r)).join("") + (estTotal ? `\n   ${lang === "en" ? "Estimated total" : "Total estimado"}: ${money(estTotal)} ${lang === "en" ? "with VAT, payment fee and shipping" : "con IVA, comisión y envío"}` : "") : ""],
                   [lang === "en" ? "Catalog models" : "Modelos del catálogo", s.picked.length ? s.picked.map((l) => "\n   – " + l).join("") : ""], [L[4], s.techs.join(", ")], [L[5], s.date],
                   [L[6], s.name], [L[7], s.company], [L[8], s.contact], [L[9], s.notes]].filter(([, v]) => v);
     return [L[0], ...rows.map(([k, v]) => `• ${k}: ${v}`)].join("\n");
@@ -2442,7 +2476,7 @@
       graficos: picked.map((p) => (pickFiles[p.id] || []).map((f) => ({ modelo: p.id, archivo: f.name }))).flat(),
       correo: s.email,
       estimados: s.est.map((r, k) => ({ producto: r.prod.id, nombre: r.prod.nombre, piezas: r.q, tecnica: r.tec.id, tecnicaNombre: qzTecName(r.tec), tintas: r.kind === "serigrafia" ? r.c.inks : 0,
-        ubicaciones: r.kind === "full" ? 0 : r.c.locs, bordado: r.kind === "bordado" ? r.c.emb : "", entrega: r.c.del, unitario: r.err ? 0 : +r.unit.toFixed(2), total: r.err ? 0 : +r.total.toFixed(2),
+        ubicaciones: r.kind === "full" ? 0 : r.c.locs, bordado: r.kind === "bordado" ? r.c.emb : "", entrega: r.c.del, linea: qzHasLine(r.prod) ? r.c.linea || "clasica" : "", color: r.c.color || "", unitario: r.err ? 0 : +r.net.toFixed(2), total: r.err ? 0 : +(r.net * r.q).toFixed(2), unitarioFinal: r.err ? 0 : +r.unit.toFixed(2), totalFinal: r.err ? 0 : +r.total.toFixed(2), envio: r.envio,
         dias: r.days, fechaEstimada: isoDay(r.date), resumen: qzSentence(r), origen: cart[k].origen || "cotizador" }))
     };
     const key = JSON.stringify({ ...payload, canal: "", pagina: "" });
@@ -2505,6 +2539,18 @@
   const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
   function addBusinessDays(n) { const d = new Date(); d.setHours(12, 0, 0, 0); while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n--; } return d; }
   // The estimate for one configuration: per-piece rows, unit price, total, business days and limits.
+  // The garment: T-shirts from Chilian's official list (by line and white/colored), the rest by their own breaks.
+  function qzGarment(P, prod, c, q) {
+    const ln = c.linea && P.lineas && P.lineas[c.linea] ? c.linea : "clasica", white = c.color === "blanca";
+    const row = (code) => (P.lista || []).find((r) => r.codigo === code && (white ? /blanc/i.test(r.color) : !/^blanc/i.test(r.color))) || (P.lista || []).find((r) => r.codigo === code);
+    let r = null;
+    if (prod.lista && P.lineas) r = row((P.lineas[ln].codigos || {})[white ? "blanca" : "color"]);
+    else if (prod.listaCodigo) r = row(prod.listaCodigo);
+    if (r) return { precio: r.precios[tierOf(q, P.listaTramos || [12, 50, 100, 300, 1000])] || 0, tela: r.tela, codigo: r.codigo };
+    const f = c.linea && P.lineas && P.lineas[c.linea] && P.specs && P.specs[prod.id] ? +P.lineas[c.linea].factor || 1 : 1;
+    return { precio: (prod.precios[tierOf(q, prod.tramos || P.tramos)] || 0) * f, tela: "", codigo: "" };
+  }
+  const qzHasLine = (prod) => !!(prod.lista || (PR.specs && PR.specs[prod.id]));
   function qzCalc(c) {
     const P = PR, prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
     const tec = QZ_TECS.find((x) => x.id === c.tec) || QZ_TECS[0], kind = tec.kind;
@@ -2512,7 +2558,8 @@
     const rows = [];
     if (kind === "full") rows.push([L("Playera Chilian Sport, sublimada de costura a costura", "Chilian Sport tee, sublimated seam to seam"), P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0]);
     else {
-      rows.push([prod.precios[i] ? L("Prenda o artículo", "Garment or item") : L("Prenda (la envías tú)", "Garment (you ship it)"), prod.precios[i] || 0]);
+      const g = qzGarment(P, prod, c, q);
+      rows.push([g.precio ? (g.tela ? L(`Prenda · ${g.tela}`, `Garment · ${g.tela}`) : L("Prenda o artículo", "Garment or item")) : L("Prenda (la envías tú)", "Garment (you ship it)"), g.precio]);
       if (kind === "serigrafia") {
         rows.push([L(`Impresión · ${inks} tinta${inks > 1 ? "s" : ""} × ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `Printing · ${inks} ink${inks > 1 ? "s" : ""} × ${locs} location${locs > 1 ? "s" : ""}`), ((P.tinta[i] || 0) * inks + (P.baseUbicacion[i] || 0) + ((P.especiales || {})[tec.id] || 0)) * locs]);
         rows.push([L(`Pantallas prorrateadas (${inks * locs})`, `Screens, spread over the run (${inks * locs})`), q ? P.pantalla * inks * locs / q : 0]);
@@ -2525,7 +2572,12 @@
     }
     const base = rows.reduce((a, r) => a + r[1], 0);
     if (c.del === "express") rows.push([L(`Cargo express (+${P.express}%)`, `Express charge (+${P.express}%)`), base * P.express / 100]);
-    const unit = rows.reduce((a, r) => a + r[1], 0);
+    // what the customer pays: + VAT + payment fee (Mercado Pago / Stripe) per piece, + shipping per order
+    const net = rows.reduce((a, r) => a + r[1], 0), iva = (P.iva ?? 16) / 100, fee = ((P.cargos || {}).comision ?? 5) / 100;
+    rows.push([L(`IVA ${P.iva ?? 16}%`, `VAT ${P.iva ?? 16}%`), net * iva]);
+    if (fee) rows.push([L(`Comisión de pago en línea ${fee * 100}%`, `Online payment fee ${fee * 100}%`), net * (1 + iva) * fee]);
+    const unit = rows.reduce((a, r) => a + r[1], 0), env = (P.cargos || {}).envio || {}, sub = unit * q;
+    const envio = q ? (env.gratisDesde && sub >= env.gratisDesde ? 0 : +env.porPedido || 0) : 0;
     const table = (P.dias || {})[kind] || [[1e9, 10]];
     let days = (table.find(([lim]) => q <= lim) || table[table.length - 1])[1];
     if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
@@ -2534,7 +2586,7 @@
     if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport performance tee.");
     else if (kind === "dtg" && prod.nodtg) err = L(`DTG no se imprime en ${qzProdPlural(prod)}; elige serigrafía o bordado.`, `DTG can't print on ${qzProdPlural(prod)}; pick screen printing or embroidery.`);
     else if (q < min) err = L(`El mínimo en ${qzTecName(tec).toLowerCase()} es de ${fmt(min)} piezas.`, `The minimum for ${qzTecName(tec).toLowerCase()} is ${fmt(min)} pieces.`);
-    return { c: { ...c, locs, inks }, prod, tec, kind, q, rows, unit, total: unit * q, days, date: addBusinessDays(days), min, err };
+    return { c: { ...c, locs, inks }, prod, tec, kind, q, rows, net, unit, sub, envio, total: sub + envio, days, date: addBusinessDays(days), min, err };
   }
   function qzSentence(r) {
     const n = r.c.inks, l = r.c.locs, tn = qzTecName(r.tec).toLowerCase();
@@ -2542,10 +2594,12 @@
       : r.kind === "serigrafia" ? L(`en ${tn}, ${n} tinta${n > 1 ? "s" : ""} en ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `in ${tn}, ${n} ink${n > 1 ? "s" : ""} in ${l} location${l > 1 ? "s" : ""}`)
       : r.kind === "dtg" ? L(`en DTG a todo color, ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `in full-color DTG, ${l} location${l > 1 ? "s" : ""}`)
       : L(`con bordado ${t((EMB.find((e) => e[0] === r.c.emb) || EMB[1])[1]).toLowerCase()}, ${l} ubicaci${l > 1 ? "ones" : "ón"}`, `with ${t((EMB.find((e) => e[0] === r.c.emb) || EMB[1])[1]).toLowerCase()} embroidery, ${l} location${l > 1 ? "s" : ""}`);
-    return `${fmt(r.q)} ${r.q === 1 ? qzProdName(r.prod).toLowerCase() : qzProdPlural(r.prod)} ${how}${r.c.del === "express" ? L(", entrega express", ", express delivery") : ""}`;
+    const line = qzHasLine(r.prod) && r.c.linea && PR.lineas && PR.lineas[r.c.linea] ? L(` línea ${PR.lineas[r.c.linea].nombre.toLowerCase()}`, ` (${PR.lineas[r.c.linea].en.toLowerCase()} line)`) : "";
+    const col = r.prod.lista || r.prod.listaCodigo === "12030" ? (r.c.color === "blanca" ? L(" blancas", " white") : L(" de color", " colored")) : "";
+    return `${fmt(r.q)} ${r.q === 1 ? qzProdName(r.prod).toLowerCase() : qzProdPlural(r.prod)}${col}${line} ${how}${r.c.del === "express" ? L(", entrega express", ", express delivery") : ""}`;
   }
   const qzWhen = (r) => r.date.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { weekday: "long", day: "numeric", month: "long" });
-  const qzLine = (r) => `${qzSentence(r)}${r.err ? "" : ` — ${money(r.unit)}/${lang === "en" ? "pc" : "pza"} · ${money(r.total)} ${lang === "en" ? "plus VAT" : "más IVA"} · ${lang === "en" ? "approx." : "aprox."} ${r.days} ${lang === "en" ? "business days" : "días hábiles"}`}`;
+  const qzLine = (r) => `${qzSentence(r)}${r.err ? "" : ` — ${money(r.unit)}/${lang === "en" ? "pc" : "pza"} · ${money(r.total)} ${lang === "en" ? "with VAT, payment fee and shipping" : "con IVA, comisión y envío"} · ${lang === "en" ? "approx." : "aprox."} ${r.days} ${lang === "en" ? "business days" : "días hábiles"}`}`;
   // Where the price drops next: the next price break, if it lowers the price per piece.
   function qzNudge(r) {
     if (r.err) return null;
@@ -2579,6 +2633,14 @@
       for (const p of P.productos) sel.append(el("option", { value: p.id, text: qzProdName(p) }));
     }
     sel.value = qz.prod;
+    // quality (Básica, Clásica, Premium) and white or colored garment, where the product has them
+    const hasLine = qzHasLine(prod), hasColor = !!(prod.lista || prod.listaCodigo === "12030");
+    $("#qz-line-step").hidden = !hasLine && !hasColor;
+    $("#qz-line").hidden = !hasLine;
+    if (hasLine) segRow($("#qz-line"), "qz-line", ["basica", "clasica", "premium"].map((id) => [id, L(PR.lineas[id].nombre, PR.lineas[id].en), PR.specs && PR.specs[prod.id] ? PR.specs[prod.id][id] : ""]), (v) => v === (qz.linea || "clasica"), (v) => { qz.linea = v; qzSave(); renderQz(); });
+    $("#qz-color").hidden = !hasColor;
+    if (hasColor) segRow($("#qz-color"), "qz-color", [["blanca", L("Blanca", "White")], ["color", L("De color", "Colored")]], (v) => v === (qz.color || "color"), (v) => { qz.color = v; qzSave(); renderQz(); });
+    $("#qz-line-note").textContent = hasLine ? L(`${PR.lineas[qz.linea || "clasica"].nombre}: para ${PR.lineas[qz.linea || "clasica"].para}.`, `${PR.lineas[qz.linea || "clasica"].en}: for ${PR.lineas[qz.linea || "clasica"].paraEn}.`) : "";
     const kind = QZ_KIND[qz.prod], cat = $("#qz-cat");
     cat.hidden = !kind; if (kind) cat.textContent = L(`Ver modelos de ${kindName(kind).toLowerCase()} en el catálogo →`, `See ${kindName(kind).toLowerCase()} models in the catalog →`);
     // technique: full print only on Chilian Sport, no DTG on caps
@@ -2629,7 +2691,7 @@
     const u = r.err ? "—" : money(r.unit), tt = r.err ? "—" : money(r.total);
     if (unit.textContent !== u) { unit.textContent = u; unit.classList.remove("tick"); void unit.offsetWidth; unit.classList.add("tick"); }
     if (total.textContent !== tt) { total.textContent = tt; total.classList.remove("tick"); void total.offsetWidth; total.classList.add("tick"); }
-    $("#qz-iva").textContent = r.err ? L("más IVA", "plus VAT") : L(`más IVA · ${money(r.total * (1 + PR.iva / 100), 0)} con IVA`, `plus VAT · ${money(r.total * (1 + PR.iva / 100), 0)} with VAT`);
+    $("#qz-iva").textContent = r.err ? L("con IVA, comisión y envío", "with VAT, fee and shipping") : r.envio ? L(`IVA y comisión de pago incluidos · envío ${money(r.envio)} incluido`, `VAT and payment fee included · shipping ${money(r.envio)} included`) : L("IVA y comisión de pago incluidos · envío gratis", "VAT and payment fee included · free shipping");
     $("#qz-date").textContent = qzWhen(r);
     $("#qz-days").textContent = L(`${r.days} días hábiles a partir de que apruebas el arte`, `${r.days} business days after you approve the artwork`);
     const nd = qzNudge(r), nb = $("#qz-nudge");
@@ -2638,12 +2700,12 @@
       el("button", { type: "button", text: L(`Usar ${fmt(nd.qty)}`, `Use ${fmt(nd.qty)}`), onclick: () => { qz.qty = nd.qty; qzSave(); renderQz(); } }));
     const er = $("#qz-err"); er.hidden = !r.err || r.q < r.min; er.textContent = r.err;
     $("#qz-add").disabled = !!r.err;
-    $("#qz-mbar-t").textContent = r.err ? L("Revisa la cantidad", "Check the quantity") : L(`Por pieza · total ${money(r.total, 0)} + IVA`, `Per piece · total ${money(r.total, 0)} + VAT`);
+    $("#qz-mbar-t").textContent = r.err ? L("Revisa la cantidad", "Check the quantity") : L(`Por pieza con IVA · total ${money(r.total, 0)}`, `Per piece with VAT · total ${money(r.total, 0)}`);
     $("#qz-mbar-n").textContent = r.err ? "—" : money(r.unit);
     let h = 0; for (const ch of JSON.stringify(r.c)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     $("#qz-no").textContent = "COT-" + String(h % 9000 + 1000);
-    $("#qz-fine").textContent = PR_EJEMPLO ? L("Precios de referencia de ejemplo, antes de IVA. Tu asesora confirma el precio final al revisar tu arte.", "Sample reference prices, before VAT. Your advisor confirms the final price after reviewing your artwork.")
-      : L("Precios de referencia antes de IVA. Tu asesora confirma el precio final al revisar tu arte, tallas y colores de prenda.", "Reference prices before VAT. Your advisor confirms the final price after reviewing your artwork, sizes and garment colors.");
+    $("#qz-fine").textContent = L(`Prendas con precios de la lista oficial de Chilian; impresión con precios de referencia. Incluye IVA 16%, comisión de pago en línea ${((PR.cargos || {}).comision ?? 5)}% y envío. Tallas XXG y mayores cuestan más. Tu asesora confirma el precio final al revisar tu arte.`,
+      `Garments at Chilian's official list prices; printing at reference prices. Includes 16% VAT, ${((PR.cargos || {}).comision ?? 5)}% online payment fee and shipping. XXL and larger sizes cost more. Your advisor confirms the final price after reviewing your artwork.`);
     // WhatsApp with this estimate, to the advisor of the project type picked
     const adv = TEAM[(TYPES.find((x) => x.id === readForm().type) || TYPES[0]).advisor];
     $("#qz-wa").href = `https://wa.me/${adv.wa}?text=${encodeURIComponent(L("Hola Chilian, quiero cotizar:", "Hi Chilian, I'd like a quote:") + "\n• " + qzLine(r) + "\n" + L("(Estimado del sitio, " + $("#qz-no").textContent + ")", "(Website estimate, " + $("#qz-no").textContent + ")"))}`;
@@ -2676,7 +2738,7 @@
 
   /* "Mi cotización": the estimates plus the catalog models, then the request */
   function addEstimate(c, origen) {
-    const same = cart.find((x) => ["prod", "tec", "inks", "locs", "emb", "del"].every((k) => x[k] === c[k]) && x.origen === origen);
+    const same = cart.find((x) => ["prod", "tec", "inks", "locs", "emb", "del", "linea", "color"].every((k) => x[k] === c[k]) && x.origen === origen);
     if (same && origen === "cotizador") same.qty = c.qty;
     else cart.push({ ...c, origen, uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) });
     saveCart(true);
@@ -2705,17 +2767,17 @@
     paintCart();
   }
   function paintCart() {
-    let tot = 0;
+    let tot = 0, ship = 0;
     for (const li of document.querySelectorAll("#mq-items .mq-item")) {
       const c = cart.find((x) => x.uid === li.dataset.uid); if (!c) continue;
-      const r = qzCalc(c); if (!r.err) tot += r.total;
+      const r = qzCalc(c); if (!r.err) { tot += r.sub; ship = Math.max(ship, r.envio); }
       li.querySelector(".sum").textContent = qzSentence(r);
       const m = li.querySelector(".meta");
       if (r.err) m.replaceChildren(el("span", { class: "warn", text: r.err }));
-      else m.replaceChildren(el("b", { text: money(r.unit) }), L(" por pieza · ", " per piece · "), el("b", { text: money(r.total) }), L(` más IVA · entrega aprox. ${r.days} días hábiles`, ` plus VAT · approx. ${r.days} business days`));
+      else m.replaceChildren(el("b", { text: money(r.unit) }), L(" por pieza con IVA · ", " per piece with VAT · "), el("b", { text: money(r.sub) }), L(` · entrega aprox. ${r.days} días hábiles`, ` · approx. ${r.days} business days`));
     }
     $("#mq-empty").hidden = cart.length + picked.length > 0;
-    $("#mq-total").hidden = !tot; $("#mq-total-n").textContent = money(tot);
+    $("#mq-total").hidden = !tot; $("#mq-total-n").textContent = money(tot + ship);
   }
   function openMq() {
     renderCart(); renderPicked(); updateTicket();
@@ -3122,8 +3184,37 @@
     if (st.mode === "full" && st.active === "bg") { $("#st-size-label").textContent = L(`Molde ${t(garment().name).toLowerCase()} · talla ${st.pat}`, `${t(garment().name)} pattern · size ${st.pat}`); return; }
     if (!pr || !pr.art) { $("#st-size-label").textContent = isPiece(st.active) ? L(`Pieza ${t(secDef(st.active).name).toLowerCase()} · sube una imagen para esta pieza`, `${t(secDef(st.active).name)} · upload an image for this piece`) : L("Sin gráfico en esta sección", "No graphic in this section"); return; }
     if (isPiece(st.active)) { $("#st-size-label").textContent = `${L("Pieza", "Piece")} ${t(secDef(st.active).name).toLowerCase()} · ${Math.round(pr.scale * 100)} % · ${L("talla", "size")} ${st.pat}`; return; }
-    const r = printRect(st.active);
-    $("#st-size-label").textContent = `${t(secDef(st.active).name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm` + (st.display !== "photo" ? ` · ${L("talla", "size")} ${st.pat}` : "");
+    const r = printRect(st.active), lab = $("#st-size-label");
+    lab.textContent = `${t(secDef(st.active).name)} · ${fmt(r.wcm, 1)} × ${fmt(r.hcm, 1)} cm` + (st.display !== "photo" ? ` · ${L("talla", "size")} ${st.pat}` : "");
+    // resolution at this size: 150 DPI or more prints sharp (vector files and texts always do)
+    const vector = (pr.file && /svg/.test(pr.file.type)) || pr.name === "sample" || pr.isText;
+    lab.classList.remove("st-lowres");
+    if (!vector && pr.source && r.wcm) {
+      const w0 = pr.source.naturalWidth || 0, h0 = pr.source.naturalHeight || 0, k = Math.min(1, 1600 / Math.max(w0, h0, 1));
+      const dpi = Math.round((pr.art.width / k) / (r.wcm / 2.54));
+      if (dpi && dpi < 150) { lab.classList.add("st-lowres"); lab.textContent += L(` · ${dpi} DPI: puede verse borroso; sube un archivo más grande o redúcelo`, ` · ${dpi} DPI: may print blurry; upload a larger file or make it smaller`); }
+      else if (dpi) lab.textContent += L(` · ${dpi} DPI ✓`, ` · ${dpi} DPI ✓`);
+    }
+    paintStPrice();
+  }
+  // Live price while designing (like Factory 1's studio): per piece with VAT and the payment fee, by print location.
+  const ST_PROD = ["playera", "polo", "sudadera", "camisa", "gorra", "bolsa", "propia"];
+  function paintStPrice() {
+    const box = $("#st-price"); if (!box || !PR) return;
+    const qty = parseInt(($("#st-qty") || {}).value, 10) || 0;
+    if (!qty) { box.textContent = ""; return; }
+    const used = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art);
+    const full = st.mode === "full", locs = Math.min(4, Math.max(1, used.length));
+    const c = full ? { prod: "sport", tec: "fullprint", qty, inks: 1, locs: 1, del: "estandar" }
+      : { prod: ST_PROD[garment().quote] || "playera", tec: STUDIO_TECS.find((x) => x.id === st.tec).tech, qty, inks: 1, locs, emb: "mediano", del: "estandar", linea: qz.linea || "clasica", color: (STUDIO.colors[st.color] && /blanc|white/i.test(t(STUDIO.colors[st.color].name))) ? "blanca" : "color" };
+    const r = qzCalc(c);
+    if (r.err) { box.textContent = r.err; return; }
+    const more = !full && locs < 4 ? qzCalc({ ...c, locs: locs + 1 }) : null;
+    const names = used.map((id) => t(secDef(id).name)).join(" + ");
+    box.replaceChildren(L("Aprox. ", "About "), el("b", { text: money(r.unit) }), L(" por pieza · total ", " per piece · total "), el("b", { text: money(r.total) }),
+      el("small", { text: (full ? L("Full print, con IVA, comisión y envío.", "Full print, with VAT, fee and shipping.")
+        : L(`${locs} ubicaci${locs > 1 ? "ones" : "ón"}${names ? " (" + names + ")" : ""}${st.tec === "serigrafia" ? ", 1 tinta" : ""}; con IVA, comisión y envío.`, `${locs} location${locs > 1 ? "s" : ""}${names ? " (" + names + ")" : ""}${st.tec === "serigrafia" ? ", 1 ink" : ""}; with VAT, fee and shipping.`))
+        + (more && !more.err ? L(` Cada ubicación extra: +${money(more.unit - r.unit)} por pieza.`, ` Each extra location: +${money(more.unit - r.unit)} per piece.`) : "") }));
   }
 
   // Turn any upload into a trimmed canvas (optionally without its white background).
@@ -3451,6 +3542,18 @@
       img.onerror = () => { $("#st-file-name").textContent = L("No pudimos abrir ese archivo. Prueba con PNG o JPG.", "We could not open that file. Try a PNG or JPG."); };
       img.src = url;
     };
+    // A text instead of a file: drawn big on a transparent canvas, then used like any upload.
+    $("#st-text-go").addEventListener("click", async () => {
+      const txt = $("#st-text-in").value.trim(); if (!txt) { $("#st-text-in").focus(); return; }
+      const font = $("#st-text-font").value, size = 220;
+      try { await document.fonts.load(font.replace(/^(italic )?(\d+) /, "$1$2 " + size + "px ")); } catch (e) {}
+      const c = document.createElement("canvas"), x = c.getContext("2d"), f = font.replace(/^(italic )?(\d+) /, "$1$2 " + size + "px ");
+      x.font = f; const w = Math.ceil(x.measureText(txt).width) + 60;
+      c.width = Math.min(4000, w); c.height = Math.round(size * 1.45);
+      x.font = f; x.fillStyle = $("#st-text-color").value; x.textBaseline = "middle"; x.textAlign = "center";
+      x.fillText(txt, c.width / 2, c.height / 2, c.width - 40);
+      c.toBlob((blob) => { if (!blob) return; useFile(new File([blob], `texto-${txt.slice(0, 20).replace(/[^\w-]+/g, "-")}.png`, { type: "image/png" })); setTimeout(() => { const pr = st.prints[st.active]; if (pr) { pr.isText = true; updateSizeLabel(); } }, 200); }, "image/png");
+    });
     // Clear the input after reading, so choosing the same file again still reloads it.
     file.addEventListener("change", () => { useFile(file.files[0]); file.value = ""; });
     // Paste an image (Ctrl/Cmd+V) straight into the section being edited.
@@ -3666,6 +3769,7 @@
       $("#st-qty-note").textContent = st.mode === "full" ? L("Se cotiza como Chilian Sport, desde 100 piezas.", "Quoted as Chilian Sport, from 100 pieces.")
         : st.model ? L(`Se agrega a tu cotización: ${st.model.title}.`, `Added to your quote: ${st.model.title}.`)
         : v ? (v >= 300 ? L("Desde 300 piezas el precio por pieza baja bastante.", "From 300 pieces the price per piece drops a lot.") : L("Producimos desde pocas piezas; el precio baja con el volumen.", "We produce small runs too; price drops with volume.")) : "";
+      paintStPrice();
     };
     stQty.addEventListener("input", paintQty);
     $("#studio").addEventListener("studio:open", () => {
