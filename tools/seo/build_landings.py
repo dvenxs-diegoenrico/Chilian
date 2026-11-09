@@ -100,7 +100,7 @@ a{color:inherit;text-underline-offset:3px}a:focus-visible,button:focus-visible,s
 .wrap{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left))}
 header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
 header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:64px}
-.logo{display:inline-flex;align-items:center;gap:.6rem;text-decoration:none}.logo img{width:36px;height:36px}
+.logo{display:inline-flex;align-items:center;gap:.6rem;text-decoration:none;color:#FFFFFF}.logo img{width:36px;height:36px}
 .logo i{display:block;width:6.4rem;aspect-ratio:669/96;background:currentColor;-webkit-mask:url(/logos/chilian-wordmark.png) left center/contain no-repeat;mask:url(/logos/chilian-wordmark.png) left center/contain no-repeat}
 nav{display:flex;gap:1.2rem;align-items:center;font-size:.92rem}nav a{text-decoration:none}nav a:hover{text-decoration:underline}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:48px;padding:.75rem 1.2rem;border:1.5px solid var(--ink);color:var(--ink);background:transparent;text-decoration:none;font:600 .8rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;transition:transform .15s ease}
@@ -187,7 +187,7 @@ def page(p):
 </head>
 <body>
 <header><div class="wrap">
-  <a class="logo" href="{home}" aria-label="Grupo Chilian"><img src="/logos/chilian-icono.png" alt="" width="36" height="36"><i aria-hidden="true"></i></a>
+  <a class="logo" href="{home}" aria-label="Grupo Chilian"><img src="/logos/chilian-logo-header.png" alt="" width="36" height="36"><i aria-hidden="true"></i></a>
   <nav aria-label="{L("Principal", "Main")}"><a class="opt" href="{home}#catalogo">{L("Catálogo", "Catalog")}</a><a class="opt" href="{home}#tecnicas">{L("Técnicas", "Techniques")}</a><a class="btn accent" href="{quote}">{L("Cotizar", "Get a quote")}</a></nav>
 </div></header>
 <main>

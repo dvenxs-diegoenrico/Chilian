@@ -325,7 +325,7 @@
       const me = X.me();
       return h("article", { class: "qsheet", "aria-label": "Vista previa de la cotización" },
         h("div", { class: "mh" },
-          h("div", { class: "mh-row" }, h("div", { class: "mh-brand" }, h("img", { class: "mh-logo", src: "/logos/chilian-icono.png", alt: "" }), h("div", {}, h("div", { class: "mh-name", role: "img", "aria-label": "CHILIAN" }), h("div", { class: "mh-sub", text: "ESTAMPADOS • TEXTILES • PROMOCIONALES" }))),
+          h("div", { class: "mh-row" }, h("div", { class: "mh-brand" }, h("img", { class: "mh-logo", src: "/logos/chilian-logo-header.png", alt: "" }), h("div", {}, h("div", { class: "mh-name", role: "img", "aria-label": "CHILIAN" }), h("div", { class: "mh-sub", text: "ESTAMPADOS • TEXTILES • PROMOCIONALES" }))),
             h("div", { class: "mh-doc" }, h("b", { text: "COTIZACIÓN" }), h("br"), "FOLIO " + (q.id || ""), h("br"), capDate(q.fecha))),
           h("div", { class: "mh-title" }, titleOf(q), st ? h("span", { text: " / " + st }) : null),
           h("div", { class: "mh-meta" }, meta.map(([k, v]) => h("div", {}, h("span", { class: "mk", text: k }), h("span", { class: "mv", text: v }))))),
