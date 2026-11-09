@@ -9,9 +9,9 @@
 <style>
   @font-face { font-family: "Jost"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(/fonts/jost.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-  :root { --paper: #F4F3F5; --card: #fff; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --shade: rgba(21,19,22,.05); --magenta: #C20E62; --ok: #1F7A4D; --warn: #9A5B00; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #FF4D9D; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; } }
-  :root[data-theme="dark"] { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #FF4D9D; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; }
+  :root { --paper: #F4F3F5; --card: #fff; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --shade: rgba(21,19,22,.05); --magenta: #C9922E; --ok: #1F7A4D; --warn: #9A5B00; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #C9922E; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; } }
+  :root[data-theme="dark"] { --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.06); --magenta: #C9922E; --ok: #5BD69A; --warn: #F2B35B; color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; }
   .wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 16px 5rem; }
@@ -40,8 +40,10 @@
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
   .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
-  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
+  .ch-logo .ch-tag i { font-style: normal; color: #C9922E; }
   .back { display: inline-block; padding: .6rem 0; margin-bottom: 1.2rem; font: 400 .78rem "Jost", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+  /* Paleta Chilian (tools/palette.py): ocre, negro y crema */
+  :root:root:root { --card: #171512; --ink: #F3EBDD; --magenta: #C9922E; --ok: #9BD84A; --paper: #0B0B0B; --rule: rgba(243,235,221,.16); --shade: rgba(243,235,221,.06); --steel: #B9AF9E; --warn: #E8B04B; color-scheme: dark; }
 </style>
 </head>
 <body>

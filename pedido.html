@@ -12,17 +12,17 @@
   @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   :root {
     --paper: #F4F3F5; --card: #FFFFFF; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13);
-    --magenta: #C20E62; --on-accent: #FFFFFF; --ok: #3F7A0A; --bad: #C8322B;
+    --magenta: #C9922E; --on-accent: #FFFFFF; --ok: #3F7A0A; --bad: #C8322B;
     --f-display: "Jost", "Century Gothic", "Futura", sans-serif;
     --f-body: "Questrial", "Century Gothic", "Avenir", Arial, sans-serif;
     --f-mono: "Jost", "Century Gothic", sans-serif;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14);
-    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; } }
+    --magenta: #C9922E; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; } }
   :root[data-theme="dark"] {
     --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14);
-    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; }
+    --magenta: #C9922E; --on-accent: #120A0E; --ok: #9BD84A; --bad: #FF6B60; color-scheme: dark; }
   *, *::before, *::after { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.55 var(--f-body); -webkit-font-smoothing: antialiased; }
   [hidden] { display: none !important; }
@@ -32,7 +32,7 @@
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
   .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
-  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
+  .ch-logo .ch-tag i { font-style: normal; color: #C9922E; }
 
   header b { font: 650 0.89rem/1.04 var(--f-display); letter-spacing: .04em; }
   header small { display: block; font: 400 .72rem/1.2 var(--f-mono); color: var(--steel); letter-spacing: .08em; text-transform: uppercase; }
@@ -78,6 +78,8 @@
   footer { margin-top: 2rem; font-size: .85rem; color: var(--steel); }
   footer a { color: inherit; display: inline-block; padding: .6rem 0; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+  /* Paleta Chilian (tools/palette.py): ocre, negro y crema */
+  :root:root:root { --bad: #FF6B60; --card: #171512; --ink: #F3EBDD; --magenta: #C9922E; --ok: #9BD84A; --on-accent: #0B0B0B; --paper: #0B0B0B; --rule: rgba(243,235,221,.16); --steel: #B9AF9E; color-scheme: dark; }
 </style>
 </head>
 <body>

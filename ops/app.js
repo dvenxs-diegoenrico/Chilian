@@ -568,7 +568,7 @@
     const kpi = (label, value, href, alert) => h("a", { class: "kpi" + (alert ? " alert" : ""), href: "#" + href }, h("span", { class: "label", text: label }), h("strong", { text: value }));
     const urgent = alertsNow().filter((a) => a.level === "alta");
     return h("div", {},
-      urgent.length ? h("a", { class: "card", href: "#avisos", style: "display:flex;justify-content:space-between;gap:1rem;align-items:center;border-color:var(--accent,#C20E62);margin-bottom:1rem;text-decoration:none;color:inherit" },
+      urgent.length ? h("a", { class: "card", href: "#avisos", style: "display:flex;justify-content:space-between;gap:1rem;align-items:center;border-color:var(--accent,#C9922E);margin-bottom:1rem;text-decoration:none;color:inherit" },
         h("span", {}, h("b", { text: `${urgent.length} aviso${urgent.length > 1 ? "s" : ""} urgente${urgent.length > 1 ? "s" : ""}: ` }), urgent.slice(0, 2).map((a) => a.title).join(" · ") + (urgent.length > 2 ? "…" : "")),
         h("span", { class: "btn sm", text: "Ver avisos" })) : null,
       top(fmtDate(localDate()), `Hola, ${S.name.split(" ")[0]}`, h("a", { class: "btn accent", href: "#solicitudes" }, "Ver solicitudes"), h("button", { class: "btn ghost", type: "button", onclick: () => newOppModal() }, "+ Oportunidad")),

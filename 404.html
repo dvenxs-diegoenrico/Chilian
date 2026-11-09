@@ -9,16 +9,16 @@
 <style>
   @font-face { font-family: "Jost"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(/fonts/jost.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-  :root { --paper: #F4F3F5; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --magenta: #C20E62; --on-accent: #fff; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #FF4D9D; --on-accent: #120A0E; color-scheme: dark; } }
-  :root[data-theme="dark"] { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #FF4D9D; --on-accent: #120A0E; color-scheme: dark; }
+  :root { --paper: #F4F3F5; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --magenta: #C9922E; --on-accent: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #C9922E; --on-accent: #120A0E; color-scheme: dark; } }
+  :root[data-theme="dark"] { --paper: #121013; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --magenta: #C9922E; --on-accent: #120A0E; color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 16px/1.55 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; padding: 2rem 16px; }
   .ch-logo { margin-bottom: 1.6rem; display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; color: inherit; }
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
   .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
-  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
+  .ch-logo .ch-tag i { font-style: normal; color: #C9922E; }
   main { max-width: 560px; }
   .code { font: 400 .78rem "Jost", "Century Gothic", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); }
   h1 { font: 700 clamp(1.98rem, 7.92vw, 3.63rem)/1.04 "Jost", "Century Gothic", sans-serif; text-transform: uppercase; margin: .4rem 0 .8rem; }
@@ -28,6 +28,8 @@
   a:hover { transform: translateY(-1px); background: var(--ink); color: var(--paper); }
   a.accent { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
   a:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+  /* Paleta Chilian (tools/palette.py): ocre, negro y crema */
+  :root:root:root { --ink: #F3EBDD; --magenta: #C9922E; --on-accent: #0B0B0B; --paper: #0B0B0B; --rule: rgba(243,235,221,.16); --steel: #B9AF9E; color-scheme: dark; }
 </style>
 </head>
 <body>

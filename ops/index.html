@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Chilian OS">
-<meta name="theme-color" content="#151316">
+<meta name="theme-color" content="#0B0B0B">
 <link rel="preload" href="/fonts/jost.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/questrial.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -21,17 +21,17 @@
      workspace, monospace for every folio, number and date. */
   :root {
     --paper: #F4F3F5; --card: #FFFFFF; --ink: #151316; --steel: #625D66; --rule: rgba(21,19,22,.13); --shade: rgba(21,19,22,.05);
-    --magenta: #C20E62; --on-accent: #FFFFFF; --ok: #3F7A0A; --warn: #B4541A; --bad: #C8322B; --info: #1F64B5;
+    --magenta: #C9922E; --on-accent: #FFFFFF; --ok: #3F7A0A; --warn: #B4541A; --bad: #C8322B; --info: #1F64B5;
     --f-display: "Jost", "Century Gothic", "Futura", sans-serif;
     --f-body: "Questrial", "Century Gothic", "Avenir", Arial, sans-serif;
     --f-mono: "Jost", "Century Gothic", sans-serif;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.05);
-    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --warn: #FF9A5C; --bad: #FF6B60; --info: #6FB0FF; color-scheme: dark; } }
+    --magenta: #C9922E; --on-accent: #120A0E; --ok: #9BD84A; --warn: #FF9A5C; --bad: #FF6B60; --info: #6FB0FF; color-scheme: dark; } }
   :root[data-theme="dark"] {
     --paper: #121013; --card: #1B181C; --ink: #EFEDF0; --steel: #A7A1AB; --rule: rgba(239,237,240,.14); --shade: rgba(239,237,240,.05);
-    --magenta: #FF4D9D; --on-accent: #120A0E; --ok: #9BD84A; --warn: #FF9A5C; --bad: #FF6B60; --info: #6FB0FF; color-scheme: dark; }
+    --magenta: #C9922E; --on-accent: #120A0E; --ok: #9BD84A; --warn: #FF9A5C; --bad: #FF6B60; --info: #6FB0FF; color-scheme: dark; }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--f-body); -webkit-font-smoothing: antialiased; }
@@ -49,7 +49,7 @@
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
   .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
-  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
+  .ch-logo .ch-tag i { font-style: normal; color: #C9922E; }
   .brand { display: flex; align-items: center; gap: .55rem; padding: .2rem .5rem 1rem; }
   .brand .ch-word { width: 6.6rem; }
   .login .ch-logo { margin-bottom: .2rem; } .login .ch-logo img { width: 2.8rem; height: 2.8rem; } .login .ch-word { width: 9rem; }
@@ -90,7 +90,7 @@
     .tabbar a, .tabbar button { all: unset; cursor: pointer; position: relative; display: grid; place-items: center; min-height: 54px; font: 600 .62rem var(--f-mono); letter-spacing: .04em; text-transform: uppercase; color: color-mix(in srgb, var(--paper) 70%, transparent); text-align: center; }
     .tabbar a.on { color: var(--paper); box-shadow: inset 0 3px 0 var(--magenta); }
     .tabbar button { font-size: 1.4rem; color: var(--paper); }
-    .tabbar b { position: absolute; top: 6px; right: 14%; min-width: 1.1rem; height: 1.1rem; display: grid; place-items: center; border-radius: 999px; background: var(--magenta); color: #fff; font-size: .6rem; }
+    .tabbar b { position: absolute; top: 6px; right: 14%; min-width: 1.1rem; height: 1.1rem; display: grid; place-items: center; border-radius: 999px; background: var(--magenta); color: var(--on-accent); font-size: .6rem; }
     .main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important; }
     .quick-task { grid-template-columns: 1fr 1fr; } .quick-task [name=texto] { grid-column: 1 / -1; order: -1; } .quick-task button { grid-column: 1 / -1; }
     .log li { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
@@ -346,50 +346,50 @@
   .cz-big .v { font: 650 0.99rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
   /* the sheet: paper in both themes, exactly as it prints */
-  .qsheet { background: #fff; color: #18181B; font: 400 11.5px/1.5 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 14px 40px rgba(0,0,0,.1); overflow: hidden; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .qsheet .mh { background: #101012; color: #fff; padding: 26px 30px 22px; }
+  .qsheet { background: #0B0B0B; color: #F3EBDD; font: 400 11.5px/1.5 "Questrial", "Century Gothic", "Avenir", Arial, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 14px 40px rgba(0,0,0,.1); overflow: hidden; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .qsheet .mh { background: #1E1A15; color: #F3EBDD; padding: 26px 30px 22px; }
   .qsheet .mh-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
   .qsheet .mh-brand { display: flex; align-items: center; gap: 12px; }
   .qsheet .mh-logo { width: 38px; height: 38px; display: block; }
-  .qsheet .mh-name { width: 120px; aspect-ratio: 669 / 96; background: #fff; -webkit-mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .qsheet .mh-sub { font-size: 7px; letter-spacing: 3px; color: #B9B9BD; margin-top: 4px; }
-  .qsheet .mh-doc { text-align: right; font-size: 8px; letter-spacing: 2.5px; color: #B9B9BD; line-height: 2; font-variant-numeric: tabular-nums; }
-  .qsheet .mh-doc b { color: #fff; font-weight: 600; }
+  .qsheet .mh-name { width: 120px; aspect-ratio: 669 / 96; background: #F3EBDD; -webkit-mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center/contain no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .qsheet .mh-sub { font-size: 7px; letter-spacing: 3px; color: #B9AF9E; margin-top: 4px; }
+  .qsheet .mh-doc { text-align: right; font-size: 8px; letter-spacing: 2.5px; color: #B9AF9E; line-height: 2; font-variant-numeric: tabular-nums; }
+  .qsheet .mh-doc b { color: #F3EBDD; font-weight: 600; }
   .qsheet .mh-title { font-size: 21px; font-weight: 700; letter-spacing: -.3px; margin-top: 16px; line-height: 1.15; overflow-wrap: anywhere; }
-  .qsheet .mh-title span { font-weight: 400; color: #9A9AA0; }
-  .qsheet .mh-meta { margin-top: 12px; border-top: 1px solid #2A2A2E; padding-top: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .qsheet .mk { font-size: 7px; letter-spacing: 2.4px; color: #86868C; text-transform: uppercase; display: block; margin-bottom: 3px; }
-  .qsheet .mv { font-size: 11.5px; color: #fff; font-weight: 600; overflow-wrap: anywhere; }
+  .qsheet .mh-title span { font-weight: 400; color: #B9AF9E; }
+  .qsheet .mh-meta { margin-top: 12px; border-top: 1px solid #3A342C; padding-top: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .qsheet .mk { font-size: 7px; letter-spacing: 2.4px; color: #B9AF9E; text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .qsheet .mv { font-size: 11.5px; color: #F3EBDD; font-weight: 600; overflow-wrap: anywhere; }
   .qsheet .sb { padding: 22px 30px 20px; display: flex; flex-direction: column; gap: 18px; }
   @media (max-width: 560px) { .qsheet .mh-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } .qsheet .mh, .qsheet .sb { padding-left: 18px; padding-right: 18px; } }
-  .qsheet .intro { color: #3F3F46; line-height: 1.65; margin: 0; }
-  .qsheet .sl { font-size: 8px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; border-bottom: 1.5px solid #101012; padding-bottom: 5px; margin-bottom: 8px; }
-  .qsheet .sl span { color: #A1A1AA; font-weight: 500; }
+  .qsheet .intro { color: #D9CFBF; line-height: 1.65; margin: 0; }
+  .qsheet .sl { font-size: 8px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; border-bottom: 1.5px solid #F3EBDD; padding-bottom: 5px; margin-bottom: 8px; }
+  .qsheet .sl span { color: #B9AF9E; font-weight: 500; }
   .qsheet .tbox { overflow-x: auto; }
   .qsheet table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  .qsheet table.data th { background: #101012; color: #fff; font-size: 7.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 8px 9px; text-align: right; white-space: nowrap; border: 0; }
+  .qsheet table.data th { background: #1E1A15; color: #F3EBDD; font-size: 7.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 8px 9px; text-align: right; white-space: nowrap; border: 0; }
   .qsheet table.data th.l, .qsheet table.data td.l { text-align: left; }
-  .qsheet table.data td { padding: 8px 9px; border-bottom: 1px solid #ECECEF; text-align: right; vertical-align: top; white-space: nowrap; color: #18181B; }
+  .qsheet table.data td { padding: 8px 9px; border-bottom: 1px solid #2E2A24; text-align: right; vertical-align: top; white-space: nowrap; color: #F3EBDD; }
   .qsheet table.data td.l { white-space: normal; min-width: 150px; }
   .qsheet table.data td .c { font-weight: 600; }
-  .qsheet table.data td .d { color: #71717A; font-size: 10px; margin-top: 2px; }
-  .qsheet table.data tr.sub td { color: #52525B; }
-  .qsheet table.data tr.total td { background: #101012; color: #fff; font-weight: 700; font-size: 12.5px; border-bottom: 0; }
+  .qsheet table.data td .d { color: #B9AF9E; font-size: 10px; margin-top: 2px; }
+  .qsheet table.data tr.sub td { color: #D9CFBF; }
+  .qsheet table.data tr.total td { background: #1E1A15; color: #F3EBDD; font-weight: 700; font-size: 12.5px; border-bottom: 0; }
   .qsheet .pay { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .qsheet .pay > div { border: 1px solid #E4E4E7; border-radius: 8px; padding: 11px 13px; }
-  .qsheet .pk { font-size: 7px; letter-spacing: 2.4px; text-transform: uppercase; color: #A1A1AA; font-weight: 700; }
+  .qsheet .pay > div { border: 1px solid #2E2A24; border-radius: 8px; padding: 11px 13px; }
+  .qsheet .pk { font-size: 7px; letter-spacing: 2.4px; text-transform: uppercase; color: #B9AF9E; font-weight: 700; }
   .qsheet .pv { font-size: 17px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .qsheet .pn { font-size: 9.5px; color: #71717A; }
+  .qsheet .pn { font-size: 9.5px; color: #B9AF9E; }
   .qsheet .cond { width: 100%; border-collapse: collapse; }
-  .qsheet .cond td { padding: 6px 7px; border-bottom: 1px solid #F0F0F1; vertical-align: top; font-size: 10.5px; color: #18181B; }
-  .qsheet .cond td.k { width: 32%; color: #71717A; }
+  .qsheet .cond td { padding: 6px 7px; border-bottom: 1px solid #2E2A24; vertical-align: top; font-size: 10.5px; color: #F3EBDD; }
+  .qsheet .cond td.k { width: 32%; color: #B9AF9E; }
   .qsheet .cond td.v { font-weight: 600; }
-  .qsheet .closing { background: #101012; color: #fff; border-radius: 10px; padding: 14px 16px; }
+  .qsheet .closing { background: #1E1A15; color: #F3EBDD; border-radius: 10px; padding: 14px 16px; }
   .qsheet .ct { font-size: 11.5px; font-weight: 700; }
-  .qsheet .cc { font-size: 10px; color: #CFCFD4; margin-top: 4px; line-height: 1.6; }
-  .qsheet .co { margin-top: 9px; padding-top: 9px; border-top: 1px solid #2A2A2E; font-size: 8px; color: #9A9AA0; letter-spacing: 1px; }
-  .qsheet .foot { border-top: 1px solid #E4E4E7; padding-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 8px; color: #A1A1AA; letter-spacing: 1px; }
-  .qsheet .empty { color: #71717A; text-align: center !important; padding: 16px !important; white-space: normal !important; }
+  .qsheet .cc { font-size: 10px; color: #D9CFBF; margin-top: 4px; line-height: 1.6; }
+  .qsheet .co { margin-top: 9px; padding-top: 9px; border-top: 1px solid #3A342C; font-size: 8px; color: #B9AF9E; letter-spacing: 1px; }
+  .qsheet .foot { border-top: 1px solid #2E2A24; padding-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 8px; color: #B9AF9E; letter-spacing: 1px; }
+  .qsheet .empty { color: #B9AF9E; text-align: center !important; padding: 16px !important; white-space: normal !important; }
   @media print {
     #print.print-sheet { padding: 0; }
     #print.print-sheet .qsheet { box-shadow: none; font-size: 10.5px; }
@@ -410,6 +410,8 @@
   .doc th, .doc td { border-bottom: .5pt solid #999; padding: 4pt 5pt; color: #000; }
   .doc .foot { margin-top: 14pt; font-size: 8.5pt; color: #333; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  /* Paleta Chilian (tools/palette.py): ocre, negro y crema */
+  :root:root:root { --bad: #FF6B60; --card: #171512; --info: #E9DFCC; --ink: #F3EBDD; --magenta: #C9922E; --ok: #9BD84A; --on-accent: #0B0B0B; --paper: #0B0B0B; --rule: rgba(243,235,221,.16); --shade: rgba(243,235,221,.06); --steel: #B9AF9E; --warn: #E8B04B; color-scheme: dark; }
 </style>
 </head>
 <body>

@@ -525,7 +525,7 @@
       x.drawImage(pieceTexture(p, design), 0, 0, p.width, p.height);
       x.lineWidth = 1.4 / k; x.strokeStyle = "#151316"; x.stroke(p.path);
       // The layer being edited: a dashed frame around a graphic, a bold outline around a piece.
-      if (sel && sel.piece === pieceKey(p)) { x.lineWidth = 4 / k; x.strokeStyle = "#CF1069"; x.stroke(p.path); }
+      if (sel && sel.piece === pieceKey(p)) { x.lineWidth = 4 / k; x.strokeStyle = "#C9922E"; x.stroke(p.path); }
       const pr = sel && sel.section && (design.prints || []).find((q) => q.section === sel.section), r = pr && placedRect(p, pr);
       if (r) {
         x.save(); x.translate(r.x + r.w / 2, r.y + r.h / 2); x.rotate(((pr.rot || 0) * Math.PI) / 180);

@@ -57,6 +57,8 @@
 <style>
   @font-face { font-family: "Jost"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(fonts/jost.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   @font-face { font-family: "Questrial"; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/questrial.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  /* Paleta Chilian (tools/palette.py): ocre, negro y crema */
+  :root:root:root { --card: #171512; --cyan: #0B0B0B; --ink: #F3EBDD; --magenta: #C9922E; --on-accent: #0B0B0B; --paper: #0B0B0B; --press: #A6E22E; --rule: rgba(243,235,221,.16); --shade: rgba(243,235,221,.06); --steel: #B9AF9E; color-scheme: dark; }
 </style>
 <link as="image" fetchpriority="high" href="photos/opt/prensa-pantalla-magenta-960.webp" imagesizes="(max-width: 860px) 100vw, 46vw" imagesrcset="photos/opt/prensa-pantalla-magenta-480.webp 480w, photos/opt/prensa-pantalla-magenta-960.webp 960w, photos/opt/prensa-pantalla-magenta-1600.webp 1600w" rel="preload"/>
 <style>
@@ -68,7 +70,7 @@
     --ink:     #151316;  /* tinta plastisol negra */
     --steel:   #67626B;  /* malla de acero: texto secundario */
     --rule:    rgba(21,19,22,.14);
-    --magenta: #CF1069;  /* la emulsión magenta de las pantallas de la planta */
+    --magenta: #C9922E;  /* la emulsión magenta de las pantallas de la planta */
     --press:   #7DB300;  /* el verde de los pulpos Roq: solo para señales "en línea" */
     --on-accent: #FFFFFF;
     --shade:   rgba(21,19,22,.06);
@@ -85,13 +87,13 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --paper: #121013; --card: #1C191D; --ink: #EFEDF0; --steel: #A19BA5;
-      --rule: rgba(239,237,240,.14); --magenta: #FF3F96; --press: #A6E22E;
+      --rule: rgba(239,237,240,.14); --magenta: #C9922E; --press: #A6E22E;
       --on-accent: #120A0E; --shade: rgba(239,237,240,.05); color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --paper: #121013; --card: #1C191D; --ink: #EFEDF0; --steel: #A19BA5;
-    --rule: rgba(239,237,240,.14); --magenta: #FF3F96; --press: #A6E22E;
+    --rule: rgba(239,237,240,.14); --magenta: #C9922E; --press: #A6E22E;
     --on-accent: #120A0E; --shade: rgba(239,237,240,.05); color-scheme: dark;
   }
 
@@ -174,7 +176,7 @@
   .ch-logo img { width: 2.3rem; height: 2.3rem; flex: none; }
   .ch-logo .ch-word { display: block; width: 7.6rem; aspect-ratio: 669 / 96; background: currentColor; -webkit-mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; mask: url(/logos/chilian-wordmark.png) left center / contain no-repeat; }
   .ch-logo .ch-tag { display: block; margin-top: .3rem; font: 400 .58rem/1.2 "Questrial", "Century Gothic", sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
-  .ch-logo .ch-tag i { font-style: normal; color: #0070BB; }
+  .ch-logo .ch-tag i { font-style: normal; color: #C9922E; }
   .brand { margin-right: auto; }
   .brand { min-width: 0; flex-shrink: 1; }
   @media (max-width: 1380px) { .brand .ch-tag { display: none; } }
@@ -391,13 +393,13 @@
   .techs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
   .tech {
     all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: block; aspect-ratio: 4 / 5; overflow: hidden;
-    background: var(--ink); color: #fff;
+    background: var(--ink); color: var(--paper);
   }
   .tech img { width: 100%; height: 100%; object-fit: cover; transition: transform .8s cubic-bezier(.2,.7,.2,1), opacity .4s ease; opacity: .92; }
   /* Techniques with no photo yet get a halftone swatch in their own ink. */
   .tech .swatch {
     position: absolute; inset: 0;
-    background: radial-gradient(circle, var(--sw, #CF1069) 34%, transparent 36%) 0 0 / 14px 14px, #1a171b;
+    background: radial-gradient(circle, var(--sw, #C9922E) 34%, transparent 36%) 0 0 / 14px 14px, #1a171b;
   }
   .tech .label {
     position: absolute; inset: auto 0 0 0; padding: 2.4rem .9rem .9rem;
@@ -3177,7 +3179,7 @@
     try { await document.fonts.load('700 132px "Jost"'); } catch (e) {}
     const c = document.createElement("canvas"); c.width = 1200; c.height = 900;
     const x = c.getContext("2d");
-    x.fillStyle = "#CF1069"; x.textAlign = "center";
+    x.fillStyle = "#C9922E"; x.textAlign = "center";
     x.font = '700 218px "Jost", Impact, sans-serif'; x.fillText(lang === "en" ? "YOUR" : "TU", 600, 330);
     x.font = '700 218px "Jost", Impact, sans-serif'; x.fillText(lang === "en" ? "DESIGN" : "DISEÑO", 600, 640);
     x.font = '500 64px "Jost", sans-serif'; x.fillText(lang === "en" ? "HERE · CHILIAN" : "AQUÍ · CHILIAN", 600, 800);
