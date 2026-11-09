@@ -13,8 +13,9 @@
    It only talks about Chilian: products, techniques, prices, times, orders and payments. */
 import { prices, quote, TECS, EMB } from "./_pricing.js";
 import { getDoc, listDocs } from "./_lib.js";
+import { understand } from "./_ai.js";
 
-export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+export const BOT_DEFAULTS = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
 export async function botSettings() {
   const st = await getDoc("ajustes", "asistente").catch(() => null);
   return { ...BOT_DEFAULTS, ...(st || {}), activo: { ...BOT_DEFAULTS.activo, ...(st?.activo || {}) }, horario: { ...BOT_DEFAULTS.horario, ...(st?.horario || {}) } };
@@ -44,19 +45,6 @@ function parse(text, d) {
   if (/express|urgente|rapido|rush/.test(t)) d.del = "express";
   for (const k of Object.keys(EMB)) if (t.includes(k)) d.emb = k;
   return d;
-}
-
-// Optional: with ANTHROPIC_API_KEY set, free text the patterns don't catch is read by Claude (fields only).
-async function extract(text) {
-  const key = process.env.ANTHROPIC_API_KEY; if (!key) return null;
-  try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: process.env.BOT_MODEL || "claude-haiku-5-5", max_tokens: 260, system: "Extract an apparel printing order from the customer's message for Chilian, a Mexican screen printing plant. Reply ONLY with JSON: {\"prod\": one of playera|sport|sudadera|polo|camisa|gorra|bolsa|propia|null, \"qty\": number|null, \"tec\": one of plastisol|dtg|embroidery|fullprint|null, \"inks\": 1-6|null, \"locs\": 1-4|null, \"emb\": chico|mediano|grande|null, \"del\": estandar|express|null, \"uso\": one of carrera|evento|negocio|uniforme|banda|marca|regalo|null (what it is for), \"linea\": basica|clasica|premium|null, \"spec\": fabric, blend or weight they ask for (short text)|null, \"handoff\": true if they ask for a person, licensing, brand programs, full package, complaints or anything not about ordering}. Never add text.",
-        messages: [{ role: "user", content: String(text).slice(0, 1500) }] }) });
-    if (!r.ok) return null;
-    const j = await r.json(); const m = (j.content?.[0]?.text || "").match(/\{[\s\S]*\}/);
-    return m ? JSON.parse(m[0]) : null;
-  } catch { return null; }
 }
 
 /* Who is writing (from the owner's brief): the assistant first sorts the customer, then advises.
@@ -130,8 +118,13 @@ export async function botTurn(doc, input, ctx) {
       : L("Te paso con una asesora de Chilian. Atienden de lunes a viernes de 9:00 a 19:00; te escribe aquí en cuanto abran.", "I'm passing you to a Chilian advisor. They work Monday to Friday, 9:00–19:00 (Mexico City); they'll write to you here as soon as they're in."));
     return { replies: out, handoff: why };
   };
-  if (btn === "asesora" || (text && HANDOFF_RX.test(norm(text)))) return handoff(btn === "asesora" ? "El cliente pidió hablar con una asesora" : "Pidió algo que atiende una asesora: " + text.slice(0, 120));
   const d = b.d;
+  // free text: Claude reads it (when the key is set) and calls the functions that apply
+  const ai = text && b.paso !== "spec" && !/^\s*\d{1,6}\s*$/.test(text) ? await understand(doc, text, d) : null;
+  if (ai?.lead) b.leadAI = ai.lead;
+  if (btn === "asesora") return handoff("El cliente pidió hablar con una asesora");
+  if (ai?.asesora) { if (ai.respuesta) say(ai.respuesta); return handoff(ai.asesora); }
+  if (!ai && text && HANDOFF_RX.test(norm(text))) return handoff("Pidió algo que atiende una asesora: " + text.slice(0, 120));
   if (btn === "reiniciar" || /^(reiniciar|empezar|otra cotizacion|nueva cotizacion|start over)$/.test(norm(text).trim())) { b.d = { perfil: d.perfil, uso: d.uso, cliente: d.cliente }; b.paso = "reinicio"; b.todos = false; return botTurn(doc, {}, ctx); }
 
   // what the customer tapped or said fills the order
@@ -154,12 +147,18 @@ export async function botTurn(doc, input, ctx) {
   else if (b.paso === "spec" && text) { d.spec = text.slice(0, 160); d.linea ||= "clasica"; }
   else if (/^\s*\d{1,6}\s*$/.test(text) && ["qty", "inks", "locs"].includes(b.paso)) d[b.paso] = parseInt(text, 10);
   else if (text) {
-    const before = JSON.stringify(d);
     parse(text, d); parseMore(text, d);
-    if (JSON.stringify(d) === before) {
-      const x = await extract(text);
-      if (x?.handoff) return handoff("Pidió algo que atiende una asesora: " + text.slice(0, 120));
-      if (x) for (const k of ["prod", "qty", "tec", "inks", "locs", "emb", "del", "uso", "linea", "spec"]) if (x[k] != null && x[k] !== "") d[k] = x[k];
+    if (ai) {   // what Claude understood wins over the patterns
+      const c = ai.campos, okInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+      for (const k of ["perfil", "uso", "prod", "tec", "emb", "del", "linea"]) if (c[k]) d[k] = c[k];
+      if (okInt(c.qty, 1, 999999)) d.qty = c.qty;
+      if (okInt(c.inks, 1, 6)) d.inks = c.inks;
+      if (okInt(c.locs, 1, 4)) d.locs = c.locs;
+      if (c.spec) { d.spec = String(c.spec).slice(0, 160); if (!c.linea) { delete d.linea; parseMore("", d); } }
+      if (c.nombre && (!doc.nombre || /^(Chat del sitio|Cliente)$/.test(doc.nombre))) doc.nombre = String(c.nombre).slice(0, 80);
+      if (c.empresa && !doc.empresa) doc.empresa = String(c.empresa).slice(0, 120);
+      if (c.fecha) doc.fechaTexto = String(c.fecha).slice(0, 80);
+      if (ai.respuesta) say(ai.respuesta);
     }
   }
   if (d.tec === "fullprint") d.prod = "sport";
@@ -237,7 +236,7 @@ export async function botTurn(doc, input, ctx) {
     const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
       return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unit)} por pieza`, `About ${money(r.unit)} MXN per piece`)}`; });
-    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${L("(Precio con 1 tinta en 1 lugar; lo ajusto con tu diseño.)", "(Price with 1 ink in 1 location; I'll adjust it to your design.)")}`,
+    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color en 1 lugar; lo ajusto con tu diseño.)", "(Price in full color in 1 location; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano; lo ajusto con tu diseño.)", "(Price with 1 medium embroidery; I'll adjust it to your design.)") : L("(Precio con 1 tinta en 1 lugar; lo ajusto con tu diseño.)", "(Price with 1 ink in 1 location; I'll adjust it to your design.)"))}`,
       [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
     b.paso = "linea"; return done();
   }

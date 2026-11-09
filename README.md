@@ -489,3 +489,24 @@ Un solo asistente para el chat del sitio, WhatsApp, Instagram y Messenger. Cotiz
 En el OS, cada solicitud muestra el **perfil** del cliente, el **uso** y, si la pidió, su **especificación de tela**. Una especificación propia siempre pasa a una asesora para confirmar el precio.
 
 Las líneas y sus telas o gramajes están en `api/precios.js` (`lineas`, `specs`). Son **ejemplos** hasta que Chilian los confirme: la Básica cuesta 0.85× y la Premium 1.4× el precio de la prenda.
+
+### El asistente con Claude (`api/_ai.js`)
+
+Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente se lo manda a Claude junto con cuatro funciones (herramientas estrictas). Claude usa las que apliquen:
+
+| Función | Qué hace |
+| --- | --- |
+| `registrar_pedido` | Guarda producto, piezas, técnica, uso, línea, tela, nombre, empresa y fecha |
+| `responder` | Contesta dudas sobre Chilian, sin dar precios |
+| `calificar_cliente` | Estima el valor del pedido en USD y anota las señales que lo justifican |
+| `pasar_a_asesora` | Manda la conversación con una asesora |
+
+- **Precios:** los sigue calculando el motor de precios. Claude nunca los da.
+- **Modelo:** `claude-opus-5-5` con esfuerzo bajo. Se puede cambiar con `BOT_MODEL`.
+- **Si el modelo se niega a responder:** la API reintenta sola con otro modelo (fallback del servidor).
+- **Sin llave:** el asistente sigue funcionando con botones y reconocimiento de frases.
+
+**Clientes que valen la pena.** `rateLead` en `api/venta.js` toma el valor más alto entre la cotización, el estimado del motor (producto × piezas) y el estimado de Claude. Si llega al umbral (400 USD por defecto, con tipo de cambio 18.5; se cambia en Ajustes → Asistente):
+- marca la solicitud como «Vale la pena»;
+- la sube al inicio de Solicitudes (filtro «Valen la pena»);
+- avisa al equipo una sola vez.

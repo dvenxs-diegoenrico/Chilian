@@ -9,6 +9,7 @@ import { botTurn, botSettings, PERFIL_NOMBRE } from "./_bot.js";
 import { payLinks, payReady, mpWebhook, stripeWebhook } from "./_pay.js";
 import { sendReplies } from "./_channels.js";
 import { notifySafe } from "./_push.js";
+import { prices, quote } from "./_pricing.js";
 
 const clip = (t, n) => String(t ?? "").slice(0, n);
 const baseOf = (req) => { const u = new URL(req.url); return `${u.protocol}//${u.host}`; };
@@ -31,8 +32,32 @@ export async function assistantTurn(doc, input, { canal, lang, base, send }) {
   const bd = doc.bot?.d || {};   // who the customer is and what it is for: the team sees it on the request
   if (bd.perfil) doc.perfilCliente = PERFIL_NOMBRE[bd.perfil] || bd.perfil;
   if (bd.uso) doc.usoCliente = bd.uso;
+  if (bd.qty && !doc.piezas) doc.piezas = +bd.qty;   // what they asked for, before the quote
+  await rateLead(doc);
   if (res.handoff) { doc.nuevoMensaje = true; doc.estado = doc.estado === "descartada" ? "nueva" : doc.estado; doc.asistente = { pasoAAsesora: res.handoff, fecha: now() }; }
   return res;
+}
+
+/* Is this customer worth it? The order's value in USD: the quote when there is one, or the price engine
+   on what we know (product and pieces), or Claude's estimate from the signals (company size, recurrence...),
+   whichever is higher. At the threshold (Ajustes > Asistente, default 400 USD) the request is marked
+   "vale la pena", rises to the top of Solicitudes and the team is notified once. */
+export async function rateLead(doc) {
+  const st = await botSettings(), b = doc.bot || {}, d = b.d || {}, tc = +st.tipoCambio || 18.5;
+  let mxn = b.cot?.total || 0, fuente = b.cot ? "cotización" : "";
+  if (!mxn && d.prod && d.qty) {
+    try { const { P } = await prices(); const r = quote(P, { tec: "plastisol", inks: 1, locs: 1, del: "estandar", ...d }, "es"); if (r.total) { mxn = r.total; fuente = "estimado"; } } catch {}
+  }
+  const engineUSD = Math.round(mxn / tc), aiUSD = Math.round(b.leadAI?.valorUSD || 0);
+  const valorUSD = Math.max(engineUSD, aiUSD), umbral = +st.umbralUSD || 400, valioso = valorUSD >= umbral;
+  const razones = [...(engineUSD ? [`${fuente === "cotización" ? "Cotización" : "Estimado"}: ~$${engineUSD.toLocaleString("en-US")} USD (${d.qty || "?"} pzas)`] : []), ...(b.leadAI?.razones || []), ...(b.leadAI?.recurrente ? ["Podría comprar seguido"] : [])];
+  const was = doc.lead?.valioso;
+  doc.lead = { valorUSD, valioso, razones: razones.slice(0, 6), recurrente: !!b.leadAI?.recurrente, umbralUSD: umbral, fecha: new Date().toISOString() };
+  if (valioso && !was) {
+    doc.nuevoMensaje = true;
+    await notifySafe("all", { title: `Cliente que vale la pena (~$${valorUSD.toLocaleString("en-US")} USD)`, body: `${doc.nombre || "Cliente"} · ${razones.slice(0, 2).join(" · ")}`.slice(0, 180), url: "#solicitudes", tag: "lead-" + doc.id, urgent: true });
+  }
+  return doc.lead;
 }
 
 async function chatTurn(req, d) {
@@ -87,7 +112,7 @@ export async function GET(req) {
     }
     if (q.get("accion") === "estado") {
       const s = await sessionOf(req); if (!s || s.role !== "admin") return json({ error: "Solo la cuenta principal." }, 403);
-      return json({ pagos: payReady(), ia: !!process.env.ANTHROPIC_API_KEY, ajustes: await botSettings(), webhooks: { mp: `${baseOf(req)}/api/venta?webhook=mp`, stripe: `${baseOf(req)}/api/venta?webhook=stripe` } });
+      return json({ pagos: payReady(), ia: !!process.env.ANTHROPIC_API_KEY, modelo: process.env.ANTHROPIC_API_KEY ? process.env.BOT_MODEL || "claude-opus-5-5" : "", ajustes: await botSettings(), webhooks: { mp: `${baseOf(req)}/api/venta?webhook=mp`, stripe: `${baseOf(req)}/api/venta?webhook=stripe` } });
     }
     return json({ error: "Acción no válida." }, 400);
   } catch (e) { return fail(e); }

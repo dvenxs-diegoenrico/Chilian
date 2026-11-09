@@ -648,16 +648,18 @@
   function viewInbox() {
     let filter = viewInbox.f || "nueva";
     const src = viewInbox.src || "";
-    const all = list("solicitudes").sort((a, b) => (b.ultimoMensaje || b.recibida || b.createdAt || "").localeCompare(a.ultimoMensaje || a.recibida || a.createdAt || ""));
+    const all = list("solicitudes").sort((a, b) => (b.estado === "nueva" && b.lead?.valioso ? 1 : 0) - (a.estado === "nueva" && a.lead?.valioso ? 1 : 0)
+      || (b.ultimoMensaje || b.recibida || b.createdAt || "").localeCompare(a.ultimoMensaje || a.recibida || a.createdAt || ""));   // valuable new leads on top
     const bySrc = all.filter((s) => !src || (src.startsWith("wa:") ? waOf(s)?.wa === src.slice(3) : src === "especifica" ? specific(s) : src === "general" ? !specific(s) : src === "instagram" ? s.fuente === "instagram" || s.canal === "instagram" : src === "manual" ? s.canal === "manual" : s.canal !== "manual" && s.canal !== "instagram"));
-    const rows = bySrc.filter((s) => filter === "todas" || s.estado === filter || (filter === "nueva" && s.nuevoMensaje));
-    const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${id === "todas" ? bySrc.length : bySrc.filter((s) => s.estado === id || (id === "nueva" && s.nuevoMensaje)).length})`);
+    const match = (s, id) => id === "todas" || (id === "valiosas" ? s.lead?.valioso && s.estado !== "descartada" : s.estado === id || (id === "nueva" && s.nuevoMensaje));
+    const rows = bySrc.filter((s) => match(s, filter));
+    const chip = (id, label) => h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), onclick: () => { viewInbox.f = id; rerender(); } }, `${label} (${bySrc.filter((s) => match(s, id)).length})`);
     return h("div", {},
       top("Del sitio, de Instagram y del equipo", "Solicitudes",
         h("select", { class: "i", style: "width:auto", "aria-label": "Fuente", onchange: (e) => { viewInbox.src = e.target.value; rerender(); } },
           [["", "Todas las fuentes"], ["web", "Sitio web"], ["instagram", "Instagram"], ["manual", "Registradas por el equipo"], ["especifica", "Con mercancía específica"], ["general", "Sin mercancía específica"],
             ...(S.settings.whatsapps || []).map((w) => ["wa:" + w.wa, `WhatsApp ${w.numero} · ${w.linea.split(" · ")[0]}`])].map(([v, t]) => h("option", { value: v, text: t, selected: src === v }))),
-        h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas")),
+        h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("valiosas", "Valen la pena"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas")),
         h("button", { class: "btn accent", type: "button", onclick: () => manualRequestModal() }, "+ Solicitud")),
       rows.length ? h("div", { class: "grid" }, rows.map((s) => inboxCard(s)))
         : h("div", { class: "empty", text: filter === "nueva" ? "No hay solicitudes nuevas. Llegan del cotizador y el catálogo del sitio, de Instagram Direct y de las que registra el equipo (+ Solicitud)." : "Nada en esta vista." }));
@@ -679,6 +681,7 @@
         waOf(s) ? h("span", { class: "pill p-ok", title: waDest(s), text: `Llegó al WhatsApp ${waOf(s).numero || fmtWa(waOf(s).wa)}` }) : null,
         s.canal === "chat" ? h("span", { class: "pill p-info", text: "Chat del sitio" }) : null,
         s.bot ? h("span", { class: "pill p-info", text: "Cotizó con el asistente" }) : null,
+        s.lead?.valorUSD ? h("span", { class: "pill " + (s.lead.valioso ? "p-bad" : "p-mut"), title: (s.lead.razones || []).join(" · "), text: `${s.lead.valioso ? "Vale la pena · " : ""}~$${s.lead.valorUSD.toLocaleString("en-US")} USD` }) : null,
         s.perfilCliente ? h("span", { class: "pill p-acc", title: "Lo identificó el asistente", text: `Perfil: ${s.perfilCliente}${s.usoCliente ? " · para " + ({ carrera: "carrera o deporte", evento: "evento", negocio: "su negocio", uniforme: "uniforme", banda: "banda o gira", marca: "marca de ropa", regalo: "regalo o promocional" }[s.usoCliente] || s.usoCliente) : ""}` }) : null,
         s.especificacion ? h("span", { class: "pill p-warn", title: "Pidió una tela o gramaje específico", text: "Especificación: " + s.especificacion }) : null,
         s.pagos?.length ? h("span", { class: "pill p-ok", text: `Pagó ${money(s.pagos.reduce((a, p) => a + (+p.monto || 0), 0))} en línea` }) : null),
@@ -692,6 +695,8 @@
       s.estimados?.length ? h("div", { class: "small" }, h("div", { class: "label", text: s.estimados[0]?.origen === "asistente" ? "Lo que cotizó con el asistente (precios del sitio)" : "Lo que cotizó en el sitio (Cotiza en un minuto, precios de referencia)" }),
         h("ul", { style: "margin:.2rem 0 0;padding-left:1rem" }, s.estimados.map((e) => h("li", {}, e.resumen || `${fmtN(e.piezas)} × ${e.nombre}`, e.unitario ? h("span", { class: "muted" }, ` — ${money(e.unitario)}/pza · ${money(e.total)} + IVA · ${e.dias} días hábiles${e.origen === "estudio" ? " · desde Estampa tu idea" : ""}`) : null)))) : null,
       s.correo && s.correo !== s.contacto ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Correo: " }), h("a", { href: "mailto:" + s.correo, text: s.correo })) : null,
+      s.lead?.valioso && (s.lead.razones || []).length ? h("p", { class: "small", style: "margin:0;background:var(--shade);padding:.45rem .65rem" }, h("b", { text: `Por qué vale la pena (≥ $${s.lead.umbralUSD || 400} USD): ` }), s.lead.razones.join(" · ")) : null,
+      s.fechaTexto ? h("p", { class: "small", style: "margin:0" }, h("b", { text: "Lo necesita: " }), s.fechaTexto) : null,
       pagosBox(s.pagos),
       s.otId && byId("ots", s.otId) ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" }, h("span", { class: "small" }, h("b", { text: "Orden " + s.otId }), " · abierta con el pago en línea"), h("a", { class: "btn sm", href: "#ot/" + s.otId }, "Abrir OT")) : null,
       pre ? h("div", { class: "row between", style: "background:var(--shade);padding:.55rem .7rem" },
@@ -2083,7 +2088,7 @@
   // The prices the website's "Cotiza en un minuto" shows (sale prices before VAT, per piece).
   // The sales assistant (website chat, WhatsApp, Instagram, Messenger) and online payments. Saved in ajustes/asistente.
   function assistantCard() {
-    const DEF = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
+    const DEF = { activo: { web: false, whatsapp: false, instagram: false, messenger: false }, limite: 6000, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
     const cur = byId("ajustes", "asistente") || {};
     const a = { ...DEF, ...cur, activo: { ...DEF.activo, ...(cur.activo || {}) }, horario: { ...DEF.horario, ...(cur.horario || {}) } };
     const prices = byId("ajustes", "precios-web"), example = !prices || prices.ejemplo !== false;
@@ -2091,7 +2096,7 @@
     api("GET", "/api/venta?accion=estado").then((j) => {
       const ok = (b, t) => h("div", { class: "row", style: "flex-wrap:nowrap" }, h("span", { class: "pill " + (b ? "p-ok" : "p-warn"), text: b ? "listo" : "falta" }), h("span", { class: "small", style: "min-width:0", text: t }));
       status.replaceChildren(ok(j.pagos.mp, "Mercado Pago (MP_ACCESS_TOKEN): SPEI, OXXO, tarjeta y meses"), ok(j.pagos.stripe, "Stripe (STRIPE_SECRET_KEY): tarjetas, EE. UU."),
-        ok(j.pagos.stripeHook, "Stripe confirma pagos (STRIPE_WEBHOOK_SECRET)"), ok(j.ia, "Entiende mensajes libres con IA (ANTHROPIC_API_KEY, opcional)"),
+        ok(j.pagos.stripeHook, "Stripe confirma pagos (STRIPE_WEBHOOK_SECRET)"), ok(j.ia, `Entiende mensajes con Claude y califica clientes (ANTHROPIC_API_KEY${j.modelo ? " · " + j.modelo : ""})`),
         h("p", { class: "small", style: "margin:.3rem 0 0" }, "Webhook de Mercado Pago: ", h("code", { class: "mono", text: j.webhooks.mp })),
         h("p", { class: "small", style: "margin:0" }, "Webhook de Stripe (checkout.session.completed): ", h("code", { class: "mono", text: j.webhooks.stripe })),
         h("a", { class: "btn sm ghost", style: "justify-self:start", href: "/ops/conectar.html#pagos", target: "_blank", rel: "noopener" }, "Cómo conectar los pagos"));
@@ -2110,6 +2115,10 @@
         h("label", { class: "f" }, h("span", { text: "Horario de asesoras (hora CDMX)" }), h("div", { class: "row", style: "flex-wrap:nowrap;gap:.3rem" },
           h("input", { class: "i", type: "number", min: "0", max: "23", value: a.horario.desde, "aria-label": "Desde", oninput: (e) => { a.horario.desde = +e.target.value; } }), "a",
           h("input", { class: "i", type: "number", min: "1", max: "24", value: a.horario.hasta, "aria-label": "Hasta", oninput: (e) => { a.horario.hasta = +e.target.value; } })))),
+      h("div", { class: "grid g3" },
+        h("label", { class: "f" }, h("span", { text: "Cliente que vale la pena desde (USD)" }), h("input", { class: "i", type: "number", min: "0", step: "50", value: a.umbralUSD, oninput: (e) => { a.umbralUSD = +e.target.value; } })),
+        h("label", { class: "f" }, h("span", { text: "Tipo de cambio (MXN por USD)" }), h("input", { class: "i", type: "number", min: "1", step: "0.1", value: a.tipoCambio, oninput: (e) => { a.tipoCambio = +e.target.value; } })),
+        h("p", { class: "small muted", style: "margin:0;align-self:end" }, "Estos se marcan «Vale la pena», suben al inicio de Solicitudes y le llega un aviso al equipo.")),
       h("div", { class: "row", style: "gap:.6rem" }, DIAS.map((n, i) => h("label", { class: "row small", style: "gap:.25rem" }, h("input", { type: "checkbox", checked: a.horario.dias.includes(i), onchange: (e) => { a.horario.dias = e.target.checked ? [...new Set([...a.horario.dias, i])].sort() : a.horario.dias.filter((x) => x !== i); } }), n))),
       h("button", { class: "btn accent", type: "button", style: "justify-self:start", onclick: async () => {
         if ((a.activo.web || a.activo.whatsapp || a.activo.instagram || a.activo.messenger) && example && !(await confirmBox("Los precios del sitio siguen marcados como ejemplo: el asistente cotizaría con ellos. ¿Activarlo de todos modos?"))) return;
