@@ -93,6 +93,7 @@ export async function understand(doc, text, state) {
       model: MODEL(), max_tokens: 4000,
       betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",   // if the model declines, the API retries on a fallback model
       output_config: { effort: "low" },
+      ...(/sonnet-5-5/.test(MODEL()) ? { thinking: { type: "between_tools" } } : {}),   // Sonnet 5.5's way to answer without a thinking pause: faster chat
       system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
       tools: TOOLS, tool_choice: { type: "auto" },
       messages: history(doc, text, state)
