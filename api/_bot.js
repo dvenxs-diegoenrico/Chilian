@@ -11,9 +11,10 @@
    paid on the spot; above that, licenses, brand programs, full package, complaints or "person"
    go to an advisor. Advisors work Monday to Friday, 9:00–19:00 (Mexico City).
    It only talks about Chilian: products, techniques, prices, times, orders and payments. */
-import { prices, quote, TECS, EMB } from "./_pricing.js";
+import { prices, quote, TECS, EMB, parseMedida, sizeIdx } from "./_pricing.js";
 import { getDoc, listDocs } from "./_lib.js";
 import { understand } from "./_ai.js";
+import { nombreReal } from "./_ciclo.js";
 
 // The website chat is published by default; the social channels turn on in Ajustes once Meta is connected.
 export const BOT_DEFAULTS = { activo: { web: true, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
@@ -102,10 +103,27 @@ function parseMore(text, d) {
   return d;
 }
 
+const esSaludo = (t) => !t || /^\s*(hola+|buen[oa]s?( (dias|tardes|noches))?|hi|hello|hey|que tal|saludos)[\s!.,¡¿?]*$/.test(norm(t));
+
+// The name and the way to reach them, asked at the start (the website chat has neither).
+function parseContacto(text) {
+  const mail = String(text).match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0];
+  if (mail) return mail.slice(0, 120);
+  const dg = String(text).replace(/[^\d+]/g, "");
+  return dg.replace(/\D/g, "").length >= 10 ? dg.slice(0, 18) : "";
+}
+function parseNombre(text) {
+  const t = String(text).trim().replace(/^(hola[,! ]*)?(me llamo|mi nombre es|soy|my name is|i am|i'm)\s+/i, "").replace(/[.!¡]+$/g, "").trim();
+  if (t.length < 2 || t.length > 50 || /\d|@|https?:/.test(t)) return "";
+  const words = t.split(/\s+/);
+  if (words.length > 4 || /\b(playeras?|piezas?|pzas|cotiz\w*|precio|quiero|necesito|tengo|hola|buen[oa]s|gracias|ayuda|cuanto|hello|hi|quote|price|want|need)\b/.test(norm(t))) return "";
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 // A customer we already have: by the account on the conversation, or by the phone on any account.
 async function knownClient(doc) {
   if (doc.cuentaId) { const c = await getDoc("cuentas", doc.cuentaId).catch(() => null); if (c) return c; }
-  const phone = String(doc.waId || doc.contacto || "").replace(/\D/g, "").slice(-10);
+  const phone = String(doc.waId || "").replace(/\D/g, "").slice(-10);   // only WhatsApp's own id: a number typed in the website chat proves nothing
   if (phone.length < 10) return null;
   try { return (await listDocs("cuentas")).find((c) => (c.contactos || []).some((x) => String(x.contacto || "").replace(/\D/g, "").slice(-10) === phone)) || null; } catch { return null; }
 }
@@ -114,27 +132,59 @@ export async function botTurn(doc, input, ctx) {
   const st = await botSettings();
   const b = (doc.bot ||= { paso: "inicio", d: {}, lang: ctx.lang || "es" });
   const L = (es, en) => (b.lang === "en" ? en : es);
+  // «nueva cotización» and «cerrar chat» work at any moment, even with an advisor on the conversation
+  const t0 = norm(input.text || "").trim();
+  if (input.button === "nueva" || /^(otra|nueva) cotizacion$|^(new|another) quote$/.test(t0)) return { replies: [], nueva: true };
+  if (input.button === "cerrar" || /^(cerrar|terminar|finalizar)( el)? chat$|^close( the)? chat$/.test(t0)) {
+    b.cerrado = true;
+    return { replies: [{ text: L("Listo, cerré el chat. Tu cotización quedó guardada. Cuando quieras otra, toca «Nueva cotización». ¡Gracias!", "Done, I closed the chat. Your quote is saved. Whenever you want another, tap “New quote”. Thanks!"), buttons: [{ id: "nueva", title: L("Nueva cotización", "New quote") }] }], cerrar: true };
+  }
   if (b.pausado || b.estado === "asesora") return { replies: [] };
   const { P, ejemplo } = await prices();
-  const text = input.text || "", btn = input.button || "";
+  let text = input.text || "", btn = input.button || "";
   const out = [];
   const say = (t, buttons, links) => out.push({ text: t, ...(buttons ? { buttons } : {}), ...(links ? { links } : {}) });
   const done = () => ({ replies: out });
-  const handoff = (why) => {
+  const OTRA = [{ id: "nueva", title: L("Otra cotización", "Another quote") }, { id: "cerrar", title: L("Cerrar chat", "Close chat") }];
+  const handoff = (why, opciones) => {
     b.estado = "asesora"; b.paso = "asesora";
     const open = inHours(st.horario);
     say(open ? L("Te paso con una asesora de Chilian; te escribe aquí mismo en unos minutos.", "I'm passing you to a Chilian advisor; they'll write to you here in a few minutes.")
-      : L("Te paso con una asesora de Chilian. Atienden de lunes a viernes de 9:00 a 19:00; te escribe aquí en cuanto abran.", "I'm passing you to a Chilian advisor. They work Monday to Friday, 9:00–19:00 (Mexico City); they'll write to you here as soon as they're in."));
+      : L("Te paso con una asesora de Chilian. Atienden de lunes a viernes de 9:00 a 19:00; te escribe aquí en cuanto abran.", "I'm passing you to a Chilian advisor. They work Monday to Friday, 9:00–19:00 (Mexico City); they'll write to you here as soon as they're in."), opciones ? OTRA : undefined);
     return { replies: out, handoff: why };
   };
-  const d = b.d;
+  const d = b.d, mem = doc.memoria;
+  let consumed = false;
+  if (b.paso === "nombre" && text) {
+    const ct = parseContacto(text), rest = text.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/, " ").replace(/[\d+()\-\s]{8,}/g, " ").trim(), nm = parseNombre(rest);
+    if (nm) { doc.nombre = nm; consumed = true; }
+    if (ct) { doc.contacto = ct; doc.contactoOk = true; consumed = true; }
+    b.paso = "inicio";
+  } else if (b.paso === "contacto" && text) {
+    const ct = parseContacto(text); if (ct) { doc.contacto = ct; doc.contactoOk = true; consumed = true; }
+    b.paso = "inicio";
+  }
+  if (btn === "omitir") { b.sinDatos = true; consumed = true; }
+  if (consumed) { text = ""; btn = ""; }
+  // a measure typed in words is read here, without Claude
+  const midiendo = (b.paso === "medida" || b.paso === "size") && text && parseMedida(text);
   // free text: Claude reads it (when the key is set) and calls the functions that apply
-  const ai = text && b.paso !== "spec" && !/^\s*\d{1,6}\s*$/.test(text) ? await understand(doc, text, d) : null;
+  const ai = text && b.paso !== "spec" && b.paso !== "medida" && !midiendo && !/^\s*\d{1,6}\s*$/.test(text) ? await understand(doc, text, d) : null;
   if (ai?.lead) b.leadAI = ai.lead;
   if (btn === "asesora") return handoff("El cliente pidió hablar con una asesora");
   if (ai?.asesora) { if (ai.respuesta) say(ai.respuesta); return handoff(ai.asesora); }
   if (!ai && text && HANDOFF_RX.test(norm(text))) return handoff("Pidió algo que atiende una asesora: " + text.slice(0, 120));
   if (btn === "reiniciar" || /^(reiniciar|empezar|otra cotizacion|nueva cotizacion|start over)$/.test(norm(text).trim())) { b.d = { perfil: d.perfil, uso: d.uso, cliente: d.cliente }; b.paso = "reinicio"; b.todos = false; return botTurn(doc, {}, ctx); }
+
+  // one print location with its measure: the table prices each by its area
+  const addUbic = (area, cm) => {
+    const S = P.serigrafia, i = sizeIdx(S, area), max = S.tamanos[S.tamanos.length - 1], excede = area > max;
+    const lug = d.lugarActual && S.lugares[d.lugarActual] ? L(S.lugares[d.lugarActual].es, S.lugares[d.lugarActual].en) : `${L("Ubicación", "Location")} ${(d.ubic || []).length + 1}`;
+    (d.ubic ||= []).push({ lugar: lug, area: excede ? max : area, cm: cm || "", ...(excede ? { excede: true } : {}) });
+    delete d.lugarActual; d.masUbic = false;
+    if (cm) say(excede ? L(`Tu medida de ${cm} (${area} cm²) pasa de nuestro tamaño máximo (≈ 30×60 cm): tu asesora la revisa.`, `Your size of ${cm} (${area} cm²) is above our largest size (≈ 30×60 cm): your advisor will review it.`)
+      : L(`Tu medida de ${cm} (${area} cm²) entra en «${S.nombres[i].es}» (hasta ${S.medidas[i].replace("≈ ", "")}); la cotizo con ese tamaño.`, `Your size of ${cm} (${area} cm²) fits «${S.nombres[i].en}» (up to ${S.medidas[i].replace("≈ ", "")}); I'll quote it at that size.`));
+  };
 
   // what the customer tapped or said fills the order
   const pre = btn.split(":")[0], val = btn.slice(pre.length + 1);
@@ -147,7 +197,14 @@ export async function botTurn(doc, input, ctx) {
   else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
   else if (pre === "tec") d.tec = val;
   else if (pre === "inks") d.inks = +val;
-  else if (pre === "size") d.size = +val;
+  else if (pre === "lugar") { d.lugarActual = val; d.masUbic = false; }
+  else if (pre === "mas") { if (val === "si") d.masUbic = true; else d.ubicListo = true; }
+  else if (pre === "size") {
+    if (val === "otra") { b.paso = "medida"; say(L("Escríbeme la medida del estampado como ancho × alto en cm, por ejemplo 20 × 25. Si prefieres pulgadas, también sirve (8 × 10 pulgadas).", "Write the print size as width × height in cm, for example 20 × 25. Inches work too (8 × 10 inches).")); return done(); }
+    addUbic(+val, "");
+  }
+  else if (pre === "igual" || btn === "igual") { Object.assign(d, mem?.prefs || {}); d.perfil = mem?.perfil || "experto"; if (d.prod) b.prodElegido = true; }
+  else if (btn === "cotizar") { if (mem?.perfil) d.perfil = mem.perfil; }
   else if (pre === "emb") d.emb = val;
   else if (pre === "locs") d.locs = +val;
   else if (pre === "del") d.del = val;
@@ -155,6 +212,8 @@ export async function botTurn(doc, input, ctx) {
     if (val === "repetir") return handoff(`Cliente que ya compra${d.cliente ? " (" + d.cliente + ")" : ""}: quiere repetir un pedido`);
     if (val === "nuevo") d.perfil = "experto";
   }
+  else if (midiendo) { const med = parseMedida(text); addUbic(med.area, `${med.w}×${med.h} cm`); b.paso = "size"; }
+  else if (b.paso === "medida" && text) { say(L("No pude leer esa medida. Escríbela como ancho × alto en cm, por ejemplo 20 × 25.", "I couldn't read that size. Write it as width × height in cm, for example 20 × 25.")); return done(); }
   else if (b.paso === "spec" && text) { d.spec = text.slice(0, 160); d.linea ||= "clasica"; }
   else if (/^\s*\d{1,6}\s*$/.test(text) && ["qty", "inks", "locs"].includes(b.paso)) d[b.paso] = parseInt(text, 10);
   else if (text) {
@@ -163,6 +222,7 @@ export async function botTurn(doc, input, ctx) {
       const c = ai.campos, okInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
       for (const k of ["perfil", "uso", "prod", "tec", "emb", "del", "linea", "color"]) if (c[k]) d[k] = c[k];
       if ([100, 300, 600, 1200, 1800].includes(c.size)) d.size = c.size;
+      if (c.ancho_cm > 0 && c.alto_cm > 0 && c.ancho_cm <= 300 && c.alto_cm <= 300) { if (c.lugar && P.serigrafia.lugares[c.lugar]) d.lugarActual = c.lugar; addUbic(Math.round(c.ancho_cm * c.alto_cm), `${c.ancho_cm}×${c.alto_cm} cm`); }
       if (Array.isArray(c.extras) && c.extras.length) d.extras = [...new Set([...(d.extras || []), ...c.extras])];
       if (c.prod) b.prodElegido = true;
       if (okInt(c.qty, 1, 999999)) d.qty = c.qty;
@@ -188,6 +248,32 @@ export async function botTurn(doc, input, ctx) {
     return done();
   }
 
+  // 0. the name and a way to reach them, from the start: one question at a time
+  const pedirDatos = (antes) => {
+    if (b.sinDatos || ctx.canal !== "chat") return false;
+    const omitir = [{ id: "omitir", title: L("Prefiero no decirlo", "I'd rather not say") }];
+    if (!nombreReal(doc.nombre) && (b.pidioNombre || 0) < 2) {
+      b.pidioNombre = (b.pidioNombre || 0) + 1; b.paso = "nombre";
+      say(antes ? L("Antes de darte el precio, ¿cómo te llamas?", "Before I give you the price, what's your name?")
+        : b.saludado ? L("¿Cómo te llamas?", "What's your name?") : L("¡Hola! Soy el asistente de Chilian y te ayudo a cotizar. Para empezar, ¿cómo te llamas?", "Hi! I'm Chilian's assistant and I'll help you get a quote. To start, what's your name?"), omitir);
+      b.saludado = true; return true;
+    }
+    if (!doc.contactoOk && (b.pidioContacto || 0) < 2) {
+      b.pidioContacto = (b.pidioContacto || 0) + 1; b.paso = "contacto"; b.saludado = true;
+      say(L(`${nombreReal(doc.nombre) ? "Mucho gusto, " + nombreReal(doc.nombre) + ". " : ""}¿A qué WhatsApp o correo te escribimos si se corta el chat?`, `${nombreReal(doc.nombre) ? "Nice to meet you, " + nombreReal(doc.nombre) + ". " : ""}What WhatsApp or email can we reach you at if the chat drops?`), omitir);
+      return true;
+    }
+    return false;
+  };
+  if (!btn && esSaludo(text) && b.paso === "inicio" && !d.perfil && pedirDatos(false)) return done();
+  // a customer we already know (this chat comes from an earlier one): say so, and offer to repeat what they asked for last time
+  if (!d.perfil && doc.anterior && mem?.nombre && !b.saludadoMem && !btn && esSaludo(text) && b.paso === "inicio") {
+    b.saludadoMem = true; b.saludado = true; b.paso = "memoria";
+    say(L(`¡Hola de nuevo, ${mem.nombre}! Qué gusto verte. ¿Hacemos otra cotización?`, `Welcome back, ${mem.nombre}! Great to see you. Shall we do another quote?`),
+      [...(mem.prefs?.prod ? [{ id: "igual", title: L("Igual que la última vez", "Same as last time") }] : []), { id: "cotizar", title: L("Cotizar algo nuevo", "Quote something new") }, { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }]);
+    return done();
+  }
+
   // 1. who is writing
   if (!d.perfil) {
     if (b.paso === "inicio" && !b.revisado) {
@@ -207,7 +293,8 @@ export async function botTurn(doc, input, ctx) {
     else if (d.prod && d.qty) d.perfil = "intermedio";
   }
   if (!d.perfil) {
-    say(L("¡Hola! Soy el asistente de Chilian y te ayudo a cotizar. Para atenderte mejor, ¿cuál te describe?", "Hi! I'm Chilian's assistant and I'll help you get a quote. To help you best, which one describes you?"),
+    say(b.saludado ? L(`${nombreReal(doc.nombre) ? "Gracias, " + nombreReal(doc.nombre) + ". " : ""}Para atenderte mejor, ¿cuál te describe?`, `${nombreReal(doc.nombre) ? "Thanks, " + nombreReal(doc.nombre) + ". " : ""}To help you best, which one describes you?`)
+      : L("¡Hola! Soy el asistente de Chilian y te ayudo a cotizar. Para atenderte mejor, ¿cuál te describe?", "Hi! I'm Chilian's assistant and I'll help you get a quote. To help you best, which one describes you?"),
       Object.entries(PERFILES).map(([id, t]) => ({ id: "perfil:" + id, title: L(t[0], t[1]) })));
     b.paso = "perfil"; return done();
   }
@@ -288,16 +375,41 @@ export async function botTurn(doc, input, ctx) {
     b.paso = "color"; return done();
   }
   if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), [["1", 1], ["2-3", 2], ["4-5", 4], ["6-7", 6], ["8-9", 8], ["10-11", 10]].map(([title, n]) => ({ id: "inks:" + n, title }))); b.paso = "inks"; return done(); }
-  if (tec.kind === "serigrafia" && !d.size) {
-    const S = P.serigrafia;
-    say(L("¿De qué tamaño es el estampado? Unos 10×10 cm es un logo de pecho; unos 42×42 cm cubre el frente completo.", "How big is the print? About 10×10 cm is a chest logo; about 42×42 cm covers the whole front."),
-      S.tamanos.map((a, i) => ({ id: "size:" + a, title: `${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i]}`.slice(0, 24) }))); b.paso = "size"; return done();
+  if (tec.kind === "serigrafia" && !d.ubicListo) {
+    const S = P.serigrafia, nm = (id) => L(S.lugares[id].es, S.lugares[id].en);
+    if (!(d.ubic || []).length && d.size) {   // a size said in words, or an older answer: one location, or as many as said
+      const cnt = Math.max(1, Math.min(4, d.locs || 1));
+      d.ubic = Array.from({ length: cnt }, (_, i) => ({ lugar: `${L("Ubicación", "Location")} ${i + 1}`, area: d.size, cm: "" })); if (d.locs) d.ubicListo = true;
+    }
+    if (!d.ubicListo) {
+      const n2 = (d.ubic || []).length;
+      if (d.lugarActual) {   // its measure: real sizes with what they are for, or the customer's own
+        const sug = sizeIdx(S, S.lugares[d.lugarActual]?.sugerida || 600);
+        const lines = S.tamanos.map((a, i) => `${i === sug ? "⭐ " : "• "}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i]}: ${L(S.usos[i].es, S.usos[i].en)}`).join("\n");
+        say(L(`¿De qué medida es ${nm(d.lugarActual).toLowerCase()}? Estas son nuestras medidas:\n${lines}\n\nElige una, o escríbeme tu medida (por ejemplo 20 × 25 cm) y la acomodo.`, `What size is the ${nm(d.lugarActual).toLowerCase()} print? These are our sizes:\n${lines}\n\nPick one, or write your own size (for example 20 × 25 cm) and I'll fit it.`),
+          [...S.tamanos.map((a, i) => ({ id: "size:" + a, title: `${i === sug ? "⭐ " : ""}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i].replace("≈ ", "")}`.slice(0, 24) })), { id: "size:otra", title: L("Otra medida", "Other size") }]);
+        b.paso = "size"; return done();
+      }
+      if (!n2 || d.masUbic) {   // where
+        const used = new Set((d.ubic || []).map((u) => u.lugar));
+        say(!n2 ? L("¿Dónde va el estampado? Te voy preguntando la medida de cada lugar.", "Where does the print go? I'll ask the size of each place.") : L("¿En qué otro lugar?", "Where else?"),
+          Object.keys(S.lugares).filter((id) => !used.has(nm(id))).map((id) => ({ id: "lugar:" + id, title: nm(id) })));
+        b.paso = "lugar"; return done();
+      }
+      if (n2 >= 4) d.ubicListo = true;
+      else {
+        say(L(`Hasta ahora: ${d.ubic.map((u) => `${u.lugar} (${u.cm || S.medidas[sizeIdx(S, u.area)].replace("≈ ", "")})`).join(", ")}. ¿Agregamos otra ubicación?`, `So far: ${d.ubic.map((u) => `${u.lugar} (${u.cm || S.medidas[sizeIdx(S, u.area)].replace("≈ ", "")})`).join(", ")}. Add another location?`),
+          [{ id: "mas:si", title: L("Sí, otra ubicación", "Yes, another") }, { id: "mas:no", title: L("No, es todo", "No, that's all") }]);
+        b.paso = "mas"; return done();
+      }
+    }
   }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
-  if (tec.kind !== "full" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }
+  if (tec.kind !== "full" && tec.kind !== "serigrafia" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }
   if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return done(); }
 
-  // 6. the quote
+  // 6. the quote (the name and contact first, if they were skipped at the start)
+  if (pedirDatos(true)) return done();
   const r = quote(P, d, b.lang);
   if (r.err) { say(r.err + " " + L("¿Cambiamos las piezas o la técnica?", "Shall we change the pieces or the technique?"), [{ id: "qty:" + r.min, title: L(`Usar ${r.min} piezas`, `Use ${r.min} pieces`) }, { id: "reiniciar", title: L("Empezar de nuevo", "Start over") }]); delete d.qty; b.paso = "qty"; return done(); }
   b.cot = { nombre: r.prod.nombre, tecNombre: r.tec.es, linea: d.linea || "", spec: d.spec || "", sentence: r.sentence, unit: r.unit, total: r.total, totalIva: r.totalIva,
@@ -309,9 +421,11 @@ export async function botTurn(doc, input, ctx) {
   const sinEnvio = r.envioCotizar ? L(" (sin envío)", " (shipping not included)") : "";
   const body = L(`Tu cotización: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} por pieza (IVA y comisión de pago incluidos)${ship}\n• Total${sinEnvio}: ${money(r.totalFinal)}\n• Entrega estimada: ${when} (${r.days} días hábiles después de aprobar tu arte)${ejemplo ? "\nPrecio de referencia: tu asesora lo confirma al revisar tu arte." : "\nEl precio final se confirma al revisar tu arte."}`,
     `Your quote: ${r.sentence}.${specLine}\n• ${money(r.unitFinal)} MXN per piece (VAT and payment fee included)${ship}\n• Total${sinEnvio}: ${money(r.totalFinal)} MXN\n• Estimated delivery: ${when} (${r.days} business days after you approve the artwork)\nFinal price confirmed after reviewing your artwork.`);
-  b.paso = "cotizado";
-  if (r.totalFinal > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalFinal)} total`); }
-  if (d.spec) { say(body); return handoff(`Cotizó con una especificación propia (${d.spec}): ${r.sentence}`); }
-  say(body, [{ id: "pagar", title: L(`Pagar anticipo ${st.anticipo}%`, `Pay ${st.anticipo}% deposit`) }, { id: "reiniciar", title: L("Cambiar algo", "Change something") }, { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }]);
+  b.paso = "cotizado"; b.cotizadoEn = Date.now();   // 24 hours after this, the chat starts over
+  if (!b.contado) { b.contado = true; doc.memoria = { ...(doc.memoria || {}), cotizaciones: ((doc.memoria || {}).cotizaciones || 0) + 1 }; }
+  if (r.totalFinal > st.limite) { say(body); return handoff(`Cotización arriba de ${money(st.limite)}: ${r.sentence} · ${money(r.totalFinal)} total`, true); }
+  if (d.spec) { say(body); return handoff(`Cotizó con una especificación propia (${d.spec}): ${r.sentence}`, true); }
+  if (r.excede) { say(body); return handoff(`Medida de estampado mayor a 30×60 cm: ${r.sentence}`, true); }
+  say(body, [{ id: "pagar", title: L(`Pagar anticipo ${st.anticipo}%`, `Pay ${st.anticipo}% deposit`) }, { id: "reiniciar", title: L("Cambiar algo", "Change something") }, { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }, ...OTRA]);
   return done();
 }

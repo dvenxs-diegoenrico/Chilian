@@ -1,5 +1,7 @@
 /* Chilian · website chat ("Cotiza por chat"). The same assistant as WhatsApp and Instagram:
    it quotes step by step with buttons, sends payment links, and passes to an advisor.
+   One chat is one quote. "Nueva cotización" starts another for the same customer; "Cerrar chat" ends it.
+   24 h after a quote the chat starts over on its own, keeping only the customer's memory, which is lost after 72 h.
    Shown when the assistant is on for the website (OS → Ajustes → Asistente de ventas),
    or on any page with ?asistente=1 (test mode; nothing reaches the public). */
 (() => {
@@ -10,7 +12,8 @@
   const T = (es, en) => (lang() === "en" ? en : es);
   let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
-  let total = st.total || 0, busy = false, timer = 0, waiting = false, root, log, form, input;   // waiting: a person may answer (hand-off): only then does the page poll
+  if (st.previo && Date.now() - (st.previo.ts || 0) > 72 * 3600e3) { delete st.previo; if (st.cerrado) st = {}; }   // after 72 h the memory is gone
+  let total = st.total || 0, busy = false, timer = 0, waiting = false, root, log, form, input, tools, bNueva, bCerrar, go;   // waiting: a person may answer (hand-off): only then does the page poll
 
   const css = `
   .cc-btn { position: fixed; z-index: 41; right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -37,6 +40,11 @@
     font: inherit; font-size: .85rem; font-weight: 500; text-align: left; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
   .cc-opts a { background: var(--magenta, #C9922E); border-color: transparent; color: var(--on-accent, #0B0B0B); font-weight: 600; }
   .cc-opts button:hover { border-color: var(--magenta, #C9922E); }
+  .cc-tools { display: flex; gap: .5rem; padding: .35rem 1rem; border-bottom: 1px solid rgba(243,235,221,.1); }
+  .cc-tools button { min-height: 40px; padding: .3rem .8rem; border-radius: 999px; border: 1px solid rgba(243,235,221,.3); background: none; color: inherit; font: inherit; font-size: .8rem; cursor: pointer; }
+  .cc-tools button:hover { border-color: var(--magenta, #C9922E); }
+  .cc-tools button[hidden] { display: none; }
+  .cc-form input:disabled { opacity: .5; }
   .cc-form { display: flex; gap: .5rem; padding: .7rem; border-top: 1px solid rgba(243,235,221,.14); }
   .cc-form input { flex: 1; min-width: 0; min-height: 46px; padding: 0 .9rem; border-radius: 999px; border: 1px solid rgba(243,235,221,.25); background: rgba(0,0,0,.25); color: inherit; font: inherit; font-size: 16px; }
   .cc-form button { min-width: 46px; min-height: 46px; border-radius: 50%; border: 0; background: var(--magenta, #C9922E); color: var(--on-accent, #0B0B0B); cursor: pointer; font-size: 1.1rem; }
@@ -73,16 +81,45 @@
     return j;
   }
 
+  const fuente = () => { try { return JSON.parse(sessionStorage.getItem("chilian-origen") || "{}").fuente || "sitio web"; } catch (e) { return "sitio web"; } };
+  const clearLog = () => { log.textContent = ""; };
+  function setClosed(on) {
+    input.disabled = on; go.disabled = on; bCerrar.hidden = on;
+    input.placeholder = on ? T("Chat cerrado", "Chat closed") : T("Escribe aquí…", "Type here…");
+  }
+  // another quote for the same customer: a new chat that keeps only their memory
+  async function nueva() {
+    if (busy) return; busy = true; clearLog();
+    const typing = el("div", "cc-typing", T("Escribiendo…", "Typing…")); log.append(typing);
+    try {
+      const j = await call({ accion: "chat", nueva: true, sid: st.sid, t: st.t, previo: st.previo, lang: lang(), fuente: fuente(), prueba: test || undefined });
+      st = { sid: j.sid, t: j.t, total: j.total }; total = j.total; waiting = false; save(); setClosed(false);
+      typing.remove(); render(j.mensajes.filter((m) => m.de !== "cliente"));
+    } catch (e) { typing.remove(); render([{ de: "bot", texto: T("No pude abrir otra cotización. Inténtalo de nuevo.", "Could not open another quote. Try again.") }]); }
+    finally { busy = false; }
+  }
+  async function cerrar() {
+    if (busy || !st.sid) return; busy = true;
+    try {
+      const j = await call({ accion: "chat", cerrar: true, sid: st.sid, t: st.t, lang: lang() });
+      render((j.mensajes || []).filter((m) => m.de !== "cliente"));
+      st = { previo: { sid: st.sid, t: st.t, ts: Date.now() }, cerrado: true }; total = 0; waiting = false; save(); setClosed(true);
+    } catch (e) { render([{ de: "bot", texto: T("No pude cerrar el chat. Inténtalo de nuevo.", "Could not close the chat. Try again.") }]); }
+    finally { busy = false; }
+  }
+
   async function send(text, button, label) {
+    if (button === "nueva") return nueva();
+    if (button === "cerrar") return cerrar();
     if (busy) return; busy = true; quietSince = Date.now();
     if (text || label) render([{ de: "cliente", texto: text || label }]);
     const typing = el("div", "cc-typing", T("Escribiendo…", "Typing…")); log.append(typing); log.scrollTop = log.scrollHeight;
     try {
-      const fuente = (() => { try { return JSON.parse(sessionStorage.getItem("chilian-origen") || "{}").fuente; } catch (e) { return ""; } })();
-      const j = await call({ accion: "chat", sid: st.sid, t: st.t, text, button, lang: lang(), fuente: fuente || "sitio web", prueba: test || undefined });
-      st.sid = j.sid; st.t = j.t; total = st.total = j.total; waiting = !!j.espera; save();
+      const j = await call({ accion: "chat", sid: st.sid, t: st.t, previo: st.previo, text, button, lang: lang(), fuente: fuente(), prueba: test || undefined });
+      st = { sid: j.sid, t: j.t, total: j.total }; total = j.total; waiting = !!j.espera; save(); setClosed(false);
       typing.remove();
-      render(j.mensajes.filter((m) => m.de !== "cliente"));
+      if (j.nuevo) clearLog();   // the chat was over (24 h after a quote, or closed): this is a new one
+      render(j.nuevo ? j.mensajes : j.mensajes.filter((m) => m.de !== "cliente"));
     } catch (e) {
       typing.remove();
       render([{ de: "bot", texto: T("No pude conectar. Inténtalo de nuevo o escríbenos por WhatsApp.", "Could not connect. Try again or message us on WhatsApp.") }]);
@@ -106,14 +143,20 @@
     try {
       const r = await fetch(`${API}?accion=chat&sid=${encodeURIComponent(st.sid)}&t=${encodeURIComponent(st.t)}&desde=0`);
       if (!r.ok) { st = {}; total = 0; save(); return false; }
-      const j = await r.json(); total = st.total = j.total; waiting = !!j.espera; save(); render(j.mensajes); return true;
+      const j = await r.json();
+      if (j.cerrado || (j.ciclo && j.ciclo !== "vigente")) { st.previo = { sid: st.sid, t: st.t, ts: Date.now() }; save(); await nueva(); return true; }   // closed, or 24 h after a quote
+      total = st.total = j.total; waiting = !!j.espera; save(); render(j.mensajes); return true;
     } catch (e) { return false; }
   }
 
   let started = false;
   async function open() {
     root.classList.add("open"); btn.setAttribute("aria-expanded", "true");
-    if (!started) { started = true; if (!(await history())) await send("", ""); }
+    if (!started) {
+      started = true;
+      if (st.cerrado && !st.sid) { render([{ de: "bot", texto: T("Chat cerrado. ¿Quieres otra cotización?", "Chat closed. Would you like another quote?"), botones: [{ id: "nueva", title: T("Nueva cotización", "New quote") }] }]); setClosed(true); }
+      else if (!(await history())) { if (st.previo) await nueva(); else await send("", ""); }
+    }
     clearInterval(timer); timer = setInterval(poll, 12000);   // only while a person may answer, every 12 s
     if (matchMedia("(min-width: 561px)").matches) input.focus();
   }
@@ -131,12 +174,16 @@
     who.append(el("b", "", T("Asistente Chilian", "Chilian assistant")), el("small", "", T("Cotiza en minutos · asesoras L–V 9:00–19:00", "Quotes in minutes · advisors Mon–Fri 9am–7pm (CDMX)")));
     const x = el("button", "cc-x", "×"); x.type = "button"; x.setAttribute("aria-label", T("Cerrar", "Close")); x.onclick = close;
     head.append(who, x);
+    tools = el("div", "cc-tools");
+    bNueva = el("button", "", T("+ Nueva cotización", "+ New quote")); bNueva.type = "button"; bNueva.onclick = () => nueva();
+    bCerrar = el("button", "", T("Cerrar chat", "Close chat")); bCerrar.type = "button"; bCerrar.onclick = () => cerrar();
+    tools.append(bNueva, bCerrar);
     log = el("div", "cc-log"); log.setAttribute("aria-live", "polite");
     form = el("form", "cc-form"); input = el("input"); input.placeholder = T("Escribe aquí…", "Type here…"); input.setAttribute("aria-label", T("Mensaje", "Message")); input.maxLength = 1500; input.autocomplete = "off";
-    const go = el("button", "", "➤"); go.type = "submit"; go.setAttribute("aria-label", T("Enviar", "Send"));
+    go = el("button", "", "➤"); go.type = "submit"; go.setAttribute("aria-label", T("Enviar", "Send"));
     form.append(input, go);
     form.onsubmit = (e) => { e.preventDefault(); const v = input.value.trim(); if (!v) return; input.value = ""; send(v, ""); };
-    root.append(head, log, form);
+    root.append(head, tools, log, form);
     root.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     btn.onclick = () => (root.classList.contains("open") ? close() : open());
     document.body.append(btn, root);

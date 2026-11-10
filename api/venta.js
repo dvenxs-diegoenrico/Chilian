@@ -9,6 +9,7 @@ import { botTurn, botSettings, PERFIL_NOMBRE } from "./_bot.js";
 import { payLinks, payReady, mpWebhook, stripeWebhook } from "./_pay.js";
 import { sendReplies } from "./_channels.js";
 import { prices, quote } from "./_pricing.js";
+import { estadoCiclo, buildMemoria, nuevaSolicitud } from "./_ciclo.js";
 
 const clip = (t, n) => String(t ?? "").slice(0, n);
 const baseOf = (req) => { const u = new URL(req.url); return `${u.protocol}//${u.host}`; };
@@ -16,13 +17,14 @@ const pub = (m) => ({ de: m.de, texto: m.texto, fecha: m.fecha, botones: m.boton
 
 // One assistant turn on any conversation; saves the messages and tells the team on a hand-off.
 export async function assistantTurn(doc, input, { canal, lang, base, send }) {
+  if (input.text || input.button) (doc.bot ||= { paso: "inicio", d: {}, lang }).ultima = Date.now();   // the customer is here: the 24 h and 72 h clocks restart
   const res = await botTurn(doc, input, { canal, lang, payLinks: (d, amount, concept) => payLinks({ ref: d.id, amount, concept, base }) });
   const now = () => new Date().toISOString();
   const ids = send && res.replies.length ? await sendReplies(doc, res.replies) : [];
   res.replies.forEach((r, i) => doc.mensajes.push({ mid: ids[i] || "", de: "bot", por: "Asistente Chilian", texto: r.text, botones: r.buttons, links: r.links, fecha: now() }));
   if (doc.bot?.cot && (!doc.estimados?.[0] || doc.estimados[0].resumen !== doc.bot.cot.sentence)) {
     const c = doc.bot.cot;   // what was quoted: the OS makes the pre-quote from it, at this price
-    doc.estimados = [{ producto: c.d.prod, nombre: (c.nombre || c.d.prod) + (c.linea ? ` · línea ${{ basica: "básica", clasica: "clásica", premium: "premium" }[c.linea]}` : ""), piezas: +c.d.qty, tecnica: c.d.tec, tecnicaNombre: c.tecNombre || c.d.tec, tintas: c.d.inks || 0, ubicaciones: c.d.locs || 0, bordado: c.d.emb || "", entrega: c.d.del || "estandar",
+    doc.estimados = [{ producto: c.d.prod, nombre: (c.nombre || c.d.prod) + (c.linea ? ` · línea ${{ basica: "básica", clasica: "clásica", premium: "premium" }[c.linea]}` : ""), piezas: +c.d.qty, tecnica: c.d.tec, tecnicaNombre: c.tecNombre || c.d.tec, tintas: c.d.inks || 0, ubicaciones: c.d.ubic?.length || c.d.locs || 0, ubic: c.d.ubic || [], bordado: c.d.emb || "", entrega: c.d.del || "estandar",
       unitario: c.unit, total: c.total, unitarioFinal: c.unitFinal, totalFinal: c.totalFinal, envio: c.envio, envioCotizar: !!c.envioCotizar, prenda: c.prenda || "", color: c.d.color || "", dias: c.days, fechaEstimada: c.fecha, resumen: c.sentence, origen: "asistente" }];
     doc.prenda = c.sentence; doc.piezas = +c.d.qty;
     if (c.linea) doc.estimados[0].linea = c.linea;
@@ -32,6 +34,7 @@ export async function assistantTurn(doc, input, { canal, lang, base, send }) {
   if (bd.perfil) doc.perfilCliente = PERFIL_NOMBRE[bd.perfil] || bd.perfil;
   if (bd.uso) doc.usoCliente = bd.uso;
   if (bd.qty && !doc.piezas) doc.piezas = +bd.qty;   // what they asked for, before the quote
+  doc.memoria = buildMemoria(doc);   // what we remember of this customer (it expires after 72 h without writing)
   await rateLead(doc);
   if (res.handoff) { doc.nuevoMensaje = true; doc.estado = doc.estado === "descartada" ? "nueva" : doc.estado; doc.asistente = { pasoAAsesora: res.handoff, fecha: now() }; }
   return res;
@@ -58,42 +61,73 @@ export async function rateLead(doc) {
   return doc.lead;
 }
 
+/* The customer's next chat: a new request with a clean conversation and only their memory (none if 72 h have passed).
+   The old chat is closed and stays as it was for the team. */
+export async function rotar(old, { olvidar = false } = {}) {
+  const saved = await saveDoc("solicitudes", nuevaSolicitud(old, { olvidar }), "Asistente Chilian");
+  if (!old.bot?.cerrado) { old.bot = { ...(old.bot || {}), cerrado: true }; await saveDoc("solicitudes", old, "Asistente Chilian").catch(() => {}); }
+  return saved;
+}
+
 // The page only polls while a person may answer (hand-off or paused assistant): the assistant's replies come in the POST itself.
 const waiting = (doc) => !!(doc.bot?.estado === "asesora" || doc.bot?.pausado);
 
 async function chatTurn(req, d) {
   const st = await botSettings();
-  let doc, permit = d.t ? verify(d.t) : null;
+  let doc, permit = d.t ? verify(d.t) : null, previo = null, nuevo = false;
   if (d.sid && permit?.chat === d.sid) doc = await getDoc("solicitudes", d.sid);
+  // a chat that was closed on the page: its permit lets the next one keep the customer's memory
+  if (!doc && d.previo?.sid) { const pp = verify(d.previo.t); if (pp?.chat === d.previo.sid) previo = await getDoc("solicitudes", d.previo.sid); }
   const text = clip(d.text, 1500).trim(), button = clip(d.button, 80);
-  const lang = d.lang === "en" || d.lang === "es" ? d.lang : doc?.bot?.lang || doc?.idioma || "es";
+  const lang = d.lang === "en" || d.lang === "es" ? d.lang : (doc || previo)?.bot?.lang || (doc || previo)?.idioma || "es";
+  const novo = d.nueva || button === "nueva" || /^(otra|nueva) cotizaci[oó]n$|^(new|another) quote$/i.test(text);
+  const cerrar = d.cerrar || button === "cerrar" || /^(cerrar|terminar|finalizar)( el)? chat$|^close( the)? chat$/i.test(text);
+  const now = () => new Date().toISOString();
+
+  if (cerrar) {   // closing: the quote stays with the team; the page keeps the permit to start another with memory
+    if (!doc) return json({ cerrado: true });
+    doc.bot = { ...(doc.bot || { paso: "inicio", d: {}, lang }), cerrado: true };
+    doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Done, I closed the chat. Your quote is saved. Whenever you want another, tap “New quote”. Thanks!" : "Listo, cerré el chat. Tu cotización quedó guardada. Cuando quieras otra, toca «Nueva cotización». ¡Gracias!", botones: [{ id: "nueva", title: lang === "en" ? "New quote" : "Nueva cotización" }], fecha: now() });
+    doc = await saveDoc("solicitudes", doc, "Chat del sitio");
+    return json({ cerrado: true, sid: doc.id, t: d.t, mensajes: doc.mensajes.slice(-1).map(pub), total: doc.mensajes.length });
+  }
+
+  // another quote (asked for, or the chat is closed or too old): a new chat for the same customer
+  const base = doc || previo;
+  if (base) {
+    const cyc = estadoCiclo(base);
+    if (novo || cyc !== "vigente") {
+      doc = await rotar(base, { olvidar: cyc === "olvidar" });
+      permit = { chat: doc.id, exp: Date.now() + 90 * 864e5 }; d.t = sign(permit); nuevo = true;
+    }
+  }
   if (!doc) {
     if (!st.activo.web && !d.prueba) return json({ error: "El chat no está activo." }, 403);
     doc = { estado: "nueva", canal: "chat", fuente: clip(d.fuente, 40) || "sitio web", herramientas: ["asistente"], especifica: false, modelos: [], tipo: "", tipoNombre: "Chat del sitio",
-      nombre: "Chat del sitio", empresa: "", contacto: "", notas: "", mensajes: [], nuevoMensaje: false, recibida: new Date().toISOString(), idioma: lang, bot: { paso: "inicio", d: {}, lang } };
+      nombre: "Chat del sitio", empresa: "", contacto: "", notas: "", mensajes: [], nuevoMensaje: false, recibida: now(), idioma: lang, bot: { paso: "inicio", d: {}, lang, ultima: Date.now() } };
     doc = await saveDoc("solicitudes", doc, "Chat del sitio");
     permit = { chat: doc.id, exp: Date.now() + 90 * 864e5 }; d.t = sign(permit);   // the page keeps it 90 days
   }
   const before = doc.mensajes.length;
-  if (text || button) doc.mensajes.push({ de: "cliente", texto: text || (doc.mensajes.at(-1)?.botones || []).find((b) => b.id === button)?.title || button, boton: button || undefined, fecha: new Date().toISOString() });
-  // after a hand-off the next message can be the customer's name and contact
+  if ((text && !novo) || (button && button !== "nueva")) doc.mensajes.push({ de: "cliente", texto: text || (doc.mensajes.at(-1)?.botones || []).find((b) => b.id === button)?.title || button, boton: button || undefined, fecha: now() });
+  // after a hand-off the next message can be the customer's name and contact (if they skipped them at the start)
   if (doc.bot?.estado === "asesora" && text && !doc.contactoOk) {
     const phone = text.replace(/[^\d+]/g, ""), mail = (text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/) || [])[0];
     if (phone.replace(/\D/g, "").length >= 10 || mail) {
       doc.contacto = mail || phone; doc.contactoOk = true;
       const name = text.replace(mail || "", "").replace(/[\d+()\-\s]{8,}/g, " ").replace(/\s+/g, " ").trim(); if (name && name.length < 60) doc.nombre = name;
-      doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Thanks! Your advisor will contact you there." : "¡Gracias! Tu asesora te contacta ahí.", fecha: new Date().toISOString() });
+      doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Thanks! Your advisor will contact you there." : "¡Gracias! Tu asesora te contacta ahí.", fecha: now() });
     }
     doc.nuevoMensaje = true;
-  } else if (text || button || !before) {
-    const r = await assistantTurn(doc, { text, button }, { canal: "chat", lang, base: baseOf(req), send: false });
+  } else if (text || (button && button !== "nueva") || !before) {
+    const r = await assistantTurn(doc, { text: novo ? "" : text, button: button === "nueva" ? "" : button }, { canal: "chat", lang, base: baseOf(req), send: false });
     if (r.handoff) {
-      if (!doc.contactoOk) doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Leave your name and WhatsApp or email so they can reach you even if you close this page." : "Déjame tu nombre y tu WhatsApp o correo para que te contacte aunque cierres esta página.", fecha: new Date().toISOString() });
+      if (!doc.contactoOk) doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Leave your name and WhatsApp or email so they can reach you even if you close this page." : "Déjame tu nombre y tu WhatsApp o correo para que te contacte aunque cierres esta página.", fecha: now() });
     } else if (doc.bot?.pausado || doc.bot?.estado === "asesora") doc.nuevoMensaje = true;
   }
-  doc.ultimoMensaje = new Date().toISOString();
+  doc.ultimoMensaje = now();
   doc = await saveDoc("solicitudes", doc, "Chat del sitio");
-  return json({ sid: doc.id, t: d.t, mensajes: doc.mensajes.slice(before).map(pub), total: doc.mensajes.length, espera: waiting(doc) });
+  return json({ sid: doc.id, t: d.t, mensajes: doc.mensajes.slice(before).map(pub), total: doc.mensajes.length, espera: waiting(doc), ...(nuevo ? { nuevo: true } : {}) });
 }
 
 export async function GET(req) {
@@ -104,7 +138,7 @@ export async function GET(req) {
       if (!p || p.chat !== sid) return json({ error: "Conversación no válida." }, 401);
       const doc = await getDoc("solicitudes", sid); if (!doc) return json({ error: "No encontramos la conversación." }, 404);
       const from = Math.max(0, parseInt(q.get("desde"), 10) || 0);
-      return json({ mensajes: doc.mensajes.slice(from).map(pub), total: doc.mensajes.length, espera: waiting(doc) });
+      return json({ mensajes: doc.mensajes.slice(from).map(pub), total: doc.mensajes.length, espera: waiting(doc), ciclo: estadoCiclo(doc), cerrado: !!doc.bot?.cerrado });
     }
     if (q.get("accion") === "activo") {   // public: is the website chat on?
       // the page only shows the chat while storage answers: a chat that cannot save is worse than no chat

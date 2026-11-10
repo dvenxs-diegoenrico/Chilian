@@ -7,8 +7,14 @@ export const SERIGRAFIA = {
   tramos: [100, 250, 500, 1000, 10000, 100000],        // pieces from
   colores: ["1", "2-3", "4-5", "6-7", "8-9", "10-11"],
   tamanos: [100, 300, 600, 1200, 1800],                 // cm²
-  medidas: ["10×10 cm", "17×17 cm", "24×24 cm", "35×35 cm", "42×42 cm"],
-  nombres: [{ es: "Chico", en: "Small" }, { es: "Mediano", en: "Medium" }, { es: "Grande", en: "Large" }, { es: "XL", en: "XL" }, { es: "Completo", en: "Full" }],
+  // The real shapes of each size (the same ones the OS quoter shows), and what each is usually for
+  medidas: ["≈ 10×10 cm", "≈ 21.5×14 cm", "≈ 21.5×28 cm", "≈ 28×43 cm", "≈ 30×60 cm"],
+  nombres: [{ es: "Escudo", en: "Badge" }, { es: "Media carta", en: "Half letter" }, { es: "Carta", en: "Letter" }, { es: "Doble carta", en: "Double letter" }, { es: "Extra grande", en: "Extra large" }],
+  usos: [{ es: "logo de pecho, manga o nuca", en: "chest, sleeve or neck logo" }, { es: "logo mediano o frente chico", en: "medium logo or small front" }, { es: "frente o espalda estándar", en: "standard front or back" },
+    { es: "frente o espalda grandes", en: "large front or back" }, { es: "diseño de casi toda la prenda", en: "design covering most of the garment" }],
+  // where it goes, and the size that usually fits there
+  lugares: { frente: { es: "Frente", en: "Front", sugerida: 600 }, espalda: { es: "Espalda", en: "Back", sugerida: 600 }, pecho: { es: "Pecho izquierdo", en: "Left chest", sugerida: 100 },
+    manga: { es: "Manga", en: "Sleeve", sugerida: 100 }, nuca: { es: "Nuca", en: "Back neck", sugerida: 100 } },
   extrasNombres: {
     fabric: { es: "Prenda de color (Fabric Color)", en: "Colored garment (Fabric Color)" },
     antimigrante: { es: "Antimigrante (base barrera)", en: "Anti-migration (barrier base)" },

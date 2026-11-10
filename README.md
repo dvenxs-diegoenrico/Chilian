@@ -588,3 +588,29 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - Cada consulta de «¿está encendido el chat?» lee una sola vez, y la comprobación de que el almacén responde es esa misma lectura.
 - **Ya sin uso.** El push no tocaba el almacenamiento (sin las llaves VAPID no hacía nada), pero se quitó por no tener uso.
 - **Código quitado.** `api/_push.js`, `api/avisos.js`, `ops/sw.js`, `propuesta-v2.html`, 21 archivos de fotos y un logo sin referencias, las funciones `calcLinea`, `userByName` y `listaPor`, y la dependencia `web-push`.
+
+### El chat: medidas, datos al inicio, memoria y varias cotizaciones
+
+- **Medidas con conciencia.** Para serigrafía, el asistente pregunta lugar por lugar (frente, espalda, pecho izquierdo, manga o nuca) y le da a cada uno su medida. No hay solo «chico, mediano y grande».
+  - **Medidas de la tabla.** Son las mismas que usa el cotizador del OS, cada una con su uso:
+    - Escudo ≈ 10×10 cm.
+    - Media carta ≈ 21.5×14 cm.
+    - Carta ≈ 21.5×28 cm.
+    - Doble carta ≈ 28×43 cm.
+    - Extra grande ≈ 30×60 cm.
+  - **Sugerencia por lugar.** Marca con ⭐ la medida que suele ir en cada lugar.
+  - **Medida propia.** El cliente puede escribir la suya («20 × 25 cm» o «8 × 10 pulgadas») y se acomoda a la medida siguiente de la tabla. Una medida mayor a 30×60 cm pasa a una asesora.
+  - **Cuenta y cotización.** Luego pregunta si se agrega otra ubicación (hasta 4). La cotización lista cada ubicación con su medida y cada una se cobra por su área.
+  - **Sitio y estudio.** El cotizador del sitio tiene las mismas medidas, más una casilla de «Tu medida» para escribir ancho × alto. El estudio ya cotizaba por el área real.
+- **Datos desde el inicio, de uno en uno.** En el chat del sitio pregunta primero el nombre y luego un WhatsApp o correo. Cada pregunta tiene «Prefiero no decirlo». Si el cliente se salta los datos, los pide antes de dar el precio. En WhatsApp, Instagram y Messenger ya los tiene del canal.
+- **Un chat es una cotización.** Cada cotización queda en su propia solicitud del OS. Marca «cotización 2» y «Viene de SOL-…» en las siguientes.
+  - **«Nueva cotización»:** botón en el encabezado del chat, botón tras cada cotización y texto «nueva cotización».
+  - **«Cerrar chat»:** igual, con botón o texto.
+  - **Después de cerrar:** el chat se bloquea y ofrece «Nueva cotización».
+- **Reinicio a las 24 h, memoria a las 72 h** (`api/_ciclo.js`, por cliente del chat):
+  - **Reinicio a las 24 h:** si el cliente tiene una cotización y pasan 24 horas sin escribir, su siguiente mensaje abre un chat nuevo.
+  - **Memoria que se queda:** nombre, empresa, contacto, tipo de cliente, producto, calidad, color y técnica de su última cotización, y cuántas cotizaciones lleva.
+  - **Lo que se pierde:** la conversación y el pedido. Con la memoria el asistente lo saluda por su nombre y ofrece «Igual que la última vez».
+  - **72 h sin escribir:** se pierde también la memoria. El siguiente chat empieza de cero.
+  - **Canales sociales:** conservan su identificador (es como se les contesta), que no cuenta como memoria.
+- **Privacidad.** Solo el identificador de WhatsApp permite reconocer una cuenta de cliente. Un teléfono escrito en el chat del sitio ya no sirve para saludar con el nombre de una cuenta.

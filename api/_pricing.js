@@ -40,10 +40,22 @@ export function extrasOf(c, tec, prod) {
 // Official screen-printing table: per location by size, quantity break and colors, plus extras.
 export function printCost(P, c, tec, prod, q, locs) {
   const S = P.serigrafia, t = tierOf(q, S.tramos), ik = inkIdx(c.inks);
-  const areas = (c.areas && c.areas.length ? c.areas.slice(0, 4) : Array(locs).fill(+c.size || 300));
+  const areas = c.areas && c.areas.length ? c.areas.slice(0, 4) : c.ubic && c.ubic.length ? c.ubic.slice(0, 4).map((u) => +u.area || 300) : Array(locs).fill(+c.size || 300);
   const ids = extrasOf(c, tec, prod); let base = 0, extra = 0;
   for (const a of areas) { const k = String(S.tamanos[sizeIdx(S, a)]); base += S.tabla[k][t][ik]; for (const id of ids) extra += S.extras[id][k][t]; }
-  return { base, extra, ids, areas };
+  return { base, extra, ids, areas, ubic: c.ubic && c.ubic.length ? c.ubic.slice(0, 4) : null };
+}
+// "20x25", "20 por 25 cm", "8×10 pulgadas", or one number in cm (a square): the customer's own measure.
+export function parseMedida(text) {
+  const t = String(text || "").toLowerCase().replace(",", ".");
+  const m = t.match(/(\d+(?:\.\d+)?)\s*(?:x|×|por|by)\s*(\d+(?:\.\d+)?)\s*(cm|centimetros|centímetros|in|inch|inches|pulgadas|")?/);
+  if (m) {
+    let w = +m[1], h = +m[2]; if (/^(in|inch|inches|pulgadas|")$/.test(m[3] || "")) { w *= 2.54; h *= 2.54; }
+    if (w > 0 && h > 0 && w <= 300 && h <= 300) return { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10, area: Math.round(w * h) };
+  }
+  const one = t.match(/(\d+(?:\.\d+)?)\s*(cm|centimetros|centímetros)/);
+  if (one && +one[1] > 0 && +one[1] <= 300) { const w = +one[1]; return { w, h: w, area: Math.round(w * w), cuadrada: true }; }
+  return null;
 }
 const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
 /* The garment's price per piece: T-shirts from the official list (by line and white/colored), other
@@ -74,7 +86,7 @@ export function quote(P, c, lang = "es") {
   const prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
   const tec = TECS.find((x) => x.id === c.tec) || TECS[0], kind = tec.kind;
   const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos);
-  const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
+  const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.ubic && c.ubic.length ? c.ubic.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
   let unit = 0, pc = null;
   if (kind === "full") unit = P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0;
   else {
@@ -95,17 +107,18 @@ export function quote(P, c, lang = "es") {
   const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
   const how = kind === "full" ? L("en full print", "in full print")
     : kind === "serigrafia" ? (() => {
-      const S = P.serigrafia, ink = S.colores[inkIdx(inks)], med = [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + "), plural = ink !== "1";
+      const S = P.serigrafia, ink = S.colores[inkIdx(inks)], plural = ink !== "1";
+      const med = pc.ubic ? pc.ubic.map((u) => `${L(u.lugar, u.lugar)} ${u.cm || S.medidas[sizeIdx(S, u.area)].replace("≈ ", "")}`).join(", ") : [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + ");
       const ex = pc.ids.filter((x) => !["hdpuff", "glitter"].includes(x)).map((x) => (S.extrasNombres[x][lang === "en" ? "en" : "es"]).toLowerCase());
       const ex2 = ex.filter((x) => !x.startsWith(S.extrasNombres.fabric.es.toLowerCase().slice(0, 10)) && !x.startsWith(S.extrasNombres.fabric.en.toLowerCase().slice(0, 10)));
       const onG = !prod.lista && !prod.listaCodigo && c.color ? L(c.color === "color" ? ", sobre prenda de color" : ", sobre prenda clara", c.color === "color" ? ", on a colored garment" : ", on a light garment") : "";
-      return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"} de ${med}${ex2.length ? ", con " + ex2.join(" y ") : ""}${onG}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""} of ${med}${ex2.length ? ", with " + ex2.join(" and ") : ""}${onG}`);
+      return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"}${pc.ubic ? ": " : " de "}${med}${ex2.length ? ", con " + ex2.join(" y ") : ""}${onG}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""}${pc.ubic ? ": " : " of "}${med}${ex2.length ? ", with " + ex2.join(" and ") : ""}${onG}`);
     })()
     : kind === "dtg" ? L(`en DTG a todo color, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG, ${locs} location${locs > 1 ? "s" : ""}`)
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);
   return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
-    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null,
+    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null, excede: !!(pc && pc.ubic && pc.ubic.some((u) => u.excede)),
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

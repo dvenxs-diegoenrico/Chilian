@@ -18,7 +18,8 @@
 import crypto from "node:crypto";
 import { sessionOf, getDoc, saveDoc, getIndex, setIndex, json, fail } from "./_lib.js";
 import { botSettings } from "./_bot.js";
-import { assistantTurn } from "./venta.js";
+import { assistantTurn, rotar } from "./venta.js";
+import { estadoCiclo } from "./_ciclo.js";
 
 const IG_GRAPH = process.env.IG_GRAPH_URL || "https://graph.instagram.com/v21.0";
 const FB_GRAPH = process.env.FB_GRAPH_URL || "https://graph.facebook.com/v21.0";
@@ -45,11 +46,22 @@ const fmtPhone = (s) => { const d = digits(s).slice(-10); return d.length === 10
 // m: { canal, person, mid, text, fecha, echo, name, user, line: { id, numero, linea } }
 // The sales assistant answers when it is on for this channel and nobody took the conversation.
 // Returns true when it handled the message (the team is told only on a hand-off).
-async function assist(doc, m) {
+async function assist(doc, m, idx) {
   const st = await botSettings();
-  if (!st.activo[m.canal] || doc.bot?.pausado || doc.bot?.estado === "asesora") return false;
+  if (!st.activo[m.canal]) return false;
+  const txt = String(m.text || ""), base = env("SITE_URL") || "https://chilian.vercel.app";
+  const nueva = m.button === "nueva" || /^\s*(otra|nueva) cotizaci[oó]n\s*$/i.test(txt);
+  const cerrar = m.button === "cerrar" || /^\s*(cerrar|terminar|finalizar)( el)? chat\s*$/i.test(txt);
+  if (!nueva && !cerrar && (doc.bot?.pausado || doc.bot?.estado === "asesora")) return false;
+  if (nueva) {   // another quote for the same customer: a new request, with their memory
+    const nuevo = await rotar(doc, { olvidar: estadoCiclo(doc) === "olvidar" });
+    await setIndex(idx.kind, idx.key, { id: nuevo.id });
+    await assistantTurn(nuevo, {}, { canal: m.canal, lang: "es", base, send: true });
+    await saveDoc("solicitudes", nuevo, "Asistente Chilian");
+    return true;
+  }
   doc.nuevoMensaje = false;
-  const r = await assistantTurn(doc, { text: m.button ? "" : m.text, button: m.button || "" }, { canal: m.canal, lang: "es", base: env("SITE_URL") || "https://chilian.vercel.app", send: true });
+  await assistantTurn(doc, { text: m.button ? "" : m.text, button: m.button || "" }, { canal: m.canal, lang: "es", base, send: true });
   await saveDoc("solicitudes", doc, "Asistente Chilian");
   return true;
 }
@@ -60,6 +72,11 @@ async function file(m) {
   const idx = await getIndex(idxKind, idxKey);
   let doc = idx ? await getDoc("solicitudes", idx.id) : null;
   if (doc && (doc.mensajes || []).some((x) => x.mid && x.mid === m.mid)) return;   // already recorded (our own reply's echo)
+  // 24 h after a quote, or after the customer closed the chat: a new request with their memory; after 72 h, from zero
+  if (doc && !m.echo) {
+    const cyc = estadoCiclo(doc);
+    if (cyc !== "vigente") { doc = await rotar(doc, { olvidar: cyc === "olvidar" }); await setIndex(idxKind, idxKey, { id: doc.id }); }
+  }
   const label = { whatsapp: "WhatsApp", instagram: "Instagram", messenger: "Messenger" }[m.canal];
   const msg = { mid: clip(m.mid, 200), de: m.echo ? "chilian" : "cliente", por: m.echo ? `${label} (Chilian)` : "", texto: clip(m.text, 2000), fecha: m.fecha };
   const where = m.canal === "whatsapp" ? `WhatsApp ${m.line.numero || ""}${m.line.linea ? " (" + m.line.linea + ")" : ""}`.trim() : label;
@@ -74,7 +91,7 @@ async function file(m) {
       ...(m.canal === "whatsapp" ? { waId: m.person, waLine: m.line.id, whatsapp: { wa: digits(m.line.numero), numero: m.line.numero || "", asesor: m.line.linea || "" } } : {}) };
     let saved = await saveDoc("solicitudes", doc, label);
     await setIndex(idxKind, idxKey, { id: saved.id });
-    if (await assist(saved, m)) return;
+    if (await assist(saved, m, { kind: idxKind, key: idxKey })) return;
     return;
   }
   const wasWaiting = !!doc.nuevoMensaje;
@@ -84,7 +101,7 @@ async function file(m) {
   if (m.name && /^(WhatsApp|Instagram|Messenger) /.test(doc.nombre || "")) doc.nombre = m.name;
   if (m.echo && doc.bot && !doc.bot.pausado) doc.bot.pausado = true;   // someone answered from the phone: the assistant steps back
   doc = await saveDoc("solicitudes", doc, label);
-  if (!m.echo && await assist(doc, m)) return;
+  if (!m.echo && await assist(doc, m, { kind: idxKind, key: idxKey })) return;
 }
 
 const igText = (m) => m.text || (m.attachments || []).map((a) => `[${a.type === "image" ? "imagen" : a.type || "archivo"}] ${a.payload?.url || ""}`.trim()).join(" ") || (m.is_deleted ? "[mensaje borrado]" : "[mensaje]");

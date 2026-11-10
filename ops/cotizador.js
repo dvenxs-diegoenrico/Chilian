@@ -778,7 +778,7 @@
         const names = ["Frente", "Espalda", "Manga", "Nuca"];
         lineas.push(mkLine("libre", e.piezas || 0, { concepto: `${e.nombre} · ${e.tecnicaNombre}${e.entrega === "express" ? " · express" : ""}`, desc: `Estimado del sitio: ${e.resumen}`,
           ...(e.unitario ? { precio: String(e.unitario), manual: true } : {}),
-          ubicaciones: tec ? Array.from({ length: Math.max(1, e.ubicaciones || 1) }, (_, i) => ({ nombre: names[i] || "Ubicación " + (i + 1), tecnica: tec, colores: tec === "serigrafia" ? e.tintas || 1 : 0, tintas: "", ...(tec === "bordado" ? { puntadas: e.bordado === "grande" ? 20000 : e.bordado === "chico" ? 5000 : 9000 } : {}) })) : [] }));
+          ubicaciones: tec ? Array.from({ length: Math.max(1, e.ubicaciones || 1) }, (_, i) => ({ nombre: (e.ubic && e.ubic[i] && e.ubic[i].lugar) || names[i] || "Ubicación " + (i + 1), tecnica: tec, colores: tec === "serigrafia" ? e.tintas || 1 : 0, tintas: "", ...(tec === "bordado" ? { puntadas: e.bordado === "grande" ? 20000 : e.bordado === "chico" ? 5000 : 9000 } : {}) })) : [] }));
       }
       if (solicitud && !lineas.length) lineas.push(mkLine("libre", solicitud.piezas || 0, { concepto: solicitud.prenda || "Playera" }));
       const q = normalize({ oportunidadId, cuentaId, cliente, estado: "borrador", lineas, fecha: today(),

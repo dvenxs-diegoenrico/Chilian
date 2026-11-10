@@ -31,7 +31,8 @@ Datos de Chilian (úsalos solo si preguntan):
 
 Solo hablas de Chilian y de pedidos de ropa y promocionales. Valores para registrar_pedido:
 prod: playera (cuello redondo) | sport (playera deportiva Chilian Sport) | tiedye (teñida en prenda) | mangalarga | crewneck (sudadera cuello redondo) | sudadera (con capucha) | polo | camisa | short | pants (o jogger) | gorra | bolsa | propia (prenda del cliente)
-Los precios que ve el cliente ya incluyen IVA y la comisión de pago; el envío se suma aparte.
+Los precios que ve el cliente ya incluyen IVA y la comisión de pago; el envío se cotiza aparte.
+Medidas del estampado: si el cliente da una medida (por ejemplo "20 x 25 cm" o "8 x 10 pulgadas"), conviértela a cm y regístrala en ancho_cm y alto_cm con su lugar (frente, espalda, pecho, manga, nuca). Si dice "chico", "grande" u otra palabra sin medida, no inventes centímetros: pon 0 y deja que el sistema le muestre las medidas reales.
 tec: plastisol | waterbase | discharge | hd | puff | glitter | gitd | dtg | embroidery | fullprint
 uso: carrera | evento | negocio | uniforme | banda | marca | regalo
 perfil: experto (ya sabe tela, gramaje y sistema de impresión, o compara cotizaciones) | intermedio (sabe el producto, necesita asesoría) | explorador (no sabe qué cotizar) | cliente (ya le compra a Chilian)`;
@@ -54,6 +55,9 @@ const TOOLS = [
       size: { type: "integer", enum: [0, 100, 300, 600, 1200, 1800], description: "Área de impresión en cm²: 100 (≈10×10 cm, logo de pecho), 300 (≈17×17), 600 (≈24×24, carta), 1200 (≈35×35, doble carta), 1800 (≈42×42, frente completo) Pon 0 si no lo dijo." },
       extras: { type: "array", items: { type: "string", enum: ["antimigrante", "fleece", "export"] }, description: "Extras de serigrafía que pidió: antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación). La prenda de color, HD, puff y glitter se suman solos. Lista vacía si no pidió ninguno." },
       locs: int("Número de ubicaciones de impresión (1 a 4)"),
+      lugar: str("Dónde va el estampado de la medida que dio", ["frente", "espalda", "pecho", "manga", "nuca"]),
+      ancho_cm: { type: "number", description: "Ancho en cm del estampado, si dio una medida (convierte pulgadas a cm). Pon 0 si no la dio." },
+      alto_cm: { type: "number", description: "Alto en cm del estampado, si dio una medida. Pon 0 si no la dio." },
       emb: str("Tamaño de bordado", ["chico", "mediano", "grande"]),
       del: str("Entrega", ["estandar", "express"]),
       linea: str("Línea de prenda", ["basica", "clasica", "premium"]),
@@ -82,7 +86,8 @@ function history(doc, text, state) {
   }
   while (msgs.length && msgs[0].role !== "user") msgs.shift();
   if (msgs.length && msgs.at(-1).role === "user" && msgs.at(-1).content.endsWith(text)) msgs.pop();   // the new message goes below
-  msgs.push({ role: "user", content: `${text}\n\n[Pedido hasta ahora: ${JSON.stringify(state)}]` });
+  const mem = doc.memoria && doc.memoria.nombre ? `\n[Cliente que ya conocemos: ${JSON.stringify({ nombre: doc.memoria.nombre, empresa: doc.memoria.empresa, perfil: doc.memoria.perfil, uso: doc.memoria.uso, cotizaciones: doc.memoria.cotizaciones })}]` : "";
+  msgs.push({ role: "user", content: `${text}\n\n[Pedido hasta ahora: ${JSON.stringify(state)}]${mem}` });
   return msgs;
 }
 
