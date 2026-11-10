@@ -614,3 +614,26 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - **72 h sin escribir:** se pierde también la memoria. El siguiente chat empieza de cero.
   - **Canales sociales:** conservan su identificador (es como se les contesta), que no cuenta como memoria.
 - **Privacidad.** Solo el identificador de WhatsApp permite reconocer una cuenta de cliente. Un teléfono escrito en el chat del sitio ya no sirve para saludar con el nombre de una cuenta.
+
+### Cotizador interno: precios por escala (lista de playeras y serigrafía desde 6 pz)
+
+- **Lista de precios en el cotizador.** El cotizador del OS (`ops/cotizador.js`) carga la lista de playeras cuello redondo de `/api/precios`, que sale de `api/_lista.js`.
+  - **Dónde aparece.** En el buscador de productos, en el grupo «Lista de precios · playera cuello redondo», y como prenda en los cotizadores por tintas, de bordado y de DTG.
+  - **Cómo cambia el precio.** Al escribir las piezas, el precio toma la escala de la lista: 12, 50, 100, 300 y 1,000 pz. Con menos de 12 pz se usa la de 12. El precio es antes de IVA y la cotización suma el IVA según su opción.
+  - **Margen.** Al elegir una prenda de la lista en los cotizadores por tintas, de bordado o de DTG, el margen de prenda queda en 0 %, porque la lista ya es el precio de venta.
+  - **Color de la prenda.** En el cotizador por tintas, «Prenda» pasa sola a clara o de color según el color de la prenda en la lista.
+- **Serigrafía de 6 a 99 piezas.** Usa la lista de estampado de Chilian de 0 a 100 pz.
+  - **Tablas y escalas.** Hay dos tablas: chico (escudo y media carta) y grande (carta a doble carta). Las escalas son 6, 12, 20, 30 y 50 pz.
+  - **Tintas.** Se cotiza por número exacto de tintas, de 1 a 8. De 9 a 11 tintas se estima con el mismo aumento por tinta.
+  - **Prenda de color, fleece y efectos.** Se suman con la primera escala de LN1.
+  - **Desde 100 pz.** Manda la tabla LN1. El renglón de 100 pz de la lista de 0 a 100 no se usa.
+  - **Celdas corregidas.** Cuatro celdas de la hoja rompían su secuencia y se tomaron de la secuencia:
+    - Grande, 12 pz, 7 tintas: 233.47 → 332.38.
+    - Grande, 50 pz, 4 tintas: 61.43 → 59.22.
+    - Chico, 20 pz, 6 tintas: 192.09 → 162.38.
+    - Chico, 50 pz, 4 tintas: 58.18 → 52.99.
+- **Renglones que siguen la escala.**
+  - **Prendas de la lista y renglones del cotizador por tintas.** Guardan su especificación, así que al cambiar las piezas en la cotización se recalculan el precio y el costo.
+  - **Escalas en el renglón.** Cada renglón muestra sus precios por escala; tocar una escala la usa.
+  - **Precio a mano.** Si se escribe un precio a mano, el renglón deja de seguir la escala hasta tocar «Volver al precio por escala».
+- **Sitio y asistente.** Siguen cotizando serigrafía desde 100 pz con LN1. La tabla de 6 a 99 pz está solo en el OS.
