@@ -69,10 +69,18 @@ function touchList(p, t) {
 // Every pathname under a prefix, with its upload time (to reuse cached reads).
 async function listPaths(prefix) {
   if (LOCAL) {
-    const dir = path.join(LOCAL, prefix);
-    let names = [];
-    try { names = await fs.readdir(dir); } catch { return []; }
-    return Promise.all(names.map(async (n) => ({ pathname: prefix + n, t: (await fs.stat(path.join(dir, n))).mtimeMs })));
+    // like the store's listing: every file under the prefix, in subfolders too
+    const walk = async (rel) => {
+      let ents = [];
+      try { ents = await fs.readdir(path.join(LOCAL, rel), { withFileTypes: true }); } catch { return []; }
+      const out = [];
+      for (const e of ents) {
+        if (e.isDirectory()) out.push(...(await walk(rel + e.name + "/")));
+        else out.push({ pathname: rel + e.name, t: (await fs.stat(path.join(LOCAL, rel, e.name))).mtimeMs });
+      }
+      return out;
+    };
+    return walk(prefix);
   }
   const hit = lists.get(prefix);
   if (hit && Date.now() - hit.at < LIST_TTL) return hit.items.slice();
