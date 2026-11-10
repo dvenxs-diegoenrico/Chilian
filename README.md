@@ -502,7 +502,7 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
 | `pasar_a_asesora` | Manda la conversación con una asesora |
 
 - **Precios:** los sigue calculando el motor de precios. Claude nunca los da.
-- **Modelo:** `claude-opus-5-5` con esfuerzo bajo. Se puede cambiar con `BOT_MODEL`.
+- **Modelo:** `claude-sonnet-5-5` con esfuerzo bajo. Se puede cambiar con `BOT_MODEL`.
 - **Si el modelo se niega a responder:** la API reintenta sola con otro modelo (fallback del servidor).
 - **Sin llave:** el asistente sigue funcionando con botones y reconocimiento de frases.
 

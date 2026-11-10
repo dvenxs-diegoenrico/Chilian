@@ -4,10 +4,10 @@
      responder          an answer to a question about Chilian (times, minimums, techniques, process)
      calificar_cliente  how much the order is likely worth in USD, and why (company size, volume, recurrence…)
      pasar_a_asesora    licenses, brand programs, full package, complaints, invoices, or asking for a person
-   Prices never come from Claude: the price engine (_pricing.js) quotes. Model: BOT_MODEL, default claude-opus-5-5. */
+   Prices never come from Claude: the price engine (_pricing.js) quotes. Model: BOT_MODEL, default claude-sonnet-5-5. */
 import Anthropic from "@anthropic-ai/sdk";
 
-const MODEL = () => process.env.BOT_MODEL || "claude-opus-5-5";
+const MODEL = () => process.env.BOT_MODEL || "claude-sonnet-5-5";
 let client = null;
 const ai = () => (client ||= new Anthropic({ timeout: 20_000, maxRetries: 1 }));
 export const aiReady = () => !!process.env.ANTHROPIC_API_KEY;

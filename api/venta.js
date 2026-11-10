@@ -114,7 +114,7 @@ export async function GET(req) {
     }
     if (q.get("accion") === "estado") {
       const s = await sessionOf(req); if (!s || s.role !== "admin") return json({ error: "Solo la cuenta principal." }, 403);
-      return json({ pagos: payReady(), ia: !!process.env.ANTHROPIC_API_KEY, modelo: process.env.ANTHROPIC_API_KEY ? process.env.BOT_MODEL || "claude-opus-5-5" : "", ajustes: await botSettings(), webhooks: { mp: `${baseOf(req)}/api/venta?webhook=mp`, stripe: `${baseOf(req)}/api/venta?webhook=stripe` } });
+      return json({ pagos: payReady(), ia: !!process.env.ANTHROPIC_API_KEY, modelo: process.env.ANTHROPIC_API_KEY ? process.env.BOT_MODEL || "claude-sonnet-5-5" : "", ajustes: await botSettings(), webhooks: { mp: `${baseOf(req)}/api/venta?webhook=mp`, stripe: `${baseOf(req)}/api/venta?webhook=stripe` } });
     }
     return json({ error: "Acción no válida." }, 400);
   } catch (e) { return fail(e); }
