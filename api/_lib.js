@@ -89,8 +89,7 @@ async function listPaths(prefix) {
 
 export async function getDoc(col, id) { return readPath(docPath(col, id)); }
 
-export async function listDocs(col) {
-  const items = await listPaths(`db/${col}/`);
+async function readMany(items) {
   const docs = [];
   // read in small batches; reuse what this instance already has
   for (let i = 0; i < items.length; i += 24) {
@@ -104,6 +103,15 @@ export async function listDocs(col) {
     docs.push(...batch.filter(Boolean));
   }
   return docs;
+}
+export async function listDocs(col) { return readMany(await listPaths(`db/${col}/`)); }
+// Every collection with ONE listing of the store (the OS used to list each collection: 7 listings per load).
+export async function listAllDocs() {
+  const by = Object.fromEntries(COLLECTIONS.map((c) => [c, []]));
+  for (const it of await listPaths("db/")) { const m = it.pathname.match(/^db\/([^/]+)\//); if (m && by[m[1]]) by[m[1]].push(it); }
+  const out = {};
+  await Promise.all(COLLECTIONS.map(async (c) => { out[c] = await readMany(by[c]); }));
+  return out;
 }
 
 // Next folio for collections with a human number: OT-2611-007.
@@ -215,7 +223,7 @@ const userPath = (u) => `users/${safeUser(u)}.json`;
 const ucache = new Map();   // username -> { at, user }
 async function userCached(u) {
   const c = ucache.get(u);
-  if (c && Date.now() - c.at < 15000) return c.user;
+  if (c && Date.now() - c.at < 60_000) return c.user;   // a deactivated account loses its sessions within a minute
   const user = await readPath(userPath(u));
   ucache.set(u, { at: Date.now(), user });
   return user;

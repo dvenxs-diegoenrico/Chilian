@@ -1,6 +1,5 @@
 /* Chilian OS · avisos: what needs someone's attention, computed from the records.
-   Shared by the app (the "Avisos" view, the badge and the browser notifications) and by
-   /api/avisos (the morning summary sent by push), so both always say the same thing.
+   Used by the app's "Avisos" view and the badge in the menu (no device notifications).
 
    chilianAlerts(D, me, { today, scope })
      D:  { solicitudes, cuentas, oportunidades, tareas, cotizaciones, ots } (arrays)
@@ -107,13 +106,6 @@
   const cuenta = (D, id) => ((D.cuentas || []).find((c) => c.id === id) || {}).nombre || "";
   const canal = (s) => (s.canal === "whatsapp" ? `WhatsApp${s.whatsapp && s.whatsapp.numero ? " " + s.whatsapp.numero : ""}` : s.canal === "messenger" ? "Facebook Messenger" : s.canal === "instagram" || s.fuente === "instagram" ? "Instagram" : s.canal === "manual" ? "registrada por el equipo" : "sitio web");
 
-  // The morning summary: one line per category with something in it.
-  function chilianDigest(list) {
-    const counts = CATS.map(([id, name]) => [name, list.filter((a) => a.cat === id).length]).filter(([, c]) => c);
-    const urgent = list.filter((a) => a.level === "alta").length;
-    return { total: list.length, urgent, text: counts.map(([name, c]) => `${name}: ${c}`).join(" · ") };
-  }
   root.chilianAlerts = chilianAlerts;
-  root.chilianDigest = chilianDigest;
   root.CHILIAN_ALERT_CATS = CATS;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -182,9 +182,11 @@
     return j;
   }
   async function loadAll(silent) {
-    const usersP = loadUsers();
-    const res = await Promise.all(COLS.map((c) => api("GET", `/api/db?col=${c}`).then((j) => [c, j.docs]).catch((e) => { if (!silent) toast(`No se pudo cargar ${c}: ${e.message}`, true); return [c, null]; })));
-    for (const [c, docs] of res) if (docs) S.data[c] = new Map(docs.map((d) => [d.id, d]));
+    const usersP = !S.users.length || Date.now() - (S.usersAt || 0) > 15 * 60_000 ? loadUsers() : null;   // accounts change rarely
+    try {
+      const { cols } = await api("GET", "/api/db?all=1");   // one request, one listing of the store
+      for (const c of COLS) if (cols[c]) S.data[c] = new Map(cols[c].map((d) => [d.id, d]));
+    } catch (e) { if (!silent && e.message !== "401") toast(`No se pudieron cargar los datos: ${e.message}`, true); if (!S.loadedAt) throw e; }
     const st = byId("ajustes", "general");
     S.settings = mergeSettings(st);
     await usersP;
@@ -251,7 +253,6 @@
     }
     return out;
   }
-  function calcLinea(l) { const m = lineMinutes(l); return { minutos: m.serigrafia + m.dtg + m.bordado, porTec: m }; }
   const otMinutesBy = (ot) => (ot.lineas || []).reduce((a, l) => { const m = lineMinutes(l); for (const k in m) a[k] += m[k]; return a; }, { serigrafia: 0, dtg: 0, bordado: 0 });
   const ubText = (u) => `${u.nombre}: ${TECS[u.tecnica || "serigrafia"]}${(u.tecnica || "serigrafia") === "bordado" ? " · " + fmtN(+u.puntadas || 0) + " puntadas" : (u.tecnica || "serigrafia") === "dtg" ? (u.oscura ? " · prenda oscura" : "") : " · " + (+u.colores ? u.colores + " col." : "colores por definir")}${u.medida ? " · " + u.medida : ""}${u.tintas ? " (" + u.tintas + ")" : ""}`;
   function calcCot(q) { const c = CZ.calc(q); return { total: c.total, sub: c.base0, piezas: c.pcs, margen: c.margen }; }
@@ -452,68 +453,12 @@
         h("select", { class: "i", style: "width:auto", onchange: (e) => { f.cat = e.target.value; rerender(); } }, h("option", { value: "", text: "Todos los tipos" }), cats.map(([v, t]) => h("option", { value: v, text: `${t} (${all.filter((a) => a.cat === v).length})`, selected: f.cat === v }))),
         h("label", { class: "row small", style: "gap:.3rem" }, h("input", { type: "checkbox", checked: f.seen, onchange: (e) => { f.seen = e.target.checked; rerender(); } }), "Mostrar vistos"),
         rows.some((a) => !seen.has(a.key)) ? h("button", { class: "btn ghost", type: "button", onclick: () => mark(rows.map((a) => a.key)) }, "Marcar todo como visto") : null),
-      pushCard(),
       rows.length ? h("div", { class: "grid", style: "gap:1rem" }, cats.filter(([id]) => rows.some((a) => a.cat === id)).map(([id, name]) => h("div", { class: "card" },
         h("h2", { text: `${name} · ${rows.filter((a) => a.cat === id).length}` }),
         h("ul", { style: "list-style:none;padding:0;margin:0;display:grid" }, rows.filter((a) => a.cat === id).map((a) => h("li", { style: "display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--rule);align-items:start" + (seen.has(a.key) ? ";opacity:.55" : "") },
           h("a", { href: "#" + a.href, style: "color:inherit;text-decoration:none;min-width:0", onclick: () => mark([a.key]) }, h("span", { class: "pill " + LV[a.level], style: "margin-right:.5rem", text: a.level }), h("b", { text: a.title }), h("div", { class: "small muted", text: a.detail })),
           seen.has(a.key) ? null : h("button", { class: "btn sm ghost", type: "button", onclick: () => mark([a.key]) }, "Visto")))))))
         : h("div", { class: "empty", text: f.seen ? "Nada pendiente. Buen trabajo." : "Todo visto. Activa «Mostrar vistos» para ver los pendientes que siguen abiertos." }));
-  }
-
-  // Push to this phone or computer, even with the OS closed.
-  const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-  const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  const b64key = (s) => { const p = "=".repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...b].map((c) => c.charCodeAt(0))); };
-  const swReady = () => navigator.serviceWorker.register("/ops/sw.js", { scope: "/ops/" }).then(() => navigator.serviceWorker.ready);
-  async function currentSub() { if (!pushSupported()) return null; try { const reg = await navigator.serviceWorker.getRegistration("/ops/"); return reg ? await reg.pushManager.getSubscription() : null; } catch { return null; } }
-  function pushCard() {
-    const box = h("div", { class: "card", style: "margin-bottom:1rem" }, h("p", { class: "small muted", text: "Revisando las notificaciones de este dispositivo…" }));
-    (async () => {
-      const head = h("h2", { text: "Notificaciones en este dispositivo" });
-      if (!pushSupported()) return box.replaceChildren(head, h("p", { class: "small", text: isIOS() && !standalone()
-        ? "En iPhone: abre este OS en Safari, toca Compartir → «Agregar a pantalla de inicio», ábrelo desde ese ícono y vuelve aquí para activar los avisos (iOS 16.4 o más reciente)."
-        : "Este navegador no permite notificaciones push. Usa Chrome, Edge, Firefox o Safari actualizado." }));
-      let info = {}; try { info = await api("GET", "/api/avisos?clave=1"); } catch {}
-      const sub = await currentSub(), perm = Notification.permission;
-      const state = sub ? "Activadas aquí" : perm === "denied" ? "Bloqueadas en este navegador" : "Apagadas aquí";
-      box.replaceChildren(...[head,
-        h("p", { class: "small", text: `${state}${info.devices ? ` · ${info.devices} dispositivo(s) tuyos reciben avisos` : ""}. Te llegan solicitudes y mensajes nuevos (sitio, WhatsApp, Instagram, Messenger), tareas y oportunidades que te asignan, aprobaciones del cliente y, cada mañana, el resumen de tus pendientes.` }),
-        !info.ready ? h("p", { class: "small", style: "color:var(--bad,#D2452B)", text: "El servidor aún no tiene las llaves de notificaciones (VAPID). La cuenta principal las agrega en Vercel siguiendo el tutorial de Ajustes." }) : null,
-        perm === "denied" ? h("p", { class: "small", text: "Las bloqueaste antes: actívalas en la configuración del sitio de tu navegador (candado junto a la dirección) y recarga." }) : null,
-        h("div", { class: "row" },
-          !sub && info.ready && perm !== "denied" ? h("button", { class: "btn accent", type: "button", onclick: async () => {
-            try {
-              if (await Notification.requestPermission() !== "granted") return toast("Sin permiso no se pueden mostrar avisos.", true);
-              const reg = await swReady();
-              const s2 = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(info.publicKey) });
-              await api("POST", "/api/avisos", { accion: "suscribir", sub: s2.toJSON(), device: `${isIOS() ? "iPhone/iPad" : /Android/.test(navigator.userAgent) ? "Android" : "Computadora"} · ${new Date().toLocaleDateString("es-MX")}` });
-              await api("POST", "/api/avisos", { accion: "probar" });
-              toast("Avisos activados. Te mandamos uno de prueba."); rerender();
-            } catch (err) { toast("No se pudieron activar: " + err.message, true); }
-          } }, "Activar avisos aquí") : null,
-          sub ? h("button", { class: "btn", type: "button", onclick: async () => { try { const r = await api("POST", "/api/avisos", { accion: "probar" }); toast(r.sent ? "Aviso de prueba enviado." : "No hay dispositivos activos."); } catch (err) { toast(err.message, true); } } }, "Mandar aviso de prueba") : null,
-          sub ? h("button", { class: "btn ghost", type: "button", onclick: async () => { try { await api("POST", "/api/avisos", { accion: "quitar", endpoint: sub.endpoint }); await sub.unsubscribe(); toast("Avisos apagados en este dispositivo."); rerender(); } catch (err) { toast(err.message, true); } } }, "Apagar aquí") : null,
-          isAdmin() && info.ready ? h("button", { class: "btn ghost", type: "button", onclick: async () => { try { const r = await api("POST", "/api/avisos", { accion: "resumen" }); toast(`Resumen enviado a ${r.sent} dispositivo(s).`); } catch (err) { toast(err.message, true); } } }, "Enviar el resumen de pendientes a todos ahora") : null)].filter(Boolean));
-    })();
-    return box;
-  }
-  // With the OS open and no push on this device: the browser's own notification for anything new.
-  async function notifyLocal() {
-    const key = "chilian-os-notificados-" + S.usuario;
-    let done; try { done = new Set(JSON.parse(store.get(key) || "null")); } catch { done = null; }
-    const now = alertsNow().filter((a) => a.level !== "baja");
-    if (!done || !done.size) { store.set(key, JSON.stringify(now.map((a) => a.key))); return; }   // first time: no flood
-    const fresh = now.filter((a) => !done.has(a.key)); if (!fresh.length) return;
-    fresh.forEach((a) => done.add(a.key)); store.set(key, JSON.stringify([...done].slice(-2000)));
-    if (!("Notification" in window) || Notification.permission !== "granted" || await currentSub()) return;
-    try {
-      const reg = await navigator.serviceWorker?.getRegistration("/ops/");
-      const show = (title, body, url) => (reg ? reg.showNotification(title, { body, icon: "/ops/icon-192.png", data: { url: "/ops/#" + url }, tag: url }) : new Notification(title, { body }));
-      if (fresh.length > 3) show(`${fresh.length} avisos nuevos en Chilian OS`, fresh.slice(0, 3).map((a) => a.title).join(" · "), "avisos");
-      else fresh.forEach((a) => show(a.title, a.detail, a.href));
-    } catch {}
   }
 
   function viewReports() {
@@ -1927,7 +1872,6 @@
 
   /* ---------------- team: accounts, assignments and follow-ups (admin1 and admins) ---------------- */
   const isAdmin = () => S.role === "admin";
-  const userByName = (name) => S.users.find((u) => u.name === name);
   function newPassword() {
     const abc = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint32Array(12));
     return [...r].map((x) => abc[x % abc.length]).join("").replace(/(.{4})(?=.)/g, "$1-");
@@ -1941,7 +1885,7 @@
       h("div", { class: "row" }, h("button", { class: "btn accent", type: "button", onclick: () => copy(txt) }, "Copiar datos de acceso"), h("button", { class: "btn ghost", type: "button", onclick: () => closeModal() }, "Listo"))));
   }
   async function loadUsers() {
-    try { S.users = (await api("GET", "/api/usuarios")).users || []; } catch (e) { if (e.message !== "401") S.users = S.users || []; }
+    try { S.users = (await api("GET", "/api/usuarios")).users || []; S.usersAt = Date.now(); } catch (e) { if (e.message !== "401") S.users = S.users || []; }
   }
   async function saveUser(data) {
     const { user } = await api("POST", "/api/usuarios", { accion: "guardar", ...data });
@@ -2188,20 +2132,6 @@
     return h("div", { class: "card" }, h("h2", { text: "Precios del cotizador web" }),
       h("p", { class: "hint", text: "Lo que ve el cliente en “Cotiza en un minuto”: precio de venta antes de IVA, por pieza, según piezas. Son de referencia: la cotización formal se hace aquí en el OS." }), box);
   }
-  // The keys for push notifications and the morning summary, made here in the browser (they never
-  // pass through the server); the main account pastes them in Vercel → Environment Variables.
-  function keysBox() {
-    const out = h("div", { class: "grid", style: "gap:.35rem" });
-    const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    const row = (k, v) => h("div", { class: "grid", style: "gap:.2rem" }, h("div", { class: "label", text: k }), h("div", { class: "copybox mono", style: "overflow-wrap:anywhere", text: v }), h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start", onclick: () => copy(v) }, "Copiar " + k));
-    return h("div", { class: "grid", style: "gap:.5rem;margin-top:.6rem" },
-      h("p", { class: "small", text: "Faltan las llaves de los avisos. Genéralas aquí y pégalas en Vercel → Settings → Environment Variables (Production), luego haz Redeploy. No las compartas por chat ni correo." }),
-      h("button", { class: "btn sm", type: "button", style: "justify-self:start", onclick: async () => {
-        const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
-        const pub = b64u(await crypto.subtle.exportKey("raw", kp.publicKey)), jwk = await crypto.subtle.exportKey("jwk", kp.privateKey);
-        out.replaceChildren(row("VAPID_PUBLIC_KEY", pub), row("VAPID_PRIVATE_KEY", jwk.d), row("VAPID_SUBJECT", "mailto:ventas@grupochilian.com.mx"), row("CRON_SECRET", b64u(crypto.getRandomValues(new Uint8Array(32)))));
-      } }, "Generar llaves de avisos"), out);
-  }
   function instagramCard() {
     const status = h("div", { class: "grid", style: "gap:.35rem" }, h("p", { class: "muted small", text: "Revisando la conexión…" }));
     const link = (medium) => `${location.origin}/?utm_source=instagram&utm_medium=${medium}#cotizar`;
@@ -2213,13 +2143,10 @@
         h("div", { class: "row" }, ok(j.whatsapp), h("span", { class: "small", text: "WhatsApp: token del usuario del sistema (WA_ACCESS_TOKEN)" })),
         h("div", { class: "row" }, ok(j.instagram), h("span", { class: "small", text: "Instagram: token de la cuenta (IG_ACCESS_TOKEN)" })),
         h("div", { class: "row" }, ok(j.messenger), h("span", { class: "small", text: "Messenger: token de la página de Facebook (META_PAGE_TOKEN)" })),
-        h("div", { class: "row" }, ok(j.push), h("span", { class: "small", text: "Notificaciones push (VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY)" })),
-        h("div", { class: "row" }, ok(j.cron), h("span", { class: "small", text: "Resumen de cada mañana (CRON_SECRET)" })),
-        !j.push || !j.cron ? keysBox() : null,
         h("div", { class: "label", text: "URL del webhook (Callback URL) para WhatsApp, Instagram y Messenger" }), h("div", { class: "copybox", text: j.webhook }),
         j.verifyToken ? h("div", { class: "label", text: "Verify token" }) : null, j.verifyToken ? h("div", { class: "copybox", text: j.verifyToken }) : null].filter(Boolean));
     }).catch(() => status.replaceChildren(h("p", { class: "small", text: "No se pudo revisar la conexión." })));
-    return h("div", { class: "card" }, h("h2", { text: "WhatsApp, Instagram, Messenger y avisos" }),
+    return h("div", { class: "card" }, h("h2", { text: "WhatsApp, Instagram y Messenger" }),
       h("p", { class: "small" }, "Paso a paso para conectar todo: ", h("a", { href: "/ops/conectar", target: "_blank", rel: "noopener", text: "abrir el tutorial ↗" }), ". Un solo webhook recibe los tres canales; cada conversación llega a Solicitudes y avisa al equipo."),
       h("p", { class: "small", text: "1. Enlace de la bio y de historias: las solicitudes que llegan por aquí salen marcadas como Instagram." }),
       h("div", { class: "label", text: "Bio" }), h("div", { class: "copybox", text: link("bio") }), h("button", { class: "btn sm ghost", type: "button", onclick: () => copy(link("bio")) }, "Copiar enlace de la bio"),
@@ -2309,15 +2236,19 @@
   addEventListener("hashchange", async () => { if ($("#modal").open) closeModal(); if (S.token && Date.now() - S.loadedAt > 60_000) await loadAll(true); render(); });
   addEventListener("unhandledrejection", (e) => { if (e.reason?.shown) e.preventDefault(); });
   // keep data fresh while the app is open (other people are working too)
-  setInterval(async () => { if (S.token && document.visibilityState === "visible" && !$("#modal").open && !document.activeElement?.matches("input, textarea, select") && !(window.__czDirty && window.__czDirty())) { await loadAll(true); rerender(); notifyLocal(); } }, 5 * 60_000);   // every 5 minutes: storage operations are limited
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/ops/sw.js", { scope: "/ops/" }).catch(() => {});
-    navigator.serviceWorker.addEventListener("message", (e) => { if (e.data?.go) location.href = e.data.go; });
-  }
+  // No timer: every refresh reads the store. The data refreshes when you come back to the tab after 10 minutes, when you move
+  // between sections after 1 minute, and with «Actualizar datos».
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || !S.token || Date.now() - S.loadedAt < 10 * 60_000) return;
+    if ($("#modal").open || document.activeElement?.matches("input, textarea, select") || (window.__czDirty && window.__czDirty())) return;
+    await loadAll(true); rerender();
+  });
+  // The old notification service worker is gone: close any that a device still has.
+  if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
   (async () => {
     try { const s = JSON.parse(store.get("chilian-os") || "null"); if (s?.token && s.usuario) Object.assign(S, { token: s.token, name: s.name, usuario: s.usuario, role: s.role }); } catch {}
     if (!S.token) return renderLogin();
     $("#app").replaceChildren(h("div", { class: "login" }, h("p", { class: "label", text: "Cargando datos…" })));
-    try { await loadAll(); render(); notifyLocal(); } catch { /* 401 handled in api() */ }
+    try { await loadAll(); render(); } catch { /* 401 handled in api() */ }
   })();
 })();

@@ -7,7 +7,6 @@
    STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET (Stripe). Without them, no link is offered. */
 import crypto from "node:crypto";
 import { getDoc, saveDoc } from "./_lib.js";
-import { notifySafe } from "./_push.js";
 import { sendReplies } from "./_channels.js";
 
 const env = (k) => process.env[k] || "";
@@ -60,7 +59,6 @@ export async function recordPayment({ ref, monto, metodo, pid, concepto = "" }) 
     if (col === "solicitudes") next.mensajes = [...(doc.mensajes || []), { de: "bot", por: "Asistente Chilian", texto: thanks.text, fecha: new Date().toISOString() }].slice(-200);
     try {
       await saveDoc(col, next, metodo, { base: doc.updatedAt });
-      await notifySafe("all", { title: `Pago recibido: ${ref}`, body: `${doc.nombre || doc.cliente || ""} · ${pago.monto.toLocaleString("es-MX", { style: "currency", currency: "MXN" })} con ${metodo}`, url: col === "solicitudes" ? "#solicitudes" : "#cotizacion/" + ref, tag: "pago-" + pid, urgent: true });
       if (col === "solicitudes") await sendReplies(doc, [thanks]).catch(() => {});
       return true;
     } catch (e) { if (e.status !== 409) throw e; }

@@ -8,7 +8,6 @@ import { sessionOf, getDoc, saveDoc, sign, verify, json, fail } from "./_lib.js"
 import { botTurn, botSettings, PERFIL_NOMBRE } from "./_bot.js";
 import { payLinks, payReady, mpWebhook, stripeWebhook } from "./_pay.js";
 import { sendReplies } from "./_channels.js";
-import { notifySafe } from "./_push.js";
 import { prices, quote } from "./_pricing.js";
 
 const clip = (t, n) => String(t ?? "").slice(0, n);
@@ -55,10 +54,12 @@ export async function rateLead(doc) {
   doc.lead = { valorUSD, valioso, razones: razones.slice(0, 6), recurrente: !!b.leadAI?.recurrente, umbralUSD: umbral, fecha: new Date().toISOString() };
   if (valioso && !was) {
     doc.nuevoMensaje = true;
-    await notifySafe("all", { title: `Cliente que vale la pena (~$${valorUSD.toLocaleString("en-US")} USD)`, body: `${doc.nombre || "Cliente"} · ${razones.slice(0, 2).join(" · ")}`.slice(0, 180), url: "#solicitudes", tag: "lead-" + doc.id, urgent: true });
   }
   return doc.lead;
 }
+
+// The page only polls while a person may answer (hand-off or paused assistant): the assistant's replies come in the POST itself.
+const waiting = (doc) => !!(doc.bot?.estado === "asesora" || doc.bot?.pausado);
 
 async function chatTurn(req, d) {
   const st = await botSettings();
@@ -88,12 +89,11 @@ async function chatTurn(req, d) {
     const r = await assistantTurn(doc, { text, button }, { canal: "chat", lang, base: baseOf(req), send: false });
     if (r.handoff) {
       if (!doc.contactoOk) doc.mensajes.push({ de: "bot", por: "Asistente Chilian", texto: lang === "en" ? "Leave your name and WhatsApp or email so they can reach you even if you close this page." : "Déjame tu nombre y tu WhatsApp o correo para que te contacte aunque cierres esta página.", fecha: new Date().toISOString() });
-      await notifySafe("all", { title: `Chat del sitio: pasa a asesora (${doc.id})`, body: r.handoff, url: "#solicitudes", tag: doc.id, urgent: true });
     } else if (doc.bot?.pausado || doc.bot?.estado === "asesora") doc.nuevoMensaje = true;
   }
   doc.ultimoMensaje = new Date().toISOString();
   doc = await saveDoc("solicitudes", doc, "Chat del sitio");
-  return json({ sid: doc.id, t: d.t, mensajes: doc.mensajes.slice(before).map(pub), total: doc.mensajes.length });
+  return json({ sid: doc.id, t: d.t, mensajes: doc.mensajes.slice(before).map(pub), total: doc.mensajes.length, espera: waiting(doc) });
 }
 
 export async function GET(req) {
@@ -104,13 +104,12 @@ export async function GET(req) {
       if (!p || p.chat !== sid) return json({ error: "Conversación no válida." }, 401);
       const doc = await getDoc("solicitudes", sid); if (!doc) return json({ error: "No encontramos la conversación." }, 404);
       const from = Math.max(0, parseInt(q.get("desde"), 10) || 0);
-      return json({ mensajes: doc.mensajes.slice(from).map(pub), total: doc.mensajes.length });
+      return json({ mensajes: doc.mensajes.slice(from).map(pub), total: doc.mensajes.length, espera: waiting(doc) });
     }
     if (q.get("accion") === "activo") {   // public: is the website chat on?
       // the page only shows the chat while storage answers: a chat that cannot save is worse than no chat
-      let ok = true; try { await getDoc("ajustes", "asistente"); } catch { ok = false; }
-      const st = await botSettings();
-      return new Response(JSON.stringify({ web: ok && !!st.activo.web }), { headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=60" } });
+      let st = null; try { st = await botSettings({ strict: true }); } catch {}   // one read: it is also the storage check
+      return new Response(JSON.stringify({ web: !!st && !!st.activo.web }), { headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=60" } });
     }
     if (q.get("accion") === "estado") {
       const s = await sessionOf(req); if (!s || s.role !== "admin") return json({ error: "Solo la cuenta principal." }, 403);

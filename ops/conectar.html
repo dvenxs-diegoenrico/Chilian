@@ -51,52 +51,28 @@
   <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.4rem"><span class="ch-logo" role="img" aria-label="Chilian"><img src="/logos/chilian-logo-header.png" alt=""><span><span class="ch-word"></span><span class="ch-tag">Estampados <i>•</i> Textiles <i>•</i> Promocionales</span></span></span>
   <a class="back" style="margin:0" href="/ops/#ajustes">← Volver a Chilian OS</a></div>
   <p class="kicker">Chilian OS · tutorial</p>
-  <h1>Conectar WhatsApp, Instagram, Messenger y los avisos</h1>
-  <p class="lead">Al terminar, cada mensaje que llegue a cualquiera de los WhatsApp de Chilian, al Instagram o a la página de Facebook entra solo a <b>Solicitudes</b>. El equipo recibe una notificación en su teléfono y puede contestar desde el OS. Además, cada quien recibe avisos de sus tareas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar.</p>
+  <h1>Conectar WhatsApp, Instagram y Messenger</h1>
+  <p class="lead">Al terminar, cada mensaje que llegue a cualquiera de los WhatsApp de Chilian, al Instagram o a la página de Facebook entra solo a <b>Solicitudes</b>. El equipo lo ve en el OS y puede contestar desde ahí. </p>
 
   <div class="box key">
-    <p><b>Cómo leer esto.</b> <span class="who">Cada persona</span> son pasos que hace cada miembro del equipo en su teléfono. <span class="who">Admin</span> son pasos que hace una sola vez quien administra Meta y Vercel (la cuenta principal, admin1). Calcula 1 a 2 horas para la parte de Meta, más el tiempo que tarde Meta en verificar el negocio si te lo pide.</p>
+    <p><b>Cómo leer esto.</b> <span class="who">Admin</span> son pasos que hace una sola vez quien administra Meta y Vercel (la cuenta principal, admin1). Calcula 1 a 2 horas para la parte de Meta, más el tiempo que tarde Meta en verificar el negocio si te lo pide.</p>
   </div>
 
   <ul class="toc">
-    <li><a href="#avisos">1. Activar los avisos en cada teléfono</a></li>
-    <li><a href="#antes">2. Antes de empezar con Meta</a></li>
-    <li><a href="#app">3. Crear la app de Meta</a></li>
-    <li><a href="#whatsapp">4. Conectar los WhatsApp</a></li>
-    <li><a href="#instagram">5. Conectar Instagram</a></li>
-    <li><a href="#messenger">6. Conectar Facebook Messenger</a></li>
-    <li><a href="#vercel">7. Pegar las llaves en Vercel</a></li>
-    <li><a href="#probar">8. Probar que todo llega</a></li>
-    <li><a href="#que">9. Qué avisos llegan y a quién</a></li>
-    <li><a href="#problemas">10. Si algo no funciona</a></li>
-    <li><a href="#pagos">11. Cobrar en línea: Mercado Pago y Stripe</a></li>
-    <li><a href="#asistente">12. Encender el asistente de ventas</a></li>
+    <li><a href="#antes">1. Antes de empezar con Meta</a></li>
+    <li><a href="#app">2. Crear la app de Meta</a></li>
+    <li><a href="#whatsapp">3. Conectar los WhatsApp</a></li>
+    <li><a href="#instagram">4. Conectar Instagram</a></li>
+    <li><a href="#messenger">5. Conectar Facebook Messenger</a></li>
+    <li><a href="#vercel">6. Pegar las llaves en Vercel</a></li>
+    <li><a href="#probar">7. Probar que todo llega</a></li>
+    <li><a href="#que">8. Qué ves en Avisos</a></li>
+    <li><a href="#problemas">9. Si algo no funciona</a></li>
+    <li><a href="#pagos">10. Cobrar en línea: Mercado Pago y Stripe</a></li>
+    <li><a href="#asistente">11. Encender el asistente de ventas</a></li>
   </ul>
 
-  <h2 id="avisos"><span class="n">01</span>Activar los avisos en cada teléfono</h2>
-  <p>Primero, una sola vez, la cuenta principal pone las llaves de los avisos en Vercel (abajo). Después cada persona los activa en su teléfono y en su computadora.</p>
-  <h3><span class="who">Admin</span>Llaves de los avisos (una sola vez, 5 minutos)</h3>
-  <ol>
-    <li>En Chilian OS → <b>Ajustes</b> → tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b> → <b>Generar llaves de avisos</b>. Se generan en tu navegador.</li>
-    <li>Copia cada una (<code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code>, <code>CRON_SECRET</code>) y agrégala en Vercel como se explica en el <a href="#vercel">paso 7</a>. Luego haz <b>Redeploy</b>.</li>
-    <li>No vuelvas a generarlas después: si cambian, cada persona tiene que activar los avisos de nuevo.</li>
-  </ol>
-  <h3><span class="who">Cada persona</span>Android o computadora (Chrome, Edge, Firefox)</h3>
-  <ol>
-    <li>Entra a <a href="/ops/">chilian.vercel.app/ops</a> con tu usuario.</li>
-    <li>Abre <b>Avisos</b> en el menú y toca <b>Activar avisos aquí</b>. Acepta cuando el navegador pregunte.</li>
-    <li>Te llega un aviso de prueba. Si no llega, revisa que el navegador tenga permiso de notificaciones en la configuración del teléfono.</li>
-  </ol>
-  <h3><span class="who">Cada persona</span>iPhone o iPad (iOS 16.4 o más reciente)</h3>
-  <ol>
-    <li>Abre <b>chilian.vercel.app/ops</b> en <b>Safari</b> (no en Chrome).</li>
-    <li>Toca <b>Compartir</b> → <b>Agregar a pantalla de inicio</b> → <b>Agregar</b>.</li>
-    <li>Cierra Safari y abre <b>Chilian OS</b> desde el ícono nuevo. Entra con tu usuario.</li>
-    <li>Ve a <b>Avisos</b> → <b>Activar avisos aquí</b> → <b>Permitir</b>.</li>
-  </ol>
-  <div class="box"><p>Actívalo en cada dispositivo que uses (teléfono y computadora). Para dejar de recibirlos en uno, toca <b>Apagar aquí</b> en ese dispositivo.</p></div>
-
-  <h2 id="antes"><span class="n">02</span>Antes de empezar con Meta</h2>
+  <h2 id="antes"><span class="n">01</span>Antes de empezar con Meta</h2>
   <p><span class="who">Admin</span>Ten a la mano:</p>
   <ul>
     <li>Acceso de administrador al <b>portafolio comercial de Grupo Chilian</b> en <a href="https://business.facebook.com" target="_blank" rel="noopener">business.facebook.com</a> (antes "Business Manager"), con la página de Facebook y la cuenta de Instagram dentro.</li>
@@ -108,7 +84,7 @@
     <p><b>Importante sobre los WhatsApp.</b> Solo se conectan números de <b>WhatsApp Business</b> (la app verde con la "B"). Si alguno de los números está en WhatsApp normal, primero pásalo a WhatsApp Business en ese teléfono. La app hace la migración y conserva los chats.</p>
   </div>
 
-  <h2 id="app"><span class="n">03</span>Crear la app de Meta</h2>
+  <h2 id="app"><span class="n">02</span>Crear la app de Meta</h2>
   <p><span class="who">Admin</span>Es una sola app para WhatsApp, Instagram y Messenger.</p>
   <ol>
     <li>Entra a <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a> con tu Facebook de administrador → <b>Crear app</b>.</li>
@@ -118,14 +94,14 @@
     <li>En esa misma pantalla llena la URL de política de privacidad (la página del aviso de privacidad de Grupo Chilian en su sitio) y la categoría. Meta las pide para publicar la app.</li>
   </ol>
   <div class="box">
-    <p><b>Los dos datos del webhook</b> (los vas a pegar en WhatsApp, Instagram y Messenger) están en Chilian OS → <b>Ajustes</b> → tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b>:</p>
+    <p><b>Los dos datos del webhook</b> (los vas a pegar en WhatsApp, Instagram y Messenger) están en Chilian OS → <b>Ajustes</b> → tarjeta <b>WhatsApp, Instagram y Messenger</b>:</p>
     <ul>
       <li><b>URL de devolución de llamada (Callback URL):</b> <code>https://chilian.vercel.app/api/meta</code></li>
       <li><b>Token de verificación (Verify token):</b> el que aparece en esa tarjeta.</li>
     </ul>
   </div>
 
-  <h2 id="whatsapp"><span class="n">04</span>Conectar los WhatsApp</h2>
+  <h2 id="whatsapp"><span class="n">03</span>Conectar los WhatsApp</h2>
   <h3>Elige cómo conectar cada número</h3>
   <div class="scroll"><table>
     <thead><tr><th>Opción</th><th>Qué pasa con el teléfono</th><th>Cuándo usarla</th></tr></thead>
@@ -165,7 +141,7 @@
   </ol>
   <div class="box ok"><p>En Chilian OS → <b>Ajustes → Números de WhatsApp</b>, revisa que estén todos los números con su asesora. Así cada mensaje dice a qué teléfono llegó ("WhatsApp 222 692 5404 · Carlos").</p></div>
 
-  <h2 id="instagram"><span class="n">05</span>Conectar Instagram</h2>
+  <h2 id="instagram"><span class="n">04</span>Conectar Instagram</h2>
   <p><span class="who">Admin</span>Requisito: la cuenta <b>@chilianestampados</b> debe ser <b>profesional</b> (Empresa o Creador). En la app de Instagram: <b>Configuración → Mensajes y respuestas a historias → Herramientas conectadas → Permitir acceso a los mensajes</b> (activado).</p>
   <ol>
     <li>En la app de Meta: <b>Agregar producto → Instagram → API con inicio de sesión de Instagram</b>.</li>
@@ -174,7 +150,7 @@
   </ol>
   <div class="box warn"><p>El token de Instagram dura 60 días. Meta permite renovarlo antes de que venza. Si dejan de llegar los mensajes de Instagram, genera uno nuevo y reemplázalo en Vercel.</p></div>
 
-  <h2 id="messenger"><span class="n">06</span>Conectar Facebook Messenger</h2>
+  <h2 id="messenger"><span class="n">05</span>Conectar Facebook Messenger</h2>
   <ol>
     <li><span class="who">Admin</span>En la app de Meta: <b>Agregar producto → Messenger → Configuración de la API</b>.</li>
     <li><b>Webhooks</b>: pega la URL y el token de verificación → <b>Verificar y guardar</b>.</li>
@@ -189,7 +165,7 @@
     <li>WhatsApp no necesita esta revisión para recibir y contestar mensajes de clientes.</li>
   </ol>
 
-  <h2 id="vercel"><span class="n">07</span>Pegar las llaves en Vercel</h2>
+  <h2 id="vercel"><span class="n">06</span>Pegar las llaves en Vercel</h2>
   <p><span class="who">Admin</span>En <a href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a> → proyecto <b>chilian</b> → <b>Settings → Environment Variables</b>. Agrega cada una en <b>Production</b> (y en Preview si lo usas):</p>
   <div class="scroll"><table>
     <thead><tr><th>Variable</th><th>Qué es</th><th>Estado</th></tr></thead>
@@ -199,8 +175,6 @@
       <tr><td><code>WA_ACCESS_TOKEN</code></td><td>Token permanente del usuario del sistema (paso 4).</td><td>Falta</td></tr>
       <tr><td><code>IG_ACCESS_TOKEN</code></td><td>Token de la cuenta de Instagram (paso 5).</td><td>Falta</td></tr>
       <tr><td><code>META_PAGE_TOKEN</code></td><td>Token de la página de Facebook (paso 6).</td><td>Falta</td></tr>
-      <tr><td><code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code></td><td>Llaves de las notificaciones push (Ajustes → Generar llaves de avisos).</td><td>Falta</td></tr>
-      <tr><td><code>CRON_SECRET</code></td><td>Protege el resumen de cada mañana (se genera junto con las llaves).</td><td>Falta</td></tr>
       <tr><td><code>MP_ACCESS_TOKEN</code></td><td>Access token de producción de Mercado Pago (paso 11).</td><td>Falta</td></tr>
       <tr><td><code>STRIPE_SECRET_KEY</code>, <code>STRIPE_WEBHOOK_SECRET</code></td><td>Clave secreta de Stripe y secreto del webhook (paso 11).</td><td>Falta</td></tr>
       <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Opcional: que el asistente entienda mensajes escritos libremente (paso 12).</td><td>Opcional</td></tr>
@@ -209,29 +183,19 @@
   </table></div>
   <ol>
     <li>Después de agregar o cambiar variables, ve a <b>Deployments</b> → el más reciente → <b>⋯ → Redeploy</b>. Sin esto no se toman los cambios.</li>
-    <li>En Chilian OS → <b>Ajustes</b>, la tarjeta <b>WhatsApp, Instagram, Messenger y avisos</b> debe marcar <b>listo</b> en cada renglón.</li>
+    <li>En Chilian OS → <b>Ajustes</b>, la tarjeta <b>WhatsApp, Instagram y Messenger</b> debe marcar <b>listo</b> en cada renglón.</li>
   </ol>
   <div class="box warn"><p>Los tokens y la clave secreta dan acceso a los mensajes de Chilian. Pégalos solo en Vercel. Nunca por WhatsApp, correo ni en el código.</p></div>
 
-  <h2 id="probar"><span class="n">08</span>Probar que todo llega</h2>
+  <h2 id="probar"><span class="n">07</span>Probar que todo llega</h2>
   <ol>
     <li>Desde un teléfono que no sea de Chilian, manda un WhatsApp a <b>cada número</b> de Chilian, un DM al Instagram y un mensaje a la página de Facebook.</li>
-    <li>En segundos debe aparecer en <b>Solicitudes</b>, marcada con el canal y, en WhatsApp, con el número al que llegó. Todos los que activaron avisos reciben la notificación.</li>
+    <li>En segundos debe aparecer en <b>Solicitudes</b>, marcada con el canal y, en WhatsApp, con el número al que llegó. </li>
     <li>Contesta desde la solicitud, en el cuadro de respuesta. El mensaje debe llegar al teléfono de prueba.</li>
     <li>Con coexistencia: contesta desde el teléfono de la asesora. La respuesta también aparece en la conversación del OS.</li>
   </ol>
 
-  <h2 id="que"><span class="n">09</span>Qué avisos llegan y a quién</h2>
-  <div class="scroll"><table>
-    <thead><tr><th>Aviso</th><th>Llega a</th><th>Cuándo</th></tr></thead>
-    <tbody>
-      <tr><td>Solicitud nueva del sitio, WhatsApp, Instagram o Messenger</td><td>Todo el equipo</td><td>Al momento (push)</td></tr>
-      <tr><td>Mensaje nuevo en una conversación que ya estaba contestada</td><td>Todo el equipo</td><td>Al momento</td></tr>
-      <tr><td>Te asignaron una tarea, una oportunidad o una cuenta</td><td>La persona asignada</td><td>Al momento</td></tr>
-      <tr><td>El cliente aprobó el arte o pidió cambios</td><td>Todo el equipo</td><td>Al momento</td></tr>
-      <tr><td>Resumen de pendientes: tareas de hoy y vencidas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar</td><td>Cada persona, solo lo suyo y lo que no tiene responsable</td><td>Lunes a sábado, 8:05 a. m. (hora del centro de México)</td></tr>
-    </tbody>
-  </table></div>
+  <h2 id="que"><span class="n">08</span>Qué ves en Avisos</h2>
   <p>La sección <b>Avisos</b> del OS muestra la lista completa y se actualiza cada vez que entras:</p>
   <ul>
     <li><b>Tareas:</b> vencidas, de hoy y de mañana.</li>
@@ -240,19 +204,18 @@
     <li><b>Avances sin terminar:</b> seguimientos vencidos, OT atrasadas, OT sin avance en 5 días, OT previas sin confirmar y cambios de arte pedidos.</li>
     <li><b>Información sin llenar:</b> oportunidades sin siguiente paso o sin valor, OT sin fecha compromiso o sin tallas, cotizaciones con renglones sin precio y cuentas sin teléfono ni correo.</li>
   </ul>
-  <p>La cuenta principal puede ver los de todo el equipo. El menú marca cuántos avisos sin ver tienes. Con el OS abierto en un equipo que no tiene activado el push, el navegador también muestra los avisos nuevos.</p>
+  <p>La cuenta principal puede ver los de todo el equipo. El menú marca cuántos avisos sin ver tienes. No hay notificaciones en el teléfono: las solicitudes y mensajes nuevos se ven en <b>Solicitudes</b> y en <b>Avisos</b> al abrir el OS.</p>
 
-  <h2 id="problemas"><span class="n">10</span>Si algo no funciona</h2>
+  <h2 id="problemas"><span class="n">09</span>Si algo no funciona</h2>
   <ul>
     <li><b>"Verificar y guardar" falla en Meta:</b> el token de verificación no coincide o falta redeploy en Vercel. Copia el token desde Ajustes, sin espacios.</li>
     <li><b>Ajustes dice "falta" en un renglón:</b> la variable no está en Vercel o no hiciste redeploy.</li>
     <li><b>No llegan mensajes de clientes de Instagram o Messenger, pero sí los tuyos:</b> la app sigue en modo desarrollo o sin acceso avanzado (paso 6).</li>
     <li><b>No llegan mensajes de WhatsApp:</b> revisa que el campo <code>messages</code> esté suscrito y que el número aparezca como <b>Conectado</b> en el Administrador de WhatsApp.</li>
     <li><b>"Meta no aceptó el mensaje" al contestar:</b> pasaron más de 24 horas desde el último mensaje del cliente. Contesta desde el teléfono o con una plantilla aprobada.</li>
-    <li><b>No me llegan las notificaciones:</b> en Avisos, toca <b>Mandar aviso de prueba</b>. En iPhone, el OS debe abrirse desde el ícono de la pantalla de inicio. En Android, revisa que el navegador tenga permiso de notificaciones y no esté en ahorro de batería extremo.</li>
   </ul>
 
-  <h2 id="pagos"><span class="n">11</span>Cobrar en línea: Mercado Pago y Stripe</h2>
+  <h2 id="pagos"><span class="n">10</span>Cobrar en línea: Mercado Pago y Stripe</h2>
   <p>Con las dos conectadas, cada link de pago ofrece las dos: <b>Mercado Pago</b> para México (SPEI, OXXO, tarjeta, meses sin intereses) y <b>Stripe</b> para tarjetas, sobre todo de EE. UU. Puedes conectar solo una.</p>
   <p><b>Mercado Pago</b> <span class="who">Admin</span></p>
   <ol>
@@ -274,7 +237,7 @@
   </ul>
   <div class="box warn"><p>Prueba primero con un pago real pequeño (por ejemplo $10) y reembólsalo desde Mercado Pago o Stripe.</p></div>
 
-  <h2 id="asistente"><span class="n">12</span>Encender el asistente de ventas</h2>
+  <h2 id="asistente"><span class="n">11</span>Encender el asistente de ventas</h2>
   <ol>
     <li><b>Precios reales primero.</b> En Ajustes → <b>Precios del sitio</b> captura los precios de Chilian y desmarca «ejemplo». El asistente cotiza con esos mismos precios.</li>
     <li><b>Pruébalo sin publicarlo:</b> abre el sitio con <code>?asistente=1</code> al final (por ejemplo <code>chilian.vercel.app/?asistente=1</code>). Aparece «Cotiza por chat» solo para ti; la conversación llega a Solicitudes como cualquier otra.</li>

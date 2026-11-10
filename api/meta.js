@@ -17,7 +17,6 @@
      META_PAGE_TOKEN                          Facebook Page token with pages_messaging (Messenger names + replies) */
 import crypto from "node:crypto";
 import { sessionOf, getDoc, saveDoc, getIndex, setIndex, json, fail } from "./_lib.js";
-import { notifySafe } from "./_push.js";
 import { botSettings } from "./_bot.js";
 import { assistantTurn } from "./venta.js";
 
@@ -52,7 +51,6 @@ async function assist(doc, m) {
   doc.nuevoMensaje = false;
   const r = await assistantTurn(doc, { text: m.button ? "" : m.text, button: m.button || "" }, { canal: m.canal, lang: "es", base: env("SITE_URL") || "https://chilian.vercel.app", send: true });
   await saveDoc("solicitudes", doc, "Asistente Chilian");
-  if (r.handoff) await notifySafe("all", { title: `${doc.nombre}: pasa a asesora`, body: r.handoff, url: "#solicitudes", tag: doc.id, urgent: true });
   return true;
 }
 
@@ -77,7 +75,6 @@ async function file(m) {
     let saved = await saveDoc("solicitudes", doc, label);
     await setIndex(idxKind, idxKey, { id: saved.id });
     if (await assist(saved, m)) return;
-    await notifySafe("all", { title: `Nuevo ${label}: ${doc.nombre}`, body: `${where} · ${msg.texto}`, url: "#solicitudes", tag: saved.id, urgent: true });
     return;
   }
   const wasWaiting = !!doc.nuevoMensaje;
@@ -88,7 +85,6 @@ async function file(m) {
   if (m.echo && doc.bot && !doc.bot.pausado) doc.bot.pausado = true;   // someone answered from the phone: the assistant steps back
   doc = await saveDoc("solicitudes", doc, label);
   if (!m.echo && await assist(doc, m)) return;
-  if (!m.echo && !wasWaiting) await notifySafe("all", { title: `${label}: ${doc.nombre}`, body: `${where} · ${msg.texto}`, url: "#solicitudes", tag: doc.id });
 }
 
 const igText = (m) => m.text || (m.attachments || []).map((a) => `[${a.type === "image" ? "imagen" : a.type || "archivo"}] ${a.payload?.url || ""}`.trim()).join(" ") || (m.is_deleted ? "[mensaje borrado]" : "[mensaje]");
@@ -159,7 +155,7 @@ export async function GET(req) {
     if (!s || s.role !== "admin") return json({ error: "Solo la cuenta principal." }, 403);
     return json({ webhook: new URL("/api/meta", req.url).href, verifyToken: verifyToken(), verify: !!verifyToken(), secret: secrets().length > 0,
       whatsapp: !!env("WA_ACCESS_TOKEN"), token: !!env("IG_ACCESS_TOKEN"), instagram: !!env("IG_ACCESS_TOKEN"), messenger: !!env("META_PAGE_TOKEN"),
-      push: !!(env("VAPID_PUBLIC_KEY") && env("VAPID_PRIVATE_KEY")), cron: !!env("CRON_SECRET") });
+      });
   } catch (e) { return fail(e); }
 }
 

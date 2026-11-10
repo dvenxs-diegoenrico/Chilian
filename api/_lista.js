@@ -121,4 +121,3 @@ export const LISTA_PLAYERAS = [
   R("N0300", "Yazbek", "Kids", "Blanco", "CH-M-G-XG", "Peso completo 195 gr/m² chifón, 100% algodón", "", 43.89, 40.96, 39.50, 38.04, 35.11),
   R("N0300", "Yazbek", "Kids", "Colores", "CH-M-G-XG", "Peso completo 195 gr/m² chifón, 100% algodón", "", 51.72, 48.27, 46.55, 44.82, 41.38)
 ];
-export const listaPor = (codigo, color) => LISTA_PLAYERAS.find((r) => r.codigo === codigo && (!color || r.color.toLowerCase().startsWith(color)));

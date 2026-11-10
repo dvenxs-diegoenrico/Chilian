@@ -7,7 +7,6 @@ Disallow: /ops/
 Disallow: /api/
 Disallow: /aprobar
 Disallow: /pedido
-Disallow: /propuesta-v2
 
 # AI assistants and AI search (explicitly allowed)
 User-agent: GPTBot

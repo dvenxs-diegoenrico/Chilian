@@ -17,8 +17,8 @@ import { understand } from "./_ai.js";
 
 // The website chat is published by default; the social channels turn on in Ajustes once Meta is connected.
 export const BOT_DEFAULTS = { activo: { web: true, whatsapp: false, instagram: false, messenger: false }, limite: 7200, anticipo: 50, umbralUSD: 400, tipoCambio: 18.5, horario: { dias: [1, 2, 3, 4, 5], desde: 9, hasta: 19 } };
-export async function botSettings() {
-  const st = await getDoc("ajustes", "asistente").catch(() => null);
+export async function botSettings({ strict = false } = {}) {
+  const st = await getDoc("ajustes", "asistente").catch((e) => { if (strict) throw e; return null; });
   return { ...BOT_DEFAULTS, ...(st || {}), activo: { ...BOT_DEFAULTS.activo, ...(st?.activo || {}) }, horario: { ...BOT_DEFAULTS.horario, ...(st?.horario || {}) } };
 }
 export function inHours(h, now = new Date()) {

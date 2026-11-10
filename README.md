@@ -1,13 +1,12 @@
 # Chilian — nuevo sitio (rediseño de grupochilian.com.mx)
 
-> **Sitio en producción: `index.html` (dirección v1).** La propuesta con referencias Nike/Apple queda en `propuesta-v2.html`.
+> **Sitio en producción: `index.html` (dirección v1).**
 
 ## Estructura
 
 | Archivo | Qué es |
 | --- | --- |
 | `index.html` | Página de inicio (v1, la dirección elegida) |
-| `propuesta-v2.html` | Propuesta alternativa con referencias Nike y Apple |
 | `photos/`, `logos/` | Fotos de planta y trabajos; logos como máscaras de color |
 | `favicon.png`, `apple-touch-icon.png` | Ícono de la pestaña y del teléfono |
 | `studio3d.js` | 3D, vista de molde y archivo de producción (rutas 2 y 3) |
@@ -379,12 +378,12 @@ La sección `#cotizar` funciona como un configurador con precio en vivo:
 - **Cotización nueva = lead:** al crear una cotización se elige la cuenta (o se da de alta el cliente nuevo con contacto, WhatsApp o correo, segmento y fuente) y su oportunidad (una abierta de la cuenta o una nueva). La oportunidad nueva entra en *Calificado*, con el valor de la cotización y la siguiente acción «Enviar la cotización». Si se crea desde una oportunidad en *Nuevo* o *Contactado*, pasa a *Calificado*. Las copias de una cotización también entran al pipeline.
 - **Al marcarla enviada:** la oportunidad pasa a *Cotización enviada* (sin retroceder si ya está en *Negociación*; si estaba perdida, se reabre), toma el valor, las piezas y el folio de la cotización, programa el seguimiento a 2 días (siguiente acción y tarea) y deja la nota en su actividad. Si la cotización no tenía lead (por ejemplo, una pre-cotización del sitio sin convertir), se crea en ese momento a partir de su solicitud.
 
-## WhatsApp, Instagram y Messenger; avisos del equipo
+## WhatsApp, Instagram y Messenger; Avisos del OS
 
 - **Un solo webhook** `/api/meta` (antes `/api/instagram`, que sigue funcionando) recibe WhatsApp (todos los números de la cuenta de WhatsApp Business, incluida la coexistencia con la app), Instagram Direct y Facebook Messenger. Cada conversación es una solicitud con su hilo; en WhatsApp dice a qué número llegó. Se responde desde la solicitud (ventana de 24 h de Meta).
-- **Avisos** (`ops/alerts.js`, compartido por el OS y el servidor): tareas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar, por persona. Sección «Avisos» con contador en el menú y aviso de urgentes en el Tablero.
-- **Notificaciones push** (`/api/avisos`, `ops/sw.js`, Web Push con VAPID): solicitudes y mensajes nuevos al equipo, asignaciones de tareas, oportunidades y cuentas a la persona asignada, aprobaciones o cambios de arte del cliente, y resumen de pendientes de lunes a sábado a las 8:05 (Vercel Cron). En iPhone se activan desde el OS agregado a la pantalla de inicio.
-- **Tutorial paso a paso:** `/ops/conectar` (también enlazado en Ajustes). Variables de entorno: `META_APP_SECRET`, `IG_VERIFY_TOKEN` (o `META_VERIFY_TOKEN`), `WA_ACCESS_TOKEN`, `IG_ACCESS_TOKEN`, `META_PAGE_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` (las cuatro últimas se generan en Ajustes → Generar llaves de avisos).
+- **Avisos** (`ops/alerts.js`, solo en el OS): tareas, prospectos nuevos, cotizaciones pendientes, avances sin terminar e información sin llenar, por persona. Sección «Avisos» con contador en el menú y aviso de urgentes en el Tablero.
+- **Sin notificaciones en el dispositivo.** Se quitaron el push (Web Push con VAPID), el service worker, el resumen diario por Cron y las notificaciones del navegador. Lo nuevo se ve en Solicitudes y en Avisos al abrir el OS. Las solicitudes y mensajes nuevos quedan marcadas «mensaje nuevo».
+- **Tutorial paso a paso:** `/ops/conectar` (también enlazado en Ajustes). Variables de entorno: `META_APP_SECRET`, `IG_VERIFY_TOKEN` (o `META_VERIFY_TOKEN`), `WA_ACCESS_TOKEN`, `IG_ACCESS_TOKEN`, `META_PAGE_TOKEN`.
 
 ## Identidad: logo y tipografía originales
 
@@ -421,8 +420,7 @@ Tomado de lo que hacen bien los sistemas para talleres de estampado (Printavo, S
 - **Datos estructurados (schema.org JSON-LD):** organización y negocio local (dirección, teléfono, horario, fundación 1990, redes, contactos de venta, técnicas como servicios), sitio web y preguntas frecuentes.
 - **Preguntas frecuentes visibles** (`#preguntas`) con las mismas respuestas que los datos estructurados; todo sale de datos ya publicados en el sitio.
 - **Contenido legible sin JavaScript:** técnicas, equipo y auditorías vienen ya en el HTML (el script los vuelve a dibujar con su diseño).
-- **`robots.txt`** (permite buscadores y asistentes de IA; cierra `/ops`, `/api`, enlaces privados de clientes y la propuesta vieja), **`sitemap.xml`** y **`llms.txt`** (resumen del negocio para asistentes).
-- `propuesta-v2.html` queda fuera de los buscadores (`noindex`).
+- **`robots.txt`** (permite buscadores y asistentes de IA; cierra `/ops`, `/api`, enlaces privados de clientes), **`sitemap.xml`** y **`llms.txt`** (resumen del negocio para asistentes).
 - El dominio está en una sola constante del script de SEO: si el sitio se muda a grupochilian.com.mx, hay que cambiar la canónica, `og:url`, el sitemap y `robots.txt`.
 
 ### SEO enfocado en el cliente de alto valor
@@ -576,3 +574,17 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - **Se apaga desde Ajustes:** se desactiva en Ajustes → Asistente de ventas, y lo guardado ahí manda sobre el valor por defecto.
   - **Almacenamiento caído:** el botón del chat solo aparece si el almacenamiento responde (`/api/venta?accion=activo`). Si el almacenamiento falla, el sitio no muestra un chat que no puede guardar.
   - **WhatsApp, Instagram y Messenger:** siguen apagados hasta conectar Meta y encenderlos en Ajustes.
+
+
+### Uso del almacenamiento (Vercel Blob)
+
+- **Qué gastaba más.** En el plan Hobby, los listados (`list`) cuentan como operaciones avanzadas y tienen un límite mensual bajo. El mayor consumo era el OS: cada actualización listaba el almacén 8 veces, una por colección y una por usuarios. Con la pestaña abierta se actualizaba cada 90 segundos, así que una sola pestaña gastaba unos 280 listados por hora. El consumo fue una estimación hecha leyendo el código, sin medidor de operaciones; el plan Hobby se pasó de su límite y suspendió el almacén.
+- **Ahora:**
+  - El OS carga todo con una petición y un solo listado (`/api/db?all=1`).
+  - Ya no se actualiza solo cada 90 segundos: se actualiza al volver a la pestaña después de 10 minutos, al cambiar de sección después de 1 minuto y con «Actualizar datos».
+  - Las cuentas se piden una vez y cada 15 minutos, no en cada carga.
+  - El servidor recuerda los listados 2 minutos y los corrige con sus propias escrituras.
+  - El chat del sitio solo consulta cuando una persona puede contestar (cada 12 segundos), no mientras habla el asistente.
+  - Cada consulta de «¿está encendido el chat?» lee una sola vez, y la comprobación de que el almacén responde es esa misma lectura.
+- **Ya sin uso.** El push no tocaba el almacenamiento (sin las llaves VAPID no hacía nada), pero se quitó por no tener uso.
+- **Código quitado.** `api/_push.js`, `api/avisos.js`, `ops/sw.js`, `propuesta-v2.html`, 21 archivos de fotos y un logo sin referencias, las funciones `calcLinea`, `userByName` y `listaPor`, y la dependencia `web-push`.

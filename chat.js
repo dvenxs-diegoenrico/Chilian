@@ -10,7 +10,7 @@
   const T = (es, en) => (lang() === "en" ? en : es);
   let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
-  let total = st.total || 0, busy = false, timer = 0, root, log, form, input;
+  let total = st.total || 0, busy = false, timer = 0, waiting = false, root, log, form, input;   // waiting: a person may answer (hand-off): only then does the page poll
 
   const css = `
   .cc-btn { position: fixed; z-index: 41; right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -80,7 +80,7 @@
     try {
       const fuente = (() => { try { return JSON.parse(sessionStorage.getItem("chilian-origen") || "{}").fuente; } catch (e) { return ""; } })();
       const j = await call({ accion: "chat", sid: st.sid, t: st.t, text, button, lang: lang(), fuente: fuente || "sitio web", prueba: test || undefined });
-      st.sid = j.sid; st.t = j.t; total = st.total = j.total; save();
+      st.sid = j.sid; st.t = j.t; total = st.total = j.total; waiting = !!j.espera; save();
       typing.remove();
       render(j.mensajes.filter((m) => m.de !== "cliente"));
     } catch (e) {
@@ -91,12 +91,12 @@
 
   let quietSince = Date.now();
   async function poll() {
-    if (!st.sid || busy || !root.classList.contains("open")) return;
+    if (!st.sid || busy || !waiting || !root.classList.contains("open")) return;
     if (document.visibilityState !== "visible" || Date.now() - quietSince > 15 * 60_000) return;   // tab hidden or 15 min without news
     try {
       const r = await fetch(`${API}?accion=chat&sid=${encodeURIComponent(st.sid)}&t=${encodeURIComponent(st.t)}&desde=${total}`);
       if (r.status === 401 || r.status === 404) { st = {}; total = 0; save(); return; }
-      const j = await r.json();
+      const j = await r.json(); waiting = !!j.espera;
       if (j.mensajes?.length) { quietSince = Date.now(); total = st.total = j.total; save(); render(j.mensajes.filter((m) => m.de !== "cliente")); }
     } catch (e) {}
   }
@@ -106,7 +106,7 @@
     try {
       const r = await fetch(`${API}?accion=chat&sid=${encodeURIComponent(st.sid)}&t=${encodeURIComponent(st.t)}&desde=0`);
       if (!r.ok) { st = {}; total = 0; save(); return false; }
-      const j = await r.json(); total = st.total = j.total; save(); render(j.mensajes); return true;
+      const j = await r.json(); total = st.total = j.total; waiting = !!j.espera; save(); render(j.mensajes); return true;
     } catch (e) { return false; }
   }
 
@@ -114,7 +114,7 @@
   async function open() {
     root.classList.add("open"); btn.setAttribute("aria-expanded", "true");
     if (!started) { started = true; if (!(await history())) await send("", ""); }
-    clearInterval(timer); timer = setInterval(poll, 8000);   // storage reads are limited: every 8 s while open
+    clearInterval(timer); timer = setInterval(poll, 12000);   // only while a person may answer, every 12 s
     if (matchMedia("(min-width: 561px)").matches) input.focus();
   }
   function close() { root.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); clearInterval(timer); btn.focus(); }
