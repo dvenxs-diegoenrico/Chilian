@@ -15,7 +15,7 @@ export const aiReady = () => !!process.env.ANTHROPIC_API_KEY;
 const SYSTEM = `Eres el asistente de ventas de Chilian (Grupo Chilian), planta de serigrafía, bordado y confección en Puebla, México, con más de 35 años. Atiendes por el chat del sitio, WhatsApp, Instagram y Messenger.
 
 Tu trabajo en cada mensaje del cliente es ENTENDERLO y usar las funciones:
-- registrar_pedido: siempre que el mensaje diga algo del pedido (producto, piezas, técnica, tintas, ubicaciones, tamaño de bordado, entrega, para qué es, calidad o línea, tela/composición/gramaje, quién es el cliente). Pon null en lo que no dijo. No inventes datos.
+- registrar_pedido: siempre que el mensaje diga algo del pedido (producto, piezas, técnica, tintas, ubicaciones, tamaño de bordado, entrega, para qué es, calidad o línea, tela/composición/gramaje, quién es el cliente). Pon "", 0 o lista vacía en lo que no dijo. No inventes datos.
 - responder: si el cliente hace una pregunta (cómo funciona, tiempos, mínimos, diferencias entre técnicas o líneas, si estampan su propia prenda, dónde están). Respuesta breve, cálida, en el idioma del cliente, de 1 a 3 frases, sin precios (los precios los calcula el sistema).
 - calificar_cliente: SIEMPRE. Estima cuánto vale el pedido en dólares (USD) con lo que sabes: piezas × precio típico (playera 4–8 USD, polo 9–14, sudadera 13–20, gorra 4–6, bolsa 2–3, con impresión), y señales: empresa o marca, número de empleados o corredores, pedidos recurrentes, varios productos, fecha de evento, que esté comparando proveedores. Si no hay datos, estima bajo.
 - pasar_a_asesora: si pide hablar con una persona, licencias o personajes, programas de marca o maquila, paquete completo (corte y confección), una queja, factura o un tema que no es de pedidos.
@@ -36,12 +36,13 @@ tec: plastisol | waterbase | discharge | hd | puff | glitter | gitd | dtg | embr
 uso: carrera | evento | negocio | uniforme | banda | marca | regalo
 perfil: experto (ya sabe tela, gramaje y sistema de impresión, o compara cotizaciones) | intermedio (sabe el producto, necesita asesoría) | explorador (no sabe qué cotizar) | cliente (ya le compra a Chilian)`;
 
-const str = (desc, e) => ({ anyOf: [e ? { type: "string", enum: e } : { type: "string" }, { type: "null" }], description: desc });
-const int = (desc) => ({ anyOf: [{ type: "integer" }, { type: "null" }], description: desc });
+// No unions: the API limits a tool's schema to 16 nullable/anyOf fields. "Not said" is "" (text), 0 (numbers) or [] (lists).
+const str = (desc, e) => ({ type: "string", ...(e ? { enum: [...e, ""] } : {}), description: desc + " Pon \"\" si no lo dijo." });
+const int = (desc) => ({ type: "integer", description: desc + " Pon 0 si no lo dijo." });
 const obj = (props) => ({ type: "object", properties: props, required: Object.keys(props), additionalProperties: false });
 
 const TOOLS = [
-  { name: "registrar_pedido", strict: true, description: "Guarda lo que el cliente dijo de su pedido. Usa null en lo que no mencionó.",
+  { name: "registrar_pedido", strict: true, description: "Guarda lo que el cliente dijo de su pedido. Usa \"\", 0 o lista vacía en lo que no mencionó.",
     input_schema: obj({
       perfil: str("Tipo de cliente", ["experto", "intermedio", "explorador", "cliente"]),
       uso: str("Para qué es", ["carrera", "evento", "negocio", "uniforme", "banda", "marca", "regalo"]),
@@ -50,8 +51,8 @@ const TOOLS = [
       qty: int("Piezas"),
       tec: str("Técnica", ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"]),
       inks: int("Número de tintas o colores del diseño (1 a 11)"),
-      size: { anyOf: [{ type: "integer", enum: [100, 300, 600, 1200, 1800] }, { type: "null" }], description: "Área de impresión en cm²: 100 (≈10×10 cm, logo de pecho), 300 (≈17×17), 600 (≈24×24, carta), 1200 (≈35×35, doble carta), 1800 (≈42×42, frente completo)" },
-      extras: { anyOf: [{ type: "array", items: { type: "string", enum: ["antimigrante", "fleece", "export"] } }, { type: "null" }], description: "Extras de serigrafía que pidió: antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación). La prenda de color, HD, puff y glitter se suman solos." },
+      size: { type: "integer", enum: [0, 100, 300, 600, 1200, 1800], description: "Área de impresión en cm²: 100 (≈10×10 cm, logo de pecho), 300 (≈17×17), 600 (≈24×24, carta), 1200 (≈35×35, doble carta), 1800 (≈42×42, frente completo) Pon 0 si no lo dijo." },
+      extras: { type: "array", items: { type: "string", enum: ["antimigrante", "fleece", "export"] }, description: "Extras de serigrafía que pidió: antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación). La prenda de color, HD, puff y glitter se suman solos. Lista vacía si no pidió ninguno." },
       locs: int("Número de ubicaciones de impresión (1 a 4)"),
       emb: str("Tamaño de bordado", ["chico", "mediano", "grande"]),
       del: str("Entrega", ["estandar", "express"]),
@@ -101,7 +102,7 @@ export async function understand(doc, text, state) {
     for (const b of res.content) {
       if (b.type !== "tool_use") continue;
       const x = b.input || {};
-      if (b.name === "registrar_pedido") for (const [k, v] of Object.entries(x)) { if (v !== null && v !== "") out.campos[k] = v; }
+      if (b.name === "registrar_pedido") for (const [k, v] of Object.entries(x)) { if (v !== null && v !== "" && v !== 0 && !(Array.isArray(v) && !v.length)) out.campos[k] = v; }
       else if (b.name === "responder") out.respuesta = String(x.texto || "").slice(0, 700);
       else if (b.name === "calificar_cliente") out.lead = { valorUSD: Math.max(0, +x.valor_usd || 0), recurrente: !!x.recurrente, razones: (x.razones || []).slice(0, 6).map((r) => String(r).slice(0, 120)) };
       else if (b.name === "pasar_a_asesora") out.asesora = String(x.motivo || "Pidió algo que atiende una asesora").slice(0, 200);
