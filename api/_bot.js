@@ -51,7 +51,7 @@ function parse(text, d) {
   const where = ["frente", "espalda", "manga", "nuca", "pecho", "front", "back", "sleeve"].filter((w) => t.includes(w)).length;
   if (where) d.locs = Math.min(4, where);
   if (/express|urgente|rapido|rush/.test(t)) d.del = "express";
-  if (/\bblanc[oa]s?\b|\bwhite\b/.test(t)) d.color = "blanca"; else if (/\b(negr|azul|roj|gris|verde|amarill|rosa|morad|cafe|beige|marino|color)\w*|\b(black|navy|colou?red)\b/.test(t)) d.color = "color";
+  if (/\bblanc[oa]s?\b|\bwhite\b/.test(t)) d.color = "blanca"; else if (/\b(negr[oa]s?|azul(es)?|roj[oa]s?|gris(es)?|verdes?|amarill[oa]s?|rosas?|morad[oa]s?|beige|marino|colou?r(es|ed)?|black|navy)\b/.test(t)) d.color = "color";
   for (const k of Object.keys(EMB)) if (t.includes(k)) d.emb = k;
   return d;
 }
