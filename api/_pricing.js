@@ -4,6 +4,8 @@
 import { getDoc } from "./_lib.js";
 import { mergePrecios } from "./precios.js";
 import { dtgPrice } from "./_dtg.js";
+import "../reglas.js";   // fabric × technique rules, shared with the website and Chilian OS
+export const REGLAS = globalThis.CHILIAN_REGLAS;
 
 export const TECS = [
   { id: "plastisol", kind: "serigrafia", es: "Plastisol", en: "Plastisol" },
@@ -96,6 +98,9 @@ export function quote(P, c, lang = "es") {
   const L = (es, en) => (lang === "en" ? en : es);
   const prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
   const tec = prod.pod ? TECS.find((x) => x.id === "dtg") : TECS.find((x) => x.id === c.tec) || TECS[0], kind = tec.kind;   // Print on Demand is DTG only
+  // what applies on this fabric: blocks the quote, or adds what the fabric needs (the barrier base on colored polyester and blends)
+  const rg = REGLAS.check({ tec: tec.id, tela: REGLAS.telaDe(P, prod, c), color: c.color, prod });
+  if (rg.extras.length) c = { ...c, extras: [...new Set([...(c.extras || []), ...rg.extras])] };
   const dcm = +c.dcm || 27, dOne = kind === "dtg" ? dtgPrice(dcm, Math.max(1, parseInt(c.qty, 10) || 0), c.color === "blanca", P.dtgTabla) : 0;   // DTG: one location up to dcm cm (longest side)
   const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos);
   const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.ubic && c.ubic.length ? c.ubic.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
@@ -114,7 +119,8 @@ export function quote(P, c, lang = "es") {
   if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
   const min = Math.max((P.minimos || {})[kind] || 1, kind === "serigrafia" ? (P.serigrafia.chica ? P.serigrafia.chica.tramos[0] : P.serigrafia.tramos[0]) : 0);
   let err = "";
-  if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.");
+  if (!rg.ok) err = L(rg.motivo.es, rg.motivo.en);
+  else if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.");
   else if (kind === "dtg" && prod.nodtg) err = L("DTG no se imprime en ese producto; elige serigrafía o bordado.", "DTG can't print on that product; pick screen printing or embroidery.");
   else if (q < min) err = L(`El mínimo en ${tec.es.toLowerCase()} es de ${min} piezas.`, `The minimum for ${tec.en.toLowerCase()} is ${min} pieces.`);
   const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
@@ -132,7 +138,7 @@ export function quote(P, c, lang = "es") {
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);
-  return { prod, tec, kind, mod, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
+  return { prod, tec, kind, mod, regla: rg, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
     unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null, excede: !!(pc && pc.ubic && pc.ubic.some((u) => u.excede)),
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

@@ -11,7 +11,7 @@
    paid on the spot; above that, licenses, brand programs, full package, complaints or "person"
    go to an advisor. Advisors work Monday to Friday, 9:00–19:00 (Mexico City).
    It only talks about Chilian: products, techniques, prices, times, orders and payments. */
-import { prices, quote, TECS, EMB, parseMedida, sizeIdx } from "./_pricing.js";
+import { prices, quote, TECS, EMB, parseMedida, sizeIdx, REGLAS } from "./_pricing.js";
 import { getDoc, listDocs } from "./_lib.js";
 import { understand } from "./_ai.js";
 import { nombreReal } from "./_ciclo.js";
@@ -87,7 +87,7 @@ const USO_RX = [["carrera", /carrera|maraton|correr|running|deport|futbol|liga|t
 const LINEA_RX = [["basica", /basica|economica|basic|cheap/], ["premium", /premium|alta calidad|gruesa|peso completo|heavyweight/], ["clasica", /clasica|classic/]];
 const PERFILES = { experto: ["Ya sé lo que quiero", "I know what I want"], intermedio: ["Necesito asesoría", "I need advice"], explorador: ["Estoy explorando", "Just exploring"], cliente: ["Ya soy cliente", "I'm a customer"] };
 export const PERFIL_NOMBRE = { experto: "Sabe lo que quiere (compara)", intermedio: "Necesita asesoría", explorador: "Explorando", cliente: "Cliente que ya compra" };
-const ALL_TECS = ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "dtg", "embroidery", "fullprint"];
+const ALL_TECS = ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"];
 
 function parseMore(text, d) {
   const t = norm(text);
@@ -197,6 +197,7 @@ export async function botTurn(doc, input, ctx) {
   else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
   else if (pre === "tec") d.tec = val;
   else if (pre === "mod") d.mod = val;
+  else if (pre === "tela") d.tela = val;
   else if (pre === "inks") d.inks = +val;
   else if (pre === "lugar") { d.lugarActual = val; d.masUbic = false; }
   else if (pre === "mas") { if (val === "si") d.masUbic = true; else d.ubicListo = true; }
@@ -356,18 +357,35 @@ export async function botTurn(doc, input, ctx) {
     b.paso = "color"; return done();
   }
 
+  // 4c. the customer's own garment: its fabric decides which printing systems apply
+  if (prod.id === "propia" && d.tela === undefined) {
+    say(L("¿De qué tela es tu prenda? Con eso sé qué impresión le queda (por ejemplo, DTG y discharge solo van en algodón).", "What fabric is your garment? That tells me which print works (for example, DTG and discharge only go on cotton)."),
+      [{ id: "tela:algodon", title: L("Algodón", "Cotton") }, { id: "tela:mezcla", title: L("Mezcla (ej. 50/50)", "Blend (e.g. 50/50)") }, { id: "tela:poliester", title: L("Poliéster", "Polyester") }, { id: "tela:nose", title: L("No sé", "Not sure") }]);
+    b.paso = "tela"; return done();
+  }
+  // the fabric of what is being quoted and what applies on it (reglas.js): only what applies is offered
+  const regla = (id) => REGLAS.check({ tec: id, tela: REGLAS.telaDe(P, prod, d), color: d.color, prod });
+  const aplica = (id) => !(id === "fullprint" && !prod.fullprint) && regla(id).ok;
+  if (d.tec === "dtg" && d.dis === "foto" && !aplica("dtg")) { d.tec = "plastisol"; d.inks ||= 6; }   // a photo on a blend or polyester: screen printing instead
+
   // 5. how it is printed: the expert picks the system; the rest describe their design and we suggest
+  if (d.tec && !aplica(d.tec)) {
+    const r0 = regla(d.tec), ops = ALL_TECS.filter(aplica);
+    say((r0.ok ? L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.") : L(r0.motivo.es, r0.motivo.en)) + L(" ¿Con cuál lo hacemos?", " Which one shall we use?"),
+      ops.map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: L(t.es, t.en).slice(0, 24) }; }));
+    delete d.tec; delete d.dis; b.paso = "tec"; return done();
+  }
   if (!d.tec) {
     if (advise) {
       const opts = [{ id: "dis:logo", title: L("Logo o texto", "Logo or text") }, { id: "dis:foto", title: L("Foto o muchos colores", "Photo or many colors") }];
-      if (prod.fullprint) opts.unshift({ id: "dis:full", title: L("⭐ Full print", "⭐ Full print") });
+      if (aplica("fullprint")) opts.unshift({ id: "dis:full", title: L("⭐ Full print", "⭐ Full print") });
       opts.push(["polo", "camisa", "gorra"].includes(prod.id) || d.uso === "uniforme" ? { id: "dis:bordado", title: L("⭐ Bordado", "⭐ Embroidery") } : { id: "dis:bordado", title: L("Bordado", "Embroidery") });
       opts.push({ id: "dis:nodis", title: L("Aún no tengo diseño", "No design yet") });
       say(L("¿Cómo es tu diseño? Con eso te sugiero la impresión: serigrafía para logos de pocos colores y volumen, DTG para fotos en pocas piezas, bordado para un acabado formal" + (prod.fullprint ? " y full print para cubrir toda la prenda." : "."),
         "What is your design like? With that I'll suggest the print: screen printing for logos with few colors and volume, DTG for photos in short runs, embroidery for a formal finish" + (prod.fullprint ? " and full print to cover the whole garment." : ".")), opts);
       b.paso = "dis"; return done();
     }
-    const opts = ALL_TECS.filter((id) => !(id === "fullprint" && !prod.fullprint) && !(id === "dtg" && prod.nodtg)).map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: t ? L(t.es, t.en).slice(0, 24) : id }; });
+    const opts = ALL_TECS.filter(aplica).map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: t ? L(t.es, t.en).slice(0, 24) : id }; });
     say(L("¿Qué sistema de impresión?", "Which printing system?"), opts); b.paso = "tec"; return done();
   }
   const tec = TECS.find((x) => x.id === d.tec) || TECS[0];

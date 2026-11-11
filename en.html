@@ -1744,7 +1744,7 @@
 <fieldset class="qz-step" id="qz-ext-step">
 <legend class="qz-label"><span class="n">06</span><span data-en="Print extras" data-es="Extras de impresión">Print extras</span></legend>
 <div class="chips" id="qz-ext"></div>
-<p class="qz-hint" data-en="Optional. Colored garments, HD, puff and glitter inks and fleece garments add their own extra automatically." data-es="Opcional. La prenda de color, las tintas HD, puff y glitter y las prendas afelpadas suman su extra solas.">Optional. Colored garments, HD, puff and glitter inks and fleece garments add their own extra automatically.</p>
+<p class="qz-hint" data-en="Optional. Colored garments, HD, puff and glitter inks and fleece garments add their own extra automatically; colored polyester and blends always take the barrier base." data-es="Opcional. La prenda de color, las tintas HD, puff y glitter y las prendas afelpadas suman su extra solas; el poliéster y las mezclas de color llevan siempre base antimigrante.">Optional. Colored garments, HD, puff and glitter inks and fleece garments add their own extra automatically; colored polyester and blends always take the barrier base.</p>
 </fieldset>
 <fieldset class="qz-step">
 <legend class="qz-label"><span class="n">07</span><span data-en="Delivery" data-es="Entrega">Delivery</span></legend>
@@ -2074,6 +2074,7 @@
 </div>
 </div>
 </dialog>
+<script src="/reglas.js"></script>
 <script>
   /* =================================================================
      DATA: everything the page lists lives here, in Spanish and English.
@@ -2114,10 +2115,10 @@
   const TECHS = [
     { id: "plastisol", img: "tecnica-plastisol-mezclilla.jpg", name: { es: "Plastisol", en: "Plastisol" }, tag: { es: "La base de todo", en: "The workhorse" },
       text: { es: "La tinta de serigrafía más usada: colores sólidos, gran cobertura y alta durabilidad en algodón, mezclas y mezclilla.", en: "The most used screen printing ink: solid colors, strong coverage and high durability on cotton, blends and denim." },
-      use: { es: "Merch, uniformes, eventos, licencias", en: "Merch, uniforms, events, licensing" }, fabric: { es: "Algodón, mezclas, mezclilla", en: "Cotton, blends, denim" } },
+      use: { es: "Merch, uniformes, eventos, licencias", en: "Merch, uniforms, events, licensing" }, fabric: { es: "Algodón, mezclas y mezclilla; poliéster con base antimigrante", en: "Cotton, blends and denim; polyester with a barrier base" } },
     { id: "waterbase", img: "tecnica-base-agua.jpg", name: { es: "Base agua", en: "Water-based" }, tag: { es: "Tacto suave", en: "Soft hand" },
       text: { es: "La tinta penetra la fibra: el estampado casi no se siente al tacto. Preferida por marcas de moda y prendas premium.", en: "The ink soaks into the fiber, so the print is barely felt. Preferred by fashion brands and premium garments." },
-      use: { es: "Marcas de ropa, merch premium", en: "Apparel brands, premium merch" }, fabric: { es: "Algodón 100% y mezclas claras", en: "100% cotton and light blends" } },
+      use: { es: "Marcas de ropa, merch premium", en: "Apparel brands, premium merch" }, fabric: { es: "Algodón y mezclas (no poliéster)", en: "Cotton and blends (not polyester)" } },
     { id: "hd", sw: "#F2F0EC", name: { es: "Alta densidad", en: "High density" }, tag: { es: "Relieve definido", en: "Sharp relief" },
       text: { es: "Capas de tinta que forman un relieve con bordes rectos. Da textura y volumen a logos y tipografías.", en: "Stacked ink layers that build a relief with straight edges. Adds texture and depth to logos and type." },
       use: { es: "Logos, streetwear, colecciones", en: "Logos, streetwear, collections" }, fabric: { es: "Algodón y mezclas de buen gramaje", en: "Heavier cotton and blends" } },
@@ -2126,7 +2127,7 @@
       use: { es: "Gráficos llamativos, moda, infantil", en: "Bold graphics, fashion, kids" }, fabric: { es: "Algodón y mezclas", en: "Cotton and blends" } },
     { id: "discharge", sw: "#E9DCC6", name: { es: "Discharge", en: "Discharge" }, tag: { es: "Quita el color de la tela", en: "Removes the fabric dye" },
       text: { es: "Descarga el tinte de la prenda y deja el color en la fibra. Ideal para prendas oscuras con tacto suave.", en: "Removes the garment's dye and leaves color in the fiber. Ideal for dark garments with a soft hand." },
-      use: { es: "Prendas oscuras, look vintage", en: "Dark garments, vintage look" }, fabric: { es: "Algodón 100% reactivo", en: "100% reactive-dyed cotton" } },
+      use: { es: "Prendas oscuras, look vintage", en: "Dark garments, vintage look" }, fabric: { es: "Solo algodón 100% de color", en: "Colored 100% cotton only" } },
     { id: "glitter", sw: "#C9B27A", name: { es: "Glitter", en: "Glitter" }, tag: { es: "Brillo", en: "Sparkle" },
       text: { es: "Tinta con partículas metálicas que reflejan la luz.", en: "Ink with metallic particles that catch the light." },
       use: { es: "Moda, eventos, infantil", en: "Fashion, events, kids" }, fabric: { es: "Algodón y mezclas", en: "Cotton and blends" } },
@@ -2138,10 +2139,10 @@
       use: { es: "Conciertos, merch de artistas, eventos nocturnos", en: "Concerts, artist merch, night events" }, fabric: { es: "Algodón y mezclas", en: "Cotton and blends" } },
     { id: "fullprint", img: "tecnica-full-print.jpg", name: { es: "Full print", en: "Full print" }, tag: { es: "Sublimado de costura a costura", en: "Seam-to-seam sublimation" },
       text: { es: "La prenda se imprime completa, sin límite de colores. Es la base de Chilian Sport.", en: "The whole garment is printed with unlimited colors. It is the base of Chilian Sport." },
-      use: { es: "Deportes, carreras, campañas", en: "Sports, races, campaigns" }, fabric: { es: "Poliéster", en: "Polyester" } },
+      use: { es: "Deportes, carreras, campañas", en: "Sports, races, campaigns" }, fabric: { es: "Solo poliéster (Chilian Sport)", en: "Polyester only (Chilian Sport)" } },
     { id: "dtg", sw: "#2E7DD7", name: { es: "DTG digital", en: "DTG digital" }, tag: { es: "Desde 1 pieza", en: "From 1 piece" },
       text: { es: "Impresión directa a la prenda a todo color, sin pantallas: fotos, degradados y un diseño distinto en cada pieza. Dos impresoras DTG en planta.", en: "Direct-to-garment printing in full color with no screens: photos, gradients and a different design on every piece. Two DTG printers in the plant." },
-      use: { es: "Muestras, tirajes cortos, personalización", en: "Samples, short runs, personalization" }, fabric: { es: "Algodón 100% (oscuras con pretratado)", en: "100% cotton (dark garments pretreated)" } },
+      use: { es: "Muestras, tirajes cortos, personalización", en: "Samples, short runs, personalization" }, fabric: { es: "Solo algodón (oscuras con pretratado)", en: "Cotton only (dark garments pretreated)" } },
     { id: "embroidery", img: "bordado.jpg", name: { es: "Bordado y 3D", en: "Embroidery & 3D" }, tag: { es: "Textura que dura", en: "Lasting texture" },
       text: { es: "Logos en hilo, planos o con relieve 3D, y parches, en bordadora de 6 cabezas: 6 prendas por ciclo. Lo más resistente para uniforme.", en: "Thread logos, flat or 3D puff, and patches, on a 6-head machine: 6 garments per cycle. The most durable choice for uniforms." },
       use: { es: "Uniformes, gorras, moda", en: "Uniforms, caps, fashion" }, fabric: { es: "Casi cualquier tejido", en: "Almost any fabric" } },
@@ -2436,7 +2437,27 @@
     return [L[0], ...rows.map(([k, v]) => `• ${k}: ${v}`)].join("\n");
   }
 
+  // What can be printed on a catalog model, by its fabric (reglas.js): the rows of its sheet, and the conflicts with the techniques ticked in the request
+  const CAT_TECS = ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"];
+  function catPrintRows(e) {
+    if (!RG) return [];
+    const T = RG.telaCat(e); if (!T.clase) return [];
+    const ok = [], no = [];
+    for (const id of CAT_TECS) (RG.check({ tec: id, tela: T, color: id === "discharge" ? "color" : "", prod: {} }).ok ? ok : no).push(techName(id));
+    return [[L("Impresión que aplica", "Prints that apply"), ok.join(", ") + (T.clase !== "algodon" ? L(" · en color lleva base antimigrante", " · colored ones take a barrier base") : "")], [L("No aplica", "Does not apply"), no.join(", ")]];
+  }
+  function techConflicts() {
+    if (!RG || !catAll.length) return [];
+    const out = [];
+    for (const p of picked) {
+      const e = catAll.find((x) => x.id === p.id), T = e ? RG.telaCat(e) : null; if (!T || !T.clase) continue;
+      for (const id of [...document.querySelectorAll("#q-tech input:checked")].map((i) => i.value)) { if (!CAT_TECS.includes(id)) continue; const r = RG.check({ tec: id, tela: T, color: "", prod: {} }); if (!r.ok) out.push(`${e.models[0] || e.title} (${t(RG.CLASES[T.clase])}): ${t(r.motivo)}`); }
+    }
+    return out;
+  }
   function updateTicket() {
+    const tn = $("#q-tech-note") || $("#q-tech").insertAdjacentElement("afterend", el("p", { class: "qz-hint", id: "q-tech-note", role: "status" })), bad = techConflicts();
+    tn.hidden = !bad.length; tn.textContent = bad.length ? L("Revisa la técnica: ", "Check the technique: ") + [...new Set(bad)].join(" · ") : "";
     const s = summary();
     $("#t-type").textContent = t(s.ty.label);
     $("#t-garment").textContent = s.garment;
@@ -2619,8 +2640,13 @@
     return k <= 8 ? row[k - 1] : row[7] + (row[7] - row[6]) * (k - 8);
   }
   const sizeIdx = (S, area) => { const i = S.tamanos.findIndex((x) => x >= area); return i < 0 ? S.tamanos.length - 1 : i; };
+  // Fabric × technique rules (reglas.js, shared with the assistant and Chilian OS): what applies on this garment, and what its fabric adds
+  const RG = window.CHILIAN_REGLAS || null;
+  const qzRegla = (c, tec, prod) => (RG ? RG.check({ tec: tec.id, tela: RG.telaDe(PR, prod, c), color: c.color || "color", prod }) : { ok: true, extras: [], motivo: null, aviso: null, tela: {} });
   function qzExtras(c, tec, prod) {
+    c = c.color ? c : { ...c, color: "color" };   // the quoter shows "de color" until white is picked: price it the same way
     const ids = new Set((c.extras || []).filter((x) => QZ_EXT.includes(x)));
+    for (const x of qzRegla(c, tec, prod).extras) ids.add(x);   // colored polyester and blends: the barrier base is not optional
     if (tec.id === "hd" || tec.id === "puff") ids.add("hdpuff");
     if (tec.id === "glitter") ids.add("glitter");
     if (prod.fleece) ids.add("fleece");
@@ -2642,6 +2668,8 @@
     const tec = prod.pod ? QZ_TECS.find((x) => x.id === "dtg") : QZ_TECS.find((x) => x.id === c.tec) || QZ_TECS[0], kind = tec.kind;   // Print on Demand is DTG only
     const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos), dcm = +c.dcm || DTG_CM, locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.locs | 0)), inks = Math.min(11, Math.max(1, c.inks | 0));
     const rows = []; let areas = null;
+    if (!c.color) c = { ...c, color: "color" };
+    const regla = qzRegla(c, tec, prod);
     if (kind === "full") { const m = qzMod(c); rows.push([`Chilian Sport · ${L(m.nombre, m.en)}${m.tela ? " (" + L(m.tela, m.telaEn).toLowerCase() + ")" : ""}`, m.precios[tierOf(q, P.fullprint.tramos)] || 0]); }
     else {
       const g = qzGarment(P, prod, c, q), one = kind === "dtg" && P.dtgTabla ? dtgPrice(P.dtgTabla, dcm, q, c.color === "blanca") : 0;
@@ -2677,10 +2705,11 @@
     if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
     const min = Math.max((P.minimos || {})[kind] || 1, kind === "serigrafia" ? (P.serigrafia.chica ? P.serigrafia.chica.tramos[0] : P.serigrafia.tramos[0]) : 0);
     let err = "";
-    if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport performance tee.");
+    if (!regla.ok) err = t(regla.motivo);
+    else if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport performance tee.");
     else if (kind === "dtg" && prod.nodtg) err = L(`DTG no se imprime en ${qzProdPlural(prod)}; elige serigrafía o bordado.`, `DTG can't print on ${qzProdPlural(prod)}; pick screen printing or embroidery.`);
     else if (q < min) err = L(`El mínimo en ${qzTecName(tec).toLowerCase()} es de ${fmt(min)} piezas.`, `The minimum for ${qzTecName(tec).toLowerCase()} is ${fmt(min)} pieces.`);
-    return { c: { ...c, locs, inks, ...(kind === "dtg" ? { dcm } : {}) }, prod, tec, kind, q, rows, areas, net, unit, sub, envio, envioCotizar, total: sub + envio, days, date: addBusinessDays(days), min, err };
+    return { c: { ...c, locs, inks, ...(kind === "dtg" ? { dcm } : {}) }, prod, tec, kind, regla, q, rows, areas, net, unit, sub, envio, envioCotizar, total: sub + envio, days, date: addBusinessDays(days), min, err };
   }
   function qzSentence(r) {
     const n = r.c.inks, l = r.c.locs, tn = qzTecName(r.tec).toLowerCase();
@@ -2714,6 +2743,8 @@
   const QZ_MAX = 20000;
   const sliderToQty = (v) => { const q = Math.pow(QZ_MAX, v / 1000); return q < 100 ? Math.max(1, Math.round(q)) : q < 1000 ? Math.round(q / 10) * 10 : q < 10000 ? Math.round(q / 50) * 50 : Math.round(q / 500) * 500; };
   const qtyToSlider = (q) => Math.round(Math.log(Math.max(1, Math.min(QZ_MAX, q))) / Math.log(QZ_MAX) * 1000);
+  let qzMoved = null;   // why the technique was changed for the customer (it did not apply on the fabric picked), while that garment stays
+  const qzSig = () => [qz.prod, qz.linea, qz.color, qz.tela, qz.pod].join("|");
   function qzSave() { store.set("chilian-qz", JSON.stringify(qz)); }
   function segRow(box, name, items, isOn, onPick, isOff) {
     box.textContent = "";
@@ -2737,34 +2768,46 @@
     // quality (Básica, Clásica, Premium) and white or colored garment, where the product has them
     const hasLine = qzHasLine(prod) || !!prod.pod, kindNow = prod.pod ? "dtg" : (QZ_TECS.find((x) => x.id === qz.tec) || {}).kind, hasColor = !!(prod.lista || prod.pod || prod.listaCodigo === "12030" || kindNow === "serigrafia" || kindNow === "dtg");
     const sportMods = kindNow === "full" && prod.fullprint ? PR.fullprint.modalidades || [] : [];   // Chilian Sport sublimada: its options take the quality row
-    $("#qz-line-step").hidden = !hasLine && !hasColor && !sportMods.length;
-    $("#qz-line").hidden = !hasLine && !sportMods.length;
+    const own = prod.id === "propia";   // the customer's own garment: its fabric decides what can be printed on it
+    $("#qz-line-step").hidden = !hasLine && !hasColor && !sportMods.length && !own;
+    $("#qz-line").hidden = !hasLine && !sportMods.length && !own;
+    if (own) segRow($("#qz-line"), "qz-line", [["algodon", L("Algodón", "Cotton"), L("90 % o más", "90% or more")], ["mezcla", L("Mezcla", "Blend"), L("ej. 50/50", "e.g. 50/50")], ["poliester", L("Poliéster", "Polyester"), L("deportiva, dry fit", "sports, dry fit")], ["nose", L("No sé", "Not sure"), L("tu asesora la revisa", "your advisor checks it")]], (v) => v === (qz.tela || "nose"), (v) => { qz.tela = v; qzSave(); renderQz(); });
+    const dtgTec = QZ_TECS.find((x) => x.id === "dtg"), podOff = (id) => !qzRegla({ ...qz, pod: id }, dtgTec, prod).ok;
+    if (prod.pod && podOff(qz.pod || "regular")) qz.pod = ["regular", "oversized", "economica"].find((id) => !podOff(id)) || "regular";
     if (sportMods.length) segRow($("#qz-line"), "qz-line", sportMods.map((m) => [m.id, L(m.corto || m.nombre, m.cortoEn || m.en), L(m.tela || "", m.telaEn || "")]), (v) => v === qzMod(qz).id, (v) => { qz.mod = v; qzSave(); renderQz(); });
-    if (prod.pod) segRow($("#qz-line"), "qz-line", ["oversized", "regular", "economica"].map((id) => [id, L(PR.pod.opciones[id].nombre, PR.pod.opciones[id].en), L(PR.pod.opciones[id].para, PR.pod.opciones[id].paraEn)]), (v) => v === (qz.pod || "regular"), (v) => { qz.pod = v; qzSave(); renderQz(); });
+    if (prod.pod) segRow($("#qz-line"), "qz-line", ["oversized", "regular", "economica"].map((id) => [id, L(PR.pod.opciones[id].nombre, PR.pod.opciones[id].en), L(PR.pod.opciones[id].para, PR.pod.opciones[id].paraEn)]), (v) => v === (qz.pod || "regular"), (v) => { qz.pod = v; qzSave(); renderQz(); }, podOff);
     else if (hasLine) segRow($("#qz-line"), "qz-line", ["basica", "clasica", "premium"].map((id) => [id, L(PR.lineas[id].nombre, PR.lineas[id].en), PR.specs && PR.specs[prod.id] ? PR.specs[prod.id][id] : ""]), (v) => v === (qz.linea || "clasica"), (v) => { qz.linea = v; qzSave(); renderQz(); });
     $("#qz-color").hidden = !hasColor;
     if (hasColor) segRow($("#qz-color"), "qz-color", [["blanca", L("Blanca o clara", "White or light")], ["color", L("De color u oscura", "Colored or dark")]], (v) => v === (qz.color || "color"), (v) => { qz.color = v; qzSave(); renderQz(); });
-    $("#qz-line-note").textContent = sportMods.length ? L(`${qzMod(qz).nombre}: el precio ya incluye la playera y la sublimación.`, `${qzMod(qz).en}: the price includes the tee and the sublimation.`) : prod.pod ? L(`Solo se vende estampada: el precio ya incluye 1 estampado DTG; cada estampado adicional suma su precio.${podOpt(qz).provisional ? " Precio de la oversized por confirmar." : ""}`, `Sold printed only: the price includes 1 DTG print; each extra print adds its price.${podOpt(qz).provisional ? " Oversized price to be confirmed." : ""}`) : hasLine ? L(`${PR.lineas[qz.linea || "clasica"].nombre}: para ${PR.lineas[qz.linea || "clasica"].para}.`, `${PR.lineas[qz.linea || "clasica"].en}: for ${PR.lineas[qz.linea || "clasica"].paraEn}.`) : "";
+    $("#qz-line-note").textContent = own ? L("La tela de tu prenda: con eso sabemos qué impresión le aplica (DTG y discharge solo en algodón; en poliéster y mezclas de color va base antimigrante).", "Your garment's fabric: it tells us which print applies (DTG and discharge only on cotton; colored polyester and blends take a barrier base).") : sportMods.length ? L(`${qzMod(qz).nombre}: el precio ya incluye la playera y la sublimación.`, `${qzMod(qz).en}: the price includes the tee and the sublimation.`) : prod.pod ? L(`Solo se vende estampada: el precio ya incluye 1 estampado DTG; cada estampado adicional suma su precio.${podOpt(qz).provisional ? " Precio de la oversized por confirmar." : ""}${["oversized", "regular", "economica"].some(podOff) ? " El DTG solo aplica en algodón: las opciones en mezcla no se ofrecen." : ""}`, `Sold printed only: the price includes 1 DTG print; each extra print adds its price.${podOpt(qz).provisional ? " Oversized price to be confirmed." : ""}${["oversized", "regular", "economica"].some(podOff) ? " DTG only applies to cotton: blend options are not offered." : ""}`) : hasLine ? L(`${PR.lineas[qz.linea || "clasica"].nombre}: para ${PR.lineas[qz.linea || "clasica"].para}.`, `${PR.lineas[qz.linea || "clasica"].en}: for ${PR.lineas[qz.linea || "clasica"].paraEn}.`) : "";
     const kind = QZ_KIND[qz.prod], cat = $("#qz-cat");
     cat.hidden = !kind; if (kind) cat.textContent = L(`Ver modelos de ${kindName(kind).toLowerCase()} en el catálogo →`, `See ${kindName(kind).toLowerCase()} models in the catalog →`);
     // technique: full print only on Chilian Sport, no DTG on caps
-    const off = (x) => (x.kind === "full" && !prod.fullprint) || (x.kind === "dtg" && prod.nodtg) || (prod.pod && x.kind !== "dtg");
+    // and none that does not apply on this fabric (reglas.js): cotton takes no sublimation; blends and polyester no discharge or DTG
+    const why = (x) => (x.kind === "full" && !prod.fullprint ? L("Solo en Chilian Sport", "Chilian Sport only") : (x.kind === "dtg" && prod.nodtg) || (prod.pod && x.kind !== "dtg") ? L("No disponible en este producto", "Not available on this product") : x.id && !qzRegla(qz, x, prod).ok ? t(qzRegla(qz, x, prod).motivo) : "");
+    const off = (x) => !!why(x);
     if (prod.pod) qz.tec = "dtg";
-    if (off(QZ_TECS.find((x) => x.id === qz.tec) || {})) qz.tec = "plastisol";
+    const cur = QZ_TECS.find((x) => x.id === qz.tec);
+    if (cur && off(cur) && !prod.pod) { qzMoved = { sig: qzSig(), msg: `${why(cur)} ${L("Cambié la técnica a plastisol.", "I switched the technique to plastisol.")}` }; qz.tec = "plastisol"; }
+    if (qzMoved && qzMoved.sig !== qzSig()) qzMoved = null;
+    else if (!cur) qz.tec = "plastisol";
     const tb = $("#qz-tec"); tb.textContent = "";
     for (const x of QZ_TECS) {
       const input = el("input", { type: "radio", name: "qz-tec", value: x.id });
       input.checked = x.id === qz.tec; input.disabled = off(x);
-      input.addEventListener("change", () => { qz.tec = x.id; if (x.kind === "full" && qz.qty < PR.minimos.full) qz.qty = PR.minimos.full; qzSave(); renderQz(); });
-      tb.append(el("label", { class: "chip", title: off(x) ? (x.kind === "full" ? L("Solo en Chilian Sport", "Chilian Sport only") : L("No disponible en este producto", "Not available on this product")) : "" },
-        [input, el("span", {}, [qzTecName(x), off(x) ? el("small", { text: x.kind === "full" ? L(" · solo Chilian Sport", " · Chilian Sport only") : L(" · no disponible", " · not available") }) : ""])]));
+      input.addEventListener("change", () => { qz.tec = x.id; qzMoved = null; if (x.kind === "full" && qz.qty < PR.minimos.full) qz.qty = PR.minimos.full; qzSave(); renderQz(); });
+      const ruled = off(x) && !(x.kind === "full" && !prod.fullprint) && !(x.kind === "dtg" && prod.nodtg) && !prod.pod;   // blocked by the fabric
+      tb.append(el("label", { class: "chip", title: why(x) },
+        [input, el("span", {}, [qzTecName(x), off(x) ? el("small", { text: x.kind === "full" && !prod.fullprint ? L(" · solo Chilian Sport", " · Chilian Sport only") : ruled ? L(" · no aplica en esta tela", " · not for this fabric") : L(" · no disponible", " · not available") }) : ""])]));
     }
     const r = qzCalc(qz);
-    $("#qz-tec-note").textContent = r.kind === "full" ? L(`Sublimación sobre la playera Chilian Sport: el precio ya incluye la playera. Desde ${fmt(PR.minimos.full)} piezas.`, `Sublimation on the Chilian Sport tee: the price includes the tee. From ${fmt(PR.minimos.full)} pieces.`)
+    $("#qz-tec-note").textContent = (qzMoved ? qzMoved.msg + " " : "") + (r.regla.aviso ? t(r.regla.aviso) + " " : "") + (r.kind === "full" ? L(`Sublimación sobre la playera Chilian Sport: el precio ya incluye la playera. Desde ${fmt(PR.minimos.full)} piezas.`, `Sublimation on the Chilian Sport tee: the price includes the tee. From ${fmt(PR.minimos.full)} pieces.`)
       : r.kind === "dtg" && prod.pod ? L("Print on Demand: impresión digital a todo color sobre la prenda que compras, desde 1 pieza.", "Print on demand: full-color digital print on the garment you buy, from 1 piece.")
       : r.kind === "dtg" ? L("Impresión digital a todo color, sin pantallas, desde 1 pieza. El precio depende del lado más largo del diseño y de la prenda (blanca o de color).", "Full-color digital print, no screens, from 1 piece. The price depends on the design's longest side and the garment (white or colored).")
       : r.kind === "bordado" ? L("En hilo, en bordadora de 6 cabezas. Incluye el ponchado de tu logo.", "In thread, on our 6-head embroidery machine. Digitizing included.")
-      : ["hd", "puff", "glitter"].includes(qz.tec) ? L("Tinta especial: suma su extra por ubicación, según el tamaño.", "Special ink: adds its extra per location, by size.") : "";
+      : ["hd", "puff", "glitter"].includes(qz.tec) ? L("Tinta especial: suma su extra por ubicación, según el tamaño.", "Special ink: adds its extra per location, by size.")
+      : qz.tec === "discharge" ? L("Solo en 100 % algodón de color: descarga el tinte de la prenda.", "Only on colored 100% cotton: it removes the garment's dye.")
+      : qz.tec === "waterbase" ? L("En algodón y mezclas; no aplica en poliéster.", "On cotton and blends; not on polyester.") : "");
     // inks / embroidery size / locations
     $("#qz-inks-step").hidden = r.kind !== "serigrafia";
     $("#qz-emb-step").hidden = r.kind !== "bordado";
@@ -2784,10 +2827,10 @@
     }
     const eb = $("#qz-ext"); eb.textContent = "";
     for (const id of QZ_EXT) {
-      const auto = id === "fleece" && prod.fleece, on = auto || (qz.extras || []).includes(id);
+      const must = r.regla.extras.includes(id), auto = must || (id === "fleece" && prod.fleece), on = auto || (qz.extras || []).includes(id);
       const input = el("input", { type: "checkbox", value: id }); input.checked = on; input.disabled = auto;
       input.addEventListener("change", () => { const set = new Set(qz.extras || []); input.checked ? set.add(id) : set.delete(id); qz.extras = [...set]; qzSave(); renderQz(); });
-      eb.append(el("label", { class: "chip" }, [input, el("span", {}, [t(SG.extrasNombres[id]), auto ? el("small", { text: L(" · ya incluido", " · included") }) : ""])]));
+      eb.append(el("label", { class: "chip" }, [input, el("span", {}, [t(SG.extrasNombres[id]), auto ? el("small", { text: must ? L(" · va siempre en esta tela", " · always on this fabric") : L(" · ya incluido", " · included") }) : ""])]));
     }
     segRow($("#qz-emb"), "qz-emb", EMB.map(([id, n, sub]) => [id, t(n), sub]), (v) => v === (qz.emb || "mediano"), (v) => { qz.emb = v; qzSave(); renderQz(); });
     $("#qz-emb").classList.add("wide");
@@ -3225,7 +3268,7 @@
   })();
   const STUDIO_TECS = [
     { id: "serigrafia", name: { es: "Serigrafía", en: "Screen printing" }, note: { es: "Colores sólidos y muy durables; desde 6 piezas, y conviene desde 50. Hasta 14 tintas.", en: "Solid, very durable colors; from 6 pieces, best from 50. Up to 14 inks." }, tech: "plastisol" },
-    { id: "dtg", name: { es: "DTG digital", en: "DTG digital" }, note: { es: "A todo color, sin pantallas y desde 1 pieza: fotos, degradados y diseños distintos por pieza. Mejor en algodón.", en: "Full color, no screens, from 1 piece: photos, gradients and different designs per piece. Best on cotton." }, tech: "dtg" },
+    { id: "dtg", name: { es: "DTG digital", en: "DTG digital" }, note: { es: "A todo color, sin pantallas y desde 1 pieza: fotos, degradados y diseños distintos por pieza. Solo en algodón.", en: "Full color, no screens, from 1 piece: photos, gradients and different designs per piece. Cotton only." }, tech: "dtg" },
     { id: "bordado", name: { es: "Bordado", en: "Embroidery" }, note: { es: "En hilo, en bordadora de 6 cabezas. Ideal en pecho, manga, nuca y gorra; se recomienda hasta 12 cm en pecho.", en: "In thread, on a 6-head machine. Ideal on chest, sleeve, back neck and caps; up to 12 cm on the chest is recommended." }, tech: "embroidery" }
   ];
   const st = { g: 0, side: "front", tec: "serigrafia", display: "photo", mode: "place", fill: "cover", tile: 120, pat: "M", color: 0,
@@ -4280,7 +4323,7 @@
     media.replaceChildren(zoomBox(`catalogo/${e.id}.webp`, e.h), ...(e.pages > 1 ? [zoomBox(`catalogo/${e.id}-b.webp`, e.h)] : []));
     const rows = [[L("Línea", "Line"), `${lineName(e.line)}${e.tier ? " · " + e.tier : ""}`], [L("Prenda", "Garment"), kindName(e.kind)], [L("Para", "For"), whoNames(e.who) || "—"],
       [L("Modelo", "Model"), e.models.join(", ")], [L("Gramaje", "Weight"), e.weight ? `${e.weight} g/m²` : ""], [L("Tela", "Fabric"), e.comp], [L("Tallas", "Sizes"), e.sizes],
-      [L("Colores", "Colors"), (e.colors || []).join(", ")], [L("Catálogo", "Catalog"), `${e.cat} · ${L("página", "page")} ${e.page}`]].filter(([, v]) => v);
+      ...catPrintRows(e), [L("Colores", "Colors"), (e.colors || []).join(", ")], [L("Catálogo", "Catalog"), `${e.cat} · ${L("página", "page")} ${e.page}`]].filter(([, v]) => v);
     // the colors printed for this model, as suggestions while typing
     const cvc = $("#cv-color"), dl = $("#cv-colors") || document.body.appendChild(el("datalist", { id: "cv-colors" }));
     dl.replaceChildren(...(e.colors || []).map((c) => el("option", { value: c }))); cvc.setAttribute("list", "cv-colors");

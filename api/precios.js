@@ -43,7 +43,7 @@ export const DEFAULTS = {
     // Factory 1 Direct as the reference (USD price with one print, less the 3 USD print, × 18.5), until Chilian prices them
     { id: "mangalarga", nombre: "Playera manga larga", plural: "playeras manga larga", en: "Long-sleeve tee", pluralEn: "long-sleeve tees", precios: [139, 130, 125, 120, 111], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1" },
     { id: "crewneck", nombre: "Sudadera cuello redondo (crewneck)", plural: "sudaderas crewneck", en: "Crewneck sweatshirt", pluralEn: "crewneck sweatshirts", precios: [209, 195, 188, 181, 167], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1", fleece: true },
-    { id: "short", nombre: "Short de algodón", plural: "shorts", en: "Cotton shorts", pluralEn: "shorts", precios: [583, 544, 525, 505, 466], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1", nodtg: false },
+    { id: "short", tela: "100% algodón", nombre: "Short de algodón", plural: "shorts", en: "Cotton shorts", pluralEn: "shorts", precios: [583, 544, 525, 505, 466], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1", nodtg: false },
     { id: "pants", nombre: "Pants o jogger", plural: "pants", en: "Sweatpants or joggers", pluralEn: "sweatpants", precios: [657, 613, 591, 569, 526], tramos: [12, 50, 100, 300, 1000], ref: "Factory 1" },
     { id: "sudadera", nombre: "Sudadera o crewneck", plural: "sudaderas", en: "Hoodie or crewneck", pluralEn: "sweatshirts", precios: [285, 265, 240, 225, 212], fleece: true },
     { id: "polo", nombre: "Polo", plural: "polos", en: "Polo", pluralEn: "polos", precios: [195, 180, 165, 155, 148] },

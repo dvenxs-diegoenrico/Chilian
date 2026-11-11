@@ -131,17 +131,27 @@
       const F = P.fullprint || {};
       for (const m of F.modalidades || []) {
         const key = "sub:" + m.id;
-        BYKEY[key] = { key, cat: "sub", lp: { codigo: "CH-SPORT-" + m.id, color: "", precios: m.precios, tramos: F.tramos },
+        BYKEY[key] = { key, cat: "sub", lp: { codigo: "CH-SPORT-" + m.id, color: "", tela: "100% poliéster", precios: m.precios, tramos: F.tramos },
           name: `Chilian Sport · ${m.nombre}`, desc: [m.tela, "prenda + sublimación", "precio por escala"].filter(Boolean).join(" · ") };
       }
     }).catch(() => {});
+    /* Candados de tela × técnica (/reglas.js, los mismos del sitio y del asistente). Aquí avisan en rojo y dejan seguir:
+       la asesora decide los casos especiales. La tela sale de la lista de precios o de la ficha del catálogo. */
+    const RG = window.CHILIAN_REGLAS || null;
+    const telaOf = (it) => (!RG || !it ? null : it.lp ? RG.tela(it.lp.tela) : it.garment ? RG.telaCat(it) : null);
+    const TQ_TEC = { "Plastisol": "plastisol", "Base agua": "waterbase", "Soft hand": "waterbase", "Descarga": "discharge" };
+    function reglaAvisos(tec, it, color) {
+      const T = telaOf(it); if (!T || !T.clase) return { warn: [], extras: [], T: null };
+      const r = RG.check({ tec, tela: T, color, prod: { fullprint: it.cat === "sub" } });
+      return { warn: r.ok ? [] : ["No aplica en esta prenda. " + r.motivo.es], extras: r.extras, T };
+    }
     const LISTA = () => Object.values(BYKEY).filter((x) => x.lp && x.cat === "lp");   // the T-shirts of the list (garments to print on)
     const SPORTS = () => Object.values(BYKEY).filter((x) => x.lp && x.cat === "sub");
     function ready() {
       if (ready.p) return ready.p;
       ready.p = Promise.all([loadLista(), fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => {
         GARMENTS = d.map((e) => ({
-          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page, colors: e.colors || [], models: e.models || [], line: e.line || "basica",
+          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page, colors: e.colors || [], models: e.models || [], line: e.line || "basica", comp: e.comp || "", title: e.title || "",
           name: `${e.title} · ${e.cat}${e.models && e.models.length ? " " + e.models.slice(0, 3).join("/") : ""}`,
           desc: [e.comp, e.weight ? e.weight + " g/m²" : "", e.sizes ? "tallas " + e.sizes.trim() : ""].filter((x) => x && String(x).trim()).join(" · ")
         }));
@@ -337,7 +347,7 @@
       const inc = [];
       if (f.incDiseno) inc.push("diseño"); if (f.incPonchado) inc.push("ponchado"); if (f.incEnvio) inc.push("envío");
       if (inc.length) rows.push(["Incluye", inc.join(", ").replace(/^./, (c) => c.toUpperCase()).replace(/, ([^,]*)$/, " y $1")]);
-      if (f.tecnica) rows.push(["Técnica", "Plastisol con base en prenda de color. En prenda 100 % algodón puede cambiarse a base agua, soft hand o descarga al mismo precio"]);
+      if (f.tecnica) rows.push(["Técnica", "Plastisol con base en prenda de color; en poliéster y mezclas de color, con base antimigrante. En algodón y mezclas puede cambiarse a base agua o soft hand, y en 100 % algodón de color a descarga, al mismo precio"]);
       if (f.incMuestra) rows.push(["Muestra", "Muestra física aprobada por el cliente antes de producir"]);
       if (f.aprobacion) rows.push(["Aprobación", "Arte y prueba de color confirmados por el cliente antes de producir"]);
       if (f.existencias) rows.push(["Venta", "En firme sobre existencias disponibles"]);
@@ -484,11 +494,15 @@
         return { p, k, base, add, cost: base + add.reduce((a, x) => a + x[1], 0) };
       });
       if (qty < 6) warn.push("La tabla de serigrafía empieza en 6 pz: menos piezas se cotizan con la escala de 6.");
-      const printCost = rows.reduce((a, x) => a + x.cost, 0), g = S.garment ? BYKEY[S.garment] : null;
+      const printCost = rows.reduce((a, x) => a + x.cost, 0), g = S.garment ? BYKEY[S.garment] : null, regla = [];
+      const ra = reglaAvisos(TQ_TEC[S.tec] || "plastisol", g, S.prenda === "color" ? "color" : "blanca");   // what applies on this garment's fabric
+      regla.push(...ra.warn);
+      if (ra.extras.includes("antimigrante")) { const sin = S.pos.filter((p) => !(p.fx || []).includes(7)).map((p) => p.name);
+        if (sin.length) regla.push(`Prenda de ${RG.CLASES[ra.T.clase].es} de color: falta la base antimigrante en ${sin.join(", ")}. En poliéster y mezclas de color va siempre.`); }
       const gList = !!(g && g.lp && S.gAuto !== false), gcost = !S.garment ? 0 : gList ? listPrice(g, qty) : n(S.gcost);
       const sale = r2(printCost * (1 + n(S.mkP) / 100) + gcost * (1 + n(S.mkG) / 100));
       const screens = S.pos.reduce((a, p) => a + inkN(p) + (S.prenda === "color" ? 1 : 0), 0);
-      return { qty, ti, tier: small ? CHICA_QT[ci] : QT[ti], small, rows, printCost, g, gList, gTier: gList ? lpTramos(g)[lpTier(qty, g)] : 0, gcost, cost: printCost + gcost, sale, total: sale * qty, screens, warn };
+      return { qty, ti, tier: small ? CHICA_QT[ci] : QT[ti], small, rows, printCost, g, gList, gTier: gList ? lpTramos(g)[lpTier(qty, g)] : 0, gcost, cost: printCost + gcost, sale, total: sale * qty, screens, warn, regla };
     }
     const tqCalc = () => tqCalcOf(TQ);
     function dbCalcOf(S, qtyIn) {
@@ -498,10 +512,11 @@
         const v = dtgList(dtgCm(p), qty, !!S.oscura); return { p, cost: v, sale: v };
       });
       const g = S.garment ? BYKEY[S.garment] : null, gList = !!(g && g.lp && S.gAuto !== false), gcost = !g ? 0 : gList ? listPrice(g, qty) : n(S.gcost);
+      const regla = bord ? [] : reglaAvisos("dtg", g, S.oscura ? "color" : "blanca").warn;   // DTG only applies on cotton
       const sale = r2(rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(S.mkG) / 100));
       const line = { piezas: qty, ubicaciones: S.pos.map((p) => bord ? { nombre: p.name, tecnica: "bordado", puntadas: n(p.puntadas), colores: 0 } : { nombre: p.name, tecnica: "dtg", oscura: !!S.oscura, colores: 0 }) };
       const mins = X.lineMinutes ? X.lineMinutes(line)[S.tec] : 0, machines = X.machinesOf ? X.machinesOf(S.tec).length : 1, cap = X.dayCapacity ? X.dayCapacity() : 459;
-      return { qty, bord, rows, g, gList, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
+      return { qty, bord, rows, g, gList, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line, regla };
     }
     // What a line priced by scale costs at its quantity: a garment of the price list, or a calculator line (its spec is saved on the line)
     function autoPrice(l, it, qty) {
@@ -668,8 +683,17 @@
         // Production: print locations and colors, for press minutes and the work order.
         const ubBox = h("div", { class: "cz-ubs" });
         const ubSum = () => (l.ubicaciones || []).length ? l.ubicaciones.map((u) => `${u.nombre} ${({ dtg: "DTG", bordado: "bordado " + Math.round((+u.puntadas || 0) / 1000) + "k" })[u.tecnica] || (u.colores || 0) + "c"}`).join(", ") : "sin ubicaciones";
-        const ubTitle = h("summary");
+        const ubTitle = h("summary"), reglaBox = h("div", { class: "full" });
+        // fabric × technique on this line: the calculator's own spec, or the garment with the print locations set for the plant
+        const lineRegla = () => {
+          if (l.calc) return (l.calc.kind === "db" ? dbCalcOf(l.calc, n(l.piezas)) : tqCalcOf(l.calc, n(l.piezas))).regla;
+          const out = [], col = /blanc/i.test(l.color || "") ? "blanca" : (l.color || "").trim() ? "color" : "";
+          for (const tec of new Set((l.ubicaciones || []).map((u) => u.tecnica || "serigrafia"))) { const ra = reglaAvisos(tec === "serigrafia" ? "plastisol" : tec, it, col); out.push(...ra.warn);
+            if (ra.extras.includes("antimigrante")) out.push(`Prenda de ${RG.CLASES[ra.T.clase].es} de color: la serigrafía lleva base antimigrante. Revisa que esté en el precio.`); }
+          return [...new Set(out)];
+        };
         const paintUb = () => {
+          reglaBox.replaceChildren(...lineRegla().map((w) => h("p", { class: "hint regla", role: "alert", text: w })));
           const m = X.lineMinutes ? X.lineMinutes(l) : null, cap = X.dayCapacity ? X.dayCapacity() : 0;
           ubTitle.textContent = `Impresión para planta (${ubSum()})`;
           ubBox.replaceChildren(...(l.ubicaciones || []).map((u, ui) => {
@@ -693,9 +717,9 @@
           h("label", { class: "cz-f" }, h("span", { text: "Precio unitario" }), priceIn),
           h("button", { type: "button", class: "x del", "aria-label": "Quitar " + (l.concepto || "concepto"), onclick: () => { q.lineas = q.lineas.filter((x) => x !== l); paintLines(); refresh(); } }, "×"),
           h("label", { class: "cz-f full" }, h("span", { text: "Descripción para el cliente" }), h("input", { class: "i", value: l.desc, oninput: (e) => { l.desc = e.target.value; refresh(); } })),
-          !l.nopcs ? h("label", { class: "cz-f" }, h("span", { text: "Color de la prenda" }), h("input", { class: "i", value: l.color, list: (it.colors || []).length ? "czc-" + l.id : null, placeholder: (it.colors || []).length ? it.colors.slice(0, 3).join(", ") + "…" : "Ej. negro, marino", oninput: (e) => { l.color = e.target.value; refresh(); } }),
+          !l.nopcs ? h("label", { class: "cz-f" }, h("span", { text: "Color de la prenda" }), h("input", { class: "i", value: l.color, list: (it.colors || []).length ? "czc-" + l.id : null, placeholder: (it.colors || []).length ? it.colors.slice(0, 3).join(", ") + "…" : "Ej. negro, marino", oninput: (e) => { l.color = e.target.value; paintUb(); refresh(); } }),
             (it.colors || []).length ? h("datalist", { id: "czc-" + l.id }, it.colors.map((c) => h("option", { value: c }))) : null) : null,
-          refs,
+          refs, reglaBox,
           h("details", { class: "cz-cost full" }, h("summary", { text: "Costeo interno (no sale en la hoja)" }),
             h("div", { class: "crow" }, field("Costo por pieza", costIn), field("Factor", factIn), marginOut,
               h("button", { type: "button", class: "btn sm", onclick: () => { if (n(l.costo) > 0) { l.precio = String(r2(n(l.costo) * (n(l.factor) || 1.4))); l.manual = true; priceIn.value = l.precio; paintRefs(); paintM(); refresh(); } } }, "Usar costo × factor"))),
@@ -741,7 +765,9 @@
         const garments = (GARMENTS || []);
         const gSel = h("select", { class: "i", onchange: (e) => { TQ.garment = e.target.value; const it = BYKEY[TQ.garment];
           if (it && it.lp) { TQ.gAuto = true; TQ.mkG = "0"; TQ.gcost = String(listPrice(it, n(TQ.qty)));
-            const col = String(it.lp.color).toLowerCase(); if (/blanc/.test(col) && !/colo/.test(col)) TQ.prenda = "clara"; else if (/colo|jaspe|neon|graphite/.test(col) && !/blanc/.test(col)) TQ.prenda = "color"; } else { TQ.gAuto = false; TQ.gcost = it ? String(lastCost(it) || "") : ""; } paintTQ(); } },
+            const col = String(it.lp.color).toLowerCase(); if (/blanc/.test(col) && !/colo/.test(col)) TQ.prenda = "clara"; else if (/colo|jaspe|neon|graphite/.test(col) && !/blanc/.test(col)) TQ.prenda = "color"; } else { TQ.gAuto = false; TQ.gcost = it ? String(lastCost(it) || "") : ""; }
+          if (reglaAvisos(TQ_TEC[TQ.tec] || "plastisol", it, TQ.prenda === "color" ? "color" : "blanca").extras.includes("antimigrante")) for (const p of TQ.pos) if (!(p.fx || []).includes(7)) (p.fx ||= []).push(7);   // colored polyester or blend: barrier base on every position
+          paintTQ(); } },
           h("option", { value: "", text: "Ninguna (servicio sobre prenda del cliente)", selected: !TQ.garment }),
           h("optgroup", { label: catOf.lp[1] + " (precio por escala)" }, LISTA().map((g) => h("option", { value: g.key, text: g.name, selected: TQ.garment === g.key }))),
           ["g-basica", "g-clasica", "g-premium"].map((c) => h("optgroup", { label: catOf[c][1] }, garments.filter((g) => g.cat === c).map((g) => h("option", { value: g.key, text: g.name, selected: TQ.garment === g.key })))));
@@ -781,6 +807,7 @@
               g ? h("tr", {}, h("td", {}, "Prenda: " + g.name.split(" · ")[0], h("div", { class: "muted", text: (c.gList ? `Lista de precios, escala de ${int(c.gTier)} pz · ` : "") + `Margen prenda ${n(TQ.mkG)} %` })), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(TQ.mkG) / 100)) })) : null,
               h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
             h("p", { class: "hint", text: `${c.small ? `Tabla de 6 a 99 pz, escala de ${int(c.tier)} pz (chico = escudo y media carta; grande = carta a doble carta). Prenda de color y efectos con la primera escala de LN1` : `Tabla LN1, escala de ${int(c.tier)} pz`}. Pantallas estimadas: ${c.screens}${TQ.prenda === "color" ? " (incluye la base blanca por posición)" : ""}. En la hoja sale el precio con el margen que pongas (0 % = el precio de la tabla).${TQ.tec !== "Plastisol" ? " " + TQ.tec + " aplica solo en prenda 100 % algodón." : ""}` }),
+            ...c.regla.map((w) => h("p", { class: "hint regla", role: "alert", text: w })),
             ...c.warn.map((w) => h("p", { class: "hint warn", text: w })),
             g && !(c.gcost > 0) ? h("p", { class: "hint warn", text: "Escribe el costo de la prenda para sumarla al precio." }) : null,
             h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: !!TQ.screens, onchange: (e) => { TQ.screens = e.target.checked; saveTQ(); } }), h("span", { text: `Agregar las ${c.screens} pantallas como renglón aparte (${money(n(T().costoPantalla))} c/u)` })),
@@ -807,7 +834,7 @@
           h("div", { class: "cz-tq-grid" },
             h("div", { class: "cz-tq-form" },
               h("div", { class: "cz-fields three" }, field("Piezas", tqIn("qty", { inputmode: "numeric" })),
-                field("Técnica", h("select", { class: "i", onchange: (e) => { TQ.tec = e.target.value; paintRes(); } }, ["Plastisol", "Base agua", "Soft hand", "Descarga"].map((x) => h("option", { value: x, text: x === "Plastisol" ? x : x + " (100 % algodón)", selected: TQ.tec === x })))),
+                field("Técnica", h("select", { class: "i", onchange: (e) => { TQ.tec = e.target.value; paintRes(); } }, ["Plastisol", "Base agua", "Soft hand", "Descarga"].map((x) => h("option", { value: x, text: x === "Plastisol" ? x : x === "Descarga" ? x + " (solo 100 % algodón de color)" : x + " (algodón y mezclas)", selected: TQ.tec === x })))),
                 field("Prenda", h("select", { class: "i", onchange: (e) => { TQ.prenda = e.target.value; paintRes(); } }, [["clara", "Clara (blanca o pastel)"], ["color", "De color u oscura"]].map(([v, t]) => h("option", { value: v, text: t, selected: TQ.prenda === v }))))),
               h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: TQ.fleece, onchange: (e) => { TQ.fleece = e.target.checked; paintRes(); } }), h("span", { text: "Prenda afelpada (fleece, sudadera o hoodie)" })),
               h("div", { class: "cz-fields" }, field("Prenda del catálogo (opcional)", gSel, "full"), TQ.garment ? field(BYKEY[TQ.garment]?.lp && TQ.gAuto !== false ? "Precio de lista por pieza (cambia con las piezas)" : "Costo de la prenda por pieza (MXN)", gcostIn) : null),
@@ -851,6 +878,7 @@
             c.rows.map((x) => h("tr", {}, h("td", { text: c.bord ? `${x.p.name} · ${int(x.p.puntadas)} puntadas` : `${x.p.name} · hasta ${dtgCm(x.p)} cm · ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}` }), h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.sale) }))),
             c.g ? h("tr", {}, h("td", { text: "Prenda: " + c.g.name.split(" · ")[0] }), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(DB.mkG) / 100)) })) : null,
             h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
+          ...c.regla.map((w) => h("p", { class: "hint regla", role: "alert", text: w })),
           c.bord && t.ejemploDB !== false ? h("p", { class: "hint warn", text: "Costos de bordado de ejemplo: ajústalos en Ajustes → DTG y bordado." }) : null,
           !c.bord ? h("p", { class: "hint", text: `Lista DTG de Chilian (precio de venta, sin margen encima): escala de ${int([1, 2, 5, 10, 20, 30, 40, 50, 100].filter((x) => c.qty >= x).pop() || 1)} pz, ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}.` }) : null,
           c.bord ? h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: !!DB.ponchado, onchange: (e) => { DB.ponchado = e.target.checked; saveDB(); } }), h("span", { text: `Agregar ponchado (${DB.pos.length} diseño(s) × ${money(n(t.costoPonchado))})` })) : null,

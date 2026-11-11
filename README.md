@@ -672,3 +672,23 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - La tabla está en el código y manda sobre lo guardado en Ajustes; el mínimo de full print baja de 100 a 6 piezas.
 - **Quién la usa.** El cotizador del sitio y el estudio (`qzCalc`, con la modalidad en el paso de calidad), la calculadora de volumen del sitio, el asistente (`api/_pricing.js`; pregunta la modalidad con su precio), el cotizador del OS (grupo «Sublimación · Chilian Sport», precio por escala) y Ajustes → Precios del cotizador web (tabla de consulta).
 - **Copias que hay que regenerar.** `index.html` trae una copia en `PRECIOS_BASE` y `tools/seo/build_landings.py` otra para `/playeras-deportivas-sublimadas`. Después de cambiar la matriz: `python3 tools/seo/build_seo.py && python3 tools/seo/build_landings.py`.
+
+### Candados de tela × técnica (`reglas.js`)
+
+Un solo archivo decide qué impresión aplica en cada prenda. Lo cargan el sitio (`index.html`), el asistente (`api/_pricing.js`, `api/_bot.js`) y el OS (`ops/cotizador.js`).
+
+| Técnica | Algodón (90 % o más) | Mezclas | Poliéster |
+|---|---|---|---|
+| Plastisol, HD, puff, glitter, brilla en la oscuridad | Sí | Sí; de color, con base antimigrante | Sí; de color, con base antimigrante |
+| Base agua | Sí | Sí | No |
+| Discharge | Solo 100 % algodón de color | No | No |
+| DTG | Sí | No | No |
+| Full print / sublimación | No | No | Solo Chilian Sport |
+| Bordado, DTF | Sí | Sí | Sí |
+
+- **De dónde sale la tela.** De la lista oficial (`api/_lista.js`), de las líneas (`specs` en `api/precios.js`), de la ficha del catálogo (`comp` o el título) o de lo que el cliente dice de su propia prenda. Si no se conoce la tela, no se bloquea nada.
+- **Sitio, estudio y asistente: bloquean.** La técnica que no aplica sale desactivada con su motivo; si ya estaba elegida, cambia a plastisol y lo dice. La base antimigrante se suma sola y no se puede quitar. En «Mi prenda» se pregunta la tela. Print on Demand solo ofrece las opciones de algodón.
+- **OS: avisa en rojo y deja seguir.** En el cotizador por tintas, en bordado y DTG, y en cada renglón de la cotización. Al elegir una prenda de poliéster o mezcla de color, el cotizador por tintas marca la base antimigrante en todas las posiciones.
+- **Catálogo del sitio.** La ficha de cada modelo dice qué impresión aplica y cuál no; el formulario avisa si la técnica marcada no va con un modelo elegido.
+- **Además.** El cotizador del sitio cobraba la prenda como de color sin sumar la base blanca cuando no se había tocado «blanca o de color»; ahora parte de «de color» en todo el cálculo.
+
