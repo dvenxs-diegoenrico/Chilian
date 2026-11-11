@@ -2,18 +2,21 @@
    GET -> { precios, ejemplo }   (cached 5 minutes at the edge)
    The team edits it in Chilian OS → Ajustes → Precios del cotizador web (ajustes/precios-web).
    T-shirts come from Chilian's official list (_lista.js, LP cuello redondo). Products Chilian has no
-   list for yet take Factory 1 Direct's prices as a reference (ref: "Factory 1"). Printing prices are
-   still EXAMPLES until Chilian confirms them. The customer pays: (garment + printing) + 16 % VAT
+   list for yet take Factory 1 Direct's prices as a reference (ref: "Factory 1"). Screen printing (LN1) and
+   DTG come from Chilian's lists; embroidery prices are still EXAMPLES until Chilian confirms them. The customer pays: (garment + printing) + 16 % VAT
    + 5 % payment fee (Mercado Pago / Stripe) + shipping — see "cargos". */
 import { getDoc, fail } from "./_lib.js";
 import { LISTA_PLAYERAS, LISTA_TRAMOS } from "./_lista.js";
 import { SERIGRAFIA } from "./_serigrafia.js";
+import { DTG } from "./_dtg.js";
 
 export const DEFAULTS = {
   tramos: [50, 100, 500, 2000, 10000],   // price breaks by pieces; each list below has one price per break
   productos: [
     // lista: the garment price comes from the official list, by line (Básica/Clásica/Premium) and white or colored
     { id: "playera", nombre: "Playera cuello redondo", plural: "playeras cuello redondo", en: "Crew-neck T-shirt", pluralEn: "crew-neck T-shirts", precios: [98, 88, 76, 70, 65], lista: true },
+    // Print on Demand: the garment is only sold printed; the price includes 1 DTG print (up to the size picked); each extra print adds its DTG price
+    { id: "pod", nombre: "Print on Demand (prenda + DTG)", plural: "prendas Print on Demand", en: "Print on demand (garment + DTG)", pluralEn: "print-on-demand garments", precios: [0, 0, 0, 0, 0], pod: true },
     { id: "sport", nombre: "Playera deportiva Chilian Sport", plural: "playeras Chilian Sport", en: "Chilian Sport performance tee", pluralEn: "Chilian Sport tees", precios: [110, 100, 92, 86, 82], fullprint: true, listaCodigo: "CH-SPORT" },
     { id: "tiedye", nombre: "Playera teñida en prenda", plural: "playeras teñidas en prenda", en: "Garment-dyed tee", pluralEn: "garment-dyed tees", precios: [158.87, 148.27, 142.98, 137.68, 127.09], tramos: [12, 50, 100, 300, 1000], listaCodigo: "12030" },
     // Factory 1 Direct as the reference (USD price with one print, less the 3 USD print, × 18.5), until Chilian prices them
@@ -31,7 +34,14 @@ export const DEFAULTS = {
   // Chilian Sport Full Print: the price breaks published in the Chilian store (garment + sublimation)
   fullprint: { tramos: [100, 300, 1000, 3000, 10000], precios: [310.8, 199.8, 177.6, 155.4, 133.2] },
   serigrafia: SERIGRAFIA,                  // Chilian's official screen-printing table (LN1): by print size, pieces and colors, plus extras
-  dtg: [55.5, 55.5, 55.5, 52, 50],        // per location, per piece (Factory 1 reference: 3 USD per front/back print)
+  dtgTabla: DTG,                           // Chilian's DTG list: per location by the design's longest side, pieces and garment (white / colored)
+  // Print on Demand garments: the official list's T-shirt for each option (white / colored). Oversized has no row in the list yet:
+  // until Chilian sends its price it uses the heavyweight Óptima (190 g) and says so (provisional).
+  pod: { incluidos: 1, opciones: {
+    oversized: { nombre: "Oversized", en: "Oversized", codigos: { blanca: "OP-MXB", color: "OP-MXC" }, provisional: true, para: "corte amplio, 100 % algodón", paraEn: "relaxed fit, 100% cotton" },
+    regular: { nombre: "Regular", en: "Regular", codigos: { blanca: "OP-PRB", color: "OP-PRC" }, para: "100 % algodón, 155 g", paraEn: "100% cotton, 155 g" },
+    economica: { nombre: "Económica", en: "Budget", codigos: { blanca: "OP-STPB", color: "OP-STPC" }, para: "50/50 algodón-poliéster", paraEn: "50/50 cotton-poly" }
+  } },
   bordado: { chico: [32, 28, 24, 22, 20], mediano: [55, 48, 42, 38, 35], grande: [95, 85, 75, 68, 62] },   // per location
   ponchado: 450,                           // digitizing, per design (one per location)
   express: 18, diasExpress: 3,             // % surcharge and business days saved
@@ -70,11 +80,15 @@ export function mergePrecios(saved) {
   const P = merge(DEFAULTS, saved);
   if (saved?.productos) {
     const byId = Object.fromEntries(DEFAULTS.productos.map((p) => [p.id, p]));
-    P.productos = [...saved.productos.map((p) => ({ ...(byId[p.id] || {}), ...p, ...(byId[p.id]?.lista ? { lista: true } : {}), ...(byId[p.id]?.listaCodigo ? { listaCodigo: byId[p.id].listaCodigo } : {}) })),
-      ...DEFAULTS.productos.filter((p) => !saved.productos.some((x) => x.id === p.id))];
+    P.productos = saved.productos.map((p) => ({ ...(byId[p.id] || {}), ...p, ...(byId[p.id]?.lista ? { lista: true } : {}), ...(byId[p.id]?.listaCodigo ? { listaCodigo: byId[p.id].listaCodigo } : {}) }));
+    // products added here later go in at their place in the defaults
+    DEFAULTS.productos.forEach((p, i) => { if (!saved.productos.some((x) => x.id === p.id)) P.productos.splice(Math.min(i, P.productos.length), 0, p); });
   }
   if (!saved?.lista) { P.lista = DEFAULTS.lista; P.listaTramos = DEFAULTS.listaTramos; }
   P.serigrafia = DEFAULTS.serigrafia;   // the official table lives in code (_serigrafia.js)
+  P.dtgTabla = DEFAULTS.dtgTabla;       // and the DTG list (_dtg.js)
+  P.pod = DEFAULTS.pod;
+  for (const p of P.productos) if (p.id === "pod") p.pod = true;
   for (const p of P.productos) if (DEFAULTS.productos.find((x) => x.id === p.id)?.fleece) p.fleece = true;
   return P;
 }

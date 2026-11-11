@@ -3,6 +3,7 @@
    Prices come from /api/precios defaults merged with Ajustes → Precios del cotizador web. */
 import { getDoc } from "./_lib.js";
 import { mergePrecios } from "./precios.js";
+import { dtgPrice } from "./_dtg.js";
 
 export const TECS = [
   { id: "plastisol", kind: "serigrafia", es: "Plastisol", en: "Plastisol" },
@@ -64,7 +65,8 @@ export function garment(P, prod, c, q) {
   const lineOf = c.linea && P.lineas?.[c.linea] ? c.linea : "clasica", white = c.color === "blanca";
   const row = (code) => (P.lista || []).find((r) => r.codigo === code && (white ? /blanc/i.test(r.color) : !/^blanc/i.test(r.color))) || (P.lista || []).find((r) => r.codigo === code);
   let r = null;
-  if (prod.lista) r = row(P.lineas[lineOf].codigos?.[white ? "blanca" : "color"]);
+  if (prod.pod) r = row((P.pod?.opciones?.[c.pod] || P.pod?.opciones?.regular)?.codigos?.[white ? "blanca" : "color"]);
+  else if (prod.lista) r = row(P.lineas[lineOf].codigos?.[white ? "blanca" : "color"]);
   else if (prod.listaCodigo) r = row(prod.listaCodigo);
   if (r) return { precio: r.precios[tierOf(q, P.listaTramos || [12, 50, 100, 300, 1000])] || 0, codigo: r.codigo, tela: r.tela };
   const ln = c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? +P.lineas[c.linea].factor || 1 : 1;
@@ -84,7 +86,8 @@ export function addBusinessDays(n, from = new Date()) { const d = new Date(from)
 export function quote(P, c, lang = "es") {
   const L = (es, en) => (lang === "en" ? en : es);
   const prod = P.productos.find((p) => p.id === c.prod) || P.productos[0];
-  const tec = TECS.find((x) => x.id === c.tec) || TECS[0], kind = tec.kind;
+  const tec = prod.pod ? TECS.find((x) => x.id === "dtg") : TECS.find((x) => x.id === c.tec) || TECS[0], kind = tec.kind;   // Print on Demand is DTG only
+  const dcm = +c.dcm || 27, dOne = kind === "dtg" ? dtgPrice(dcm, Math.max(1, parseInt(c.qty, 10) || 0), c.color === "blanca", P.dtgTabla) : 0;   // DTG: one location up to dcm cm (longest side)
   const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos);
   const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.ubic && c.ubic.length ? c.ubic.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
   let unit = 0, pc = null;
@@ -92,7 +95,7 @@ export function quote(P, c, lang = "es") {
   else {
     const g = garment(P, prod, c, q); unit += g.precio; var gar = g;
     if (kind === "serigrafia") { pc = printCost(P, c, tec, prod, q, locs); unit += pc.base + pc.extra; }
-    else if (kind === "dtg") unit += (P.dtg[i] || 0) * locs;
+    else if (kind === "dtg") unit += dOne * locs;   // Print on Demand: the first print is part of the product's price, extra ones add the same
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
   }
   if (c.del === "express") unit *= 1 + P.express / 100;
@@ -114,7 +117,8 @@ export function quote(P, c, lang = "es") {
       const onG = !prod.lista && !prod.listaCodigo && c.color ? L(c.color === "color" ? ", sobre prenda de color" : ", sobre prenda clara", c.color === "color" ? ", on a colored garment" : ", on a light garment") : "";
       return L(`en ${tec.es.toLowerCase()}, ${ink} tinta${plural ? "s" : ""} en ${locs} ubicaci${locs > 1 ? "ones" : "ón"}${pc.ubic ? ": " : " de "}${med}${ex2.length ? ", con " + ex2.join(" y ") : ""}${onG}`, `in ${tec.en.toLowerCase()}, ${ink} ink${plural ? "s" : ""} in ${locs} location${locs > 1 ? "s" : ""}${pc.ubic ? ": " : " of "}${med}${ex2.length ? ", with " + ex2.join(" and ") : ""}${onG}`);
     })()
-    : kind === "dtg" ? L(`en DTG a todo color, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG, ${locs} location${locs > 1 ? "s" : ""}`)
+    : kind === "dtg" && prod.pod ? L(`${(P.pod.opciones[c.pod] || P.pod.opciones.regular).nombre.toLowerCase()}, con 1 estampado DTG incluido hasta ${dcm} cm${locs > 1 ? ` y ${locs - 1} adicional${locs > 2 ? "es" : ""}` : ""}`, `${(P.pod.opciones[c.pod] || P.pod.opciones.regular).en.toLowerCase()}, 1 DTG print up to ${dcm} cm included${locs > 1 ? ` plus ${locs - 1} extra` : ""}`)
+    : kind === "dtg" ? L(`en DTG a todo color hasta ${dcm} cm, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `in full-color DTG up to ${dcm} cm, ${locs} location${locs > 1 ? "s" : ""}`)
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);

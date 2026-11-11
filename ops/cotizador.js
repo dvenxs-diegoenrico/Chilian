@@ -100,12 +100,23 @@
     let GARMENTS = null, BYKEY = Object.fromEntries(SERVICES.map((s) => [s.key, s]));
     /* Lista de precios de Chilian (playera cuello redondo, /api/precios): precio por pieza antes de IVA por escala
        de 12, 50, 100, 300 y 1,000 pz. Con menos de 12 pz se usa la escala de 12. */
-    let LTRAMOS = [12, 50, 100, 300, 1000];
+    let LTRAMOS = [12, 50, 100, 300, 1000], DTGT = null;
+    /* DTG: Chilian's list (/api/precios → dtgTabla), per location by the design's longest side, pieces and garment
+       (black or colored / white). It is the sale price: no margin on top. */
+    const DTG_CMS = () => (DTGT ? DTGT.medidas : [6, 11, 20, 27, 32, 40, 45, 49, 53]);
+    const dtgCm = (p) => n(p.cm) || ({ 100: 11, 300: 20, 600: 27, 1200: 40 })[p.size] || 27;   // older sessions kept cm²
+    const dtgList = (cm, q, dark) => {
+      if (!DTGT) return 0;
+      const i = DTGT.medidas.findIndex((x) => x >= cm), si = i < 0 ? DTGT.medidas.length - 1 : i; let ti = 0;
+      DTGT.tramos.forEach((x, k) => { if (q >= x) ti = k; });
+      return DTGT[dark ? "color" : "blanca"][si][ti];
+    };
     const lpTier = (q) => { let i = 0; LTRAMOS.forEach((m, j) => { if (q >= m) i = j; }); return i; };
     const listPrice = (it, q) => (it && it.lp ? n(it.lp.precios[lpTier(q)]) : 0);
     const loadLista = () => fetch("/api/precios").then((r) => r.json()).then((d) => {
       const P = d.precios || {}, seen = {};
       if (Array.isArray(P.listaTramos) && P.listaTramos.length) LTRAMOS = P.listaTramos;
+      if (P.dtgTabla && Array.isArray(P.dtgTabla.medidas)) DTGT = P.dtgTabla;
       for (const r of P.lista || []) {
         let key = "lp:" + slug(`${r.codigo}-${r.color}-${r.tallas}-${r.genero}`);
         if (seen[key]) key += "-" + ++seen[key]; else seen[key] = 1;
@@ -442,15 +453,28 @@
       return { qty, ti, tier: small ? CHICA_QT[ci] : QT[ti], small, rows, printCost, g, gList, gTier: gList ? LTRAMOS[lpTier(qty)] : 0, gcost, cost: printCost + gcost, sale, total: sale * qty, screens, warn };
     }
     const tqCalc = () => tqCalcOf(TQ);
+    function dbCalcOf(S, qtyIn) {
+      const t = T(), qty = Math.max(1, n(qtyIn ?? S.qty)), bord = S.tec === "bordado";
+      const rows = S.pos.map((p) => {
+        if (bord) { const cost = (n(p.puntadas) / 1000) * n(t.costoMilPuntadas); return { p, cost, sale: cost * (1 + n(t.margenBordado) / 100) }; }
+        const v = dtgList(dtgCm(p), qty, !!S.oscura); return { p, cost: v, sale: v };
+      });
+      const g = S.garment ? BYKEY[S.garment] : null, gList = !!(g && g.lp && S.gAuto !== false), gcost = !g ? 0 : gList ? listPrice(g, qty) : n(S.gcost);
+      const sale = r2(rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(S.mkG) / 100));
+      const line = { piezas: qty, ubicaciones: S.pos.map((p) => bord ? { nombre: p.name, tecnica: "bordado", puntadas: n(p.puntadas), colores: 0 } : { nombre: p.name, tecnica: "dtg", oscura: !!S.oscura, colores: 0 }) };
+      const mins = X.lineMinutes ? X.lineMinutes(line)[S.tec] : 0, machines = X.machinesOf ? X.machinesOf(S.tec).length : 1, cap = X.dayCapacity ? X.dayCapacity() : 459;
+      return { qty, bord, rows, g, gList, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
+    }
     // What a line priced by scale costs at its quantity: a garment of the price list, or a calculator line (its spec is saved on the line)
     function autoPrice(l, it, qty) {
-      if (l.calc) { const c = tqCalcOf(l.calc, qty); return { precio: c.sale, costo: r2(c.cost) }; }
+      if (l.calc) { const c = l.calc.kind === "db" ? dbCalcOf(l.calc, qty) : tqCalcOf(l.calc, qty); return { precio: c.sale, costo: r2(c.cost) }; }
       if (it && it.lp) return { precio: listPrice(it, qty) };
       return null;
     }
     const isAuto = (l, it) => !!(l.calc || (it && it.lp)) && l.auto !== false;
     // The prices of a line at each scale, to show them on the line
     function scaleOf(l, it) {
+      if (l.calc && l.calc.kind === "db") return (l.calc.tec === "dtg" ? [1, 2, 5, 10, 20, 30, 40, 50, 100, 300, 1000] : [12, 50, 100, 300, 1000]).map((q) => [q, dbCalcOf(l.calc, q).sale]);
       if (l.calc) return [6, 12, 20, 30, 50, 100, 250, 500, 1000, 10000].map((q) => [q, tqCalcOf(l.calc, q).sale]);
       if (it && it.lp) return LTRAMOS.map((q, i) => [q, n(it.lp.precios[i])]);
       return null;
@@ -766,20 +790,7 @@
         || { tec: "bordado", qty: "100", garment: "", gcost: "", mkG: String(T().margenPrenda ?? 20), ponchado: true, oscura: false, pos: [{ name: "Pecho izquierdo", puntadas: 8000, size: 300 }] };
       const saveDB = () => { try { localStorage.setItem(DBK, JSON.stringify(DB)); } catch {} };
       const dbBox = h("section", { class: "cz-tq", id: "cz-db" });
-      const DTG_SIZES = [[100, "Escudo"], [300, "Media carta"], [600, "Carta"], [1200, "Doble carta"]];
-      function dbCalc() {
-        const t = T(), qty = Math.max(1, n(DB.qty)), bord = DB.tec === "bordado";
-        const rows = DB.pos.map((p) => {
-          const cost = bord ? (n(p.puntadas) / 1000) * n(t.costoMilPuntadas) : n((t.dtgCostos || {})[p.size]) + (DB.oscura ? n(t.dtgOscura) : 0);
-          return { p, cost, sale: cost * (1 + n(bord ? t.margenBordado : t.margenDTG) / 100) };
-        });
-        const g = BYKEY[DB.garment], gList = !!(g && g.lp && DB.gAuto !== false), gcost = !g ? 0 : gList ? listPrice(g, qty) : n(DB.gcost);
-        if (gList) DB.gcost = String(gcost);
-        const sale = r2(rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(DB.mkG) / 100));
-        const line = { piezas: qty, ubicaciones: DB.pos.map((p) => bord ? { nombre: p.name, tecnica: "bordado", puntadas: n(p.puntadas), colores: 0 } : { nombre: p.name, tecnica: "dtg", oscura: !!DB.oscura, colores: 0 }) };
-        const mins = X.lineMinutes ? X.lineMinutes(line)[DB.tec] : 0, machines = X.machinesOf ? X.machinesOf(DB.tec).length : 1, cap = X.dayCapacity ? X.dayCapacity() : 459;
-        return { qty, bord, rows, g, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
-      }
+      function dbCalc() { const c = dbCalcOf(DB); if (c.gList) DB.gcost = String(c.gcost); return c; }
       function paintDB() {
         saveDB();
         const c = dbCalc(), t = T();
@@ -790,16 +801,18 @@
             ? `${Math.round(c.mins)} min en ${c.machines} bordadora(s): ${Math.ceil(c.qty / Math.max(1, ...((X.machinesOf && X.machinesOf("bordado")) || [{ cabezas: 6 }]).map((m) => +m.cabezas || 6)))} ciclos a ${t.rpmBordado} puntadas/min, ${t.efBordado} % de eficiencia.`
             : `${Math.round(c.mins)} min repartidos en ${c.machines} DTG (una pieza a la vez, ${DB.oscura ? t.minDTGOscura + " min con pretratado" : t.minDTG + " min"} por pieza y posición). Sin pantallas: conviene desde 1 pieza y en tirajes cortos a todo color.` }),
           h("table", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "r", text: "Costo" }), h("th", { class: "r", text: "Venta" })),
-            c.rows.map((x) => h("tr", {}, h("td", { text: c.bord ? `${x.p.name} · ${int(x.p.puntadas)} puntadas` : `${x.p.name} · ${(DTG_SIZES.find((z) => z[0] === +x.p.size) || [0, ""])[1]}${DB.oscura ? " · oscura" : ""}` }), h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.sale) }))),
+            c.rows.map((x) => h("tr", {}, h("td", { text: c.bord ? `${x.p.name} · ${int(x.p.puntadas)} puntadas` : `${x.p.name} · hasta ${dtgCm(x.p)} cm · ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}` }), h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.sale) }))),
             c.g ? h("tr", {}, h("td", { text: "Prenda: " + c.g.name.split(" · ")[0] }), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(DB.mkG) / 100)) })) : null,
             h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
-          t.ejemploDB !== false ? h("p", { class: "hint warn", text: "Costos de ejemplo: ajústalos en Ajustes → DTG y bordado." }) : null,
+          c.bord && t.ejemploDB !== false ? h("p", { class: "hint warn", text: "Costos de bordado de ejemplo: ajústalos en Ajustes → DTG y bordado." }) : null,
+          !c.bord ? h("p", { class: "hint", text: `Lista DTG de Chilian (precio de venta, sin margen encima): escala de ${int([1, 2, 5, 10, 20, 30, 40, 50, 100].filter((x) => c.qty >= x).pop() || 1)} pz, ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}.` }) : null,
           c.bord ? h("label", { class: "cz-check" }, h("input", { type: "checkbox", checked: !!DB.ponchado, onchange: (e) => { DB.ponchado = e.target.checked; saveDB(); } }), h("span", { text: `Agregar ponchado (${DB.pos.length} diseño(s) × ${money(n(t.costoPonchado))})` })) : null,
           h("button", { type: "button", class: "btn accent", style: "width:100%", onclick: () => {
             const names = DB.pos.map((p) => p.name.toLowerCase()), nm = names.length > 1 ? names.slice(0, -1).join(", ") + " y " + names[names.length - 1] : names[0], tecN = c.bord ? "bordado" : "DTG";
-            const desc = c.bord ? DB.pos.map((p) => `${p.name}: ${int(p.puntadas)} puntadas`).join(" · ") + ". Bordado en máquina de 6 cabezas." : DB.pos.map((p) => `${p.name}: ${(DTG_SIZES.find((z) => z[0] === +p.size) || [0, ""])[1].toLowerCase()}`).join(" · ") + `. Impresión DTG a todo color${DB.oscura ? " sobre prenda oscura (con pretratado)" : ""}.`;
+            const desc = c.bord ? DB.pos.map((p) => `${p.name}: ${int(p.puntadas)} puntadas`).join(" · ") + ". Bordado en máquina de 6 cabezas." : DB.pos.map((p) => `${p.name}: hasta ${dtgCm(p)} cm`).join(" · ") + `. Impresión DTG a todo color${DB.oscura ? " sobre prenda negra o de color (con pretratado)" : " sobre prenda blanca"}.`;
             q.lineas.push(mkLine(c.g ? c.g.key : c.bord ? "srv-bordado" : "srv-dtg", c.qty, { concepto: c.g ? `${c.g.name.split(" · ")[0]} con ${tecN} en ${nm}` : `${c.bord ? "Bordado" : "Impresión DTG"} · ${nm}`, desc: desc + (c.g ? " " + c.g.desc : ""),
-              precio: String(c.sale), manual: true, fromCalc: true, costo: String(r2(c.cost)), factor: String(r2(c.cost ? c.sale / c.cost : 1.4)), catId: c.g ? c.g.catId : "", ubicaciones: c.line.ubicaciones }));
+              precio: String(c.sale), manual: true, fromCalc: true, costo: String(r2(c.cost)), factor: String(r2(c.cost ? c.sale / c.cost : 1.4)), catId: c.g ? c.g.catId : "", ubicaciones: c.line.ubicaciones,
+              calc: (({ tec, pos, oscura, garment, gcost, gAuto, mkG }) => structuredClone({ kind: "db", tec, pos, oscura, garment, gcost, gAuto, mkG }))(DB), auto: true }));
             if (c.bord && DB.ponchado) q.lineas.push(mkLine("srv-ponchado", DB.pos.length, { precio: String(n(t.costoPonchado)), manual: true }));
             paintLines(); refresh(); X.toast(`Agregado: ${int(c.qty)} pz a ${money(c.sale)} por pieza.`); linesBox.scrollIntoView({ behavior: "smooth", block: "end" });
           } }, "Agregar a la cotización"));
@@ -816,7 +829,7 @@
           h("div", { class: "cz-tq-grid" },
             h("div", { class: "cz-tq-form" },
               h("div", { class: "cz-fields three" }, field("Piezas", dbIn("qty", { inputmode: "numeric" })), field("Margen prenda (%)", dbIn("mkG")),
-                DB.tec === "dtg" ? h("label", { class: "cz-check", style: "align-self:end" }, h("input", { type: "checkbox", checked: !!DB.oscura, onchange: (e) => { DB.oscura = e.target.checked; paintDB(); } }), h("span", { text: "Prenda oscura (pretratado)" })) : h("span")),
+                DB.tec === "dtg" ? h("label", { class: "cz-check", style: "align-self:end" }, h("input", { type: "checkbox", checked: !!DB.oscura, onchange: (e) => { DB.oscura = e.target.checked; paintDB(); } }), h("span", { text: "Prenda negra o de color (pretratado)" })) : h("span")),
               h("div", { class: "cz-fields" }, field("Prenda del catálogo (opcional)", gSel, "full"), DB.garment ? field(BYKEY[DB.garment]?.lp && DB.gAuto !== false ? "Precio de lista por pieza (cambia con las piezas)" : "Costo de la prenda por pieza (MXN)", h("input", { class: "i num", inputmode: "decimal", value: DB.gcost, oninput: (e) => { DB.gcost = e.target.value; DB.gAuto = false; paintDB.soon(); } })) : null),
               ...DB.pos.map((p, i) => h("div", { class: "pos" },
                 h("div", { class: "pos-top" }, h("label", { class: "cz-f" }, h("span", { text: "Posición " + (i + 1) }), h("select", { class: "i", onchange: (e) => { p.name = e.target.value; paintDB(); } }, POSN.map((x) => h("option", { value: x, text: x, selected: x === p.name })))),
@@ -827,8 +840,9 @@
                     h("input", { class: "i num", type: "number", min: "500", step: "500", value: p.puntadas, "aria-label": "Puntadas", oninput: (e) => { p.puntadas = +e.target.value || 0; paintDB.soon(); } }),
                     h("p", { class: "note", text: "Referencia: logo de pecho 5,000–9,000 · gorra 6,000–10,000 · espalda grande 20,000–40,000." }))
                   : h("div", { class: "grid", style: "gap:.35rem" }, h("div", { class: "sub-k", text: "Tamaño" }),
-                    h("div", { class: "sizes" }, DTG_SIZES.map(([v, tt]) => h("button", { type: "button", "aria-pressed": String(+p.size === v), onclick: () => { p.size = v; paintDB(); } }, `${tt} · ${int(v)} cm²`)))))),
-              h("button", { type: "button", class: "btn ghost", onclick: () => { const used = DB.pos.map((x) => x.name); DB.pos.push({ name: POSN.find((x) => !used.includes(x)) || "Otra", puntadas: 6000, size: 300 }); paintDB(); } }, "+ Posición")),
+                    h("div", { class: "sizes" }, DTG_CMS().map((v) => h("button", { type: "button", "aria-pressed": String(dtgCm(p) === v), onclick: () => { p.cm = v; paintDB(); } }, `Hasta ${v} cm`))),
+                    h("p", { class: "note", text: "Por el lado más largo del diseño. Unos 11 cm es un logo de pecho; 27 cm, un frente tamaño carta." })))),
+              h("button", { type: "button", class: "btn ghost", onclick: () => { const used = DB.pos.map((x) => x.name); DB.pos.push({ name: POSN.find((x) => !used.includes(x)) || "Otra", puntadas: 6000, cm: 11 }); paintDB(); } }, "+ Posición")),
             res));
       }
       paintDB.soon = () => { clearTimeout(paintDB.t); paintDB.t = setTimeout(() => { const a = document.activeElement, ix = a && [...dbBox.querySelectorAll("input")].indexOf(a); paintDB(); if (ix >= 0) { const nIn = dbBox.querySelectorAll("input")[ix]; if (nIn) { nIn.focus(); try { nIn.setSelectionRange(nIn.value.length, nIn.value.length); } catch {} } } }, 400); };
