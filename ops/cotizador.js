@@ -100,7 +100,7 @@
     let GARMENTS = null, BYKEY = Object.fromEntries(SERVICES.map((s) => [s.key, s]));
     /* Lista de precios de Chilian (playera cuello redondo, /api/precios): precio por pieza antes de IVA por escala
        de 12, 50, 100, 300 y 1,000 pz. Con menos de 12 pz se usa la escala de 12. */
-    let LTRAMOS = [12, 50, 100, 300, 1000], DTGT = null;
+    let LTRAMOS = [12, 50, 100, 300, 1000], DTGT = null, PRE = null;   // PRE: the price list (/api/precios)
     /* DTG: Chilian's list (/api/precios → dtgTabla), per location by the design's longest side, pieces and garment
        (black or colored / white). It is the sale price: no margin on top. */
     const DTG_CMS = () => (DTGT ? DTGT.medidas : [6, 11, 20, 27, 32, 40, 45, 49, 53]);
@@ -114,7 +114,7 @@
     const lpTier = (q) => { let i = 0; LTRAMOS.forEach((m, j) => { if (q >= m) i = j; }); return i; };
     const listPrice = (it, q) => (it && it.lp ? n(it.lp.precios[lpTier(q)]) : 0);
     const loadLista = () => fetch("/api/precios").then((r) => r.json()).then((d) => {
-      const P = d.precios || {}, seen = {};
+      const P = d.precios || {}, seen = {}; PRE = P;
       if (Array.isArray(P.listaTramos) && P.listaTramos.length) LTRAMOS = P.listaTramos;
       if (P.dtgTabla && Array.isArray(P.dtgTabla.medidas)) DTGT = P.dtgTabla;
       for (const r of P.lista || []) {
@@ -131,7 +131,7 @@
       if (ready.p) return ready.p;
       ready.p = Promise.all([loadLista(), fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => {
         GARMENTS = d.map((e) => ({
-          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page, colors: e.colors || [],
+          key: "cat:" + e.id, cat: "g-" + (e.line || "basica"), garment: true, kind: e.kind, catId: e.id, catalog: e.cat, page: e.page, colors: e.colors || [], models: e.models || [], line: e.line || "basica",
           name: `${e.title} · ${e.cat}${e.models && e.models.length ? " " + e.models.slice(0, 3).join("/") : ""}`,
           desc: [e.comp, e.weight ? e.weight + " g/m²" : "", e.sizes ? "tallas " + e.sizes.trim() : ""].filter((x) => x && String(x).trim()).join(" · ")
         }));
@@ -176,6 +176,34 @@
       const seen = {};
       H.forEach((x) => { if (x.k.startsWith("u:")) seen[x.k] = x; });
       return Object.values(seen).map((x) => ({ key: x.k, cat: "apr", name: x.n || x.k.slice(2), desc: x.d, learned: true }));
+    }
+    /* Reference price of an item to sort by (MXN per piece before VAT, at 100 pieces): list T-shirts at their scale;
+       catalog garments at their line's list price (or their own row when the model is in the list); services and
+       learned items at the lowest price the team quoted. 0 = no price to compare. */
+    const KIND_PROD = { playera: "playera", tank: "playera", polo: "polo", sudadera: "sudadera", camisa: "camisa", gorra: "gorra", pantalon: "pants" };
+    function itemPrice(it) {
+      if (it._p !== undefined) return it._p;
+      let p = 0;
+      if (it.lp) p = listPrice(it, 100);
+      else if (it.garment && PRE) {
+        const tierAt = (tr) => { let i = 0; (tr || []).forEach((x, k) => { if (100 >= x) i = k; }); return i; };
+        const cz = (c) => String(c || "").toLowerCase().replace(/[\s-]/g, ""), mine = (it.models || []).map(cz), own = (PRE.lista || []).find((r) => mine.includes(cz(r.codigo))), prod = (PRE.productos || []).find((x) => x.id === KIND_PROD[it.kind]);
+        const ln = PRE.lineas && PRE.lineas[it.line], white = (code) => (PRE.lista || []).find((r) => r.codigo === code && /blanc/i.test(r.color)) || (PRE.lista || []).find((r) => r.codigo === code);
+        if (own) p = n(own.precios[tierAt(LTRAMOS)]);
+        else if (prod && prod.lista && ln && ln.codigos) { const r = white(ln.codigos.blanca); p = r ? n(r.precios[tierAt(LTRAMOS)]) : 0; }
+        else if (prod) p = n(prod.precios[tierAt(prod.tramos || PRE.tramos)]) * (ln && PRE.specs && PRE.specs[prod.id] ? n(ln.factor) || 1 : 1);
+      }
+      if (!p) { const rf = refsOf(it); if (rf.length) p = Math.min(...rf.map((r) => r[1])); }
+      return p;
+    }
+    // The line of an item (básica, clásica, premium): catalog garments by their catalog, list T-shirts by the line that uses their code
+    const itemLine = (it) => it.garment && it.line ? it.line : it.lp && PRE && PRE.lineas ? (Object.entries(PRE.lineas).find(([, l]) => Object.values(l.codigos || {}).includes(it.lp.codigo)) || [""])[0] : "";
+    const normz = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    function itemMatches(it, words, catName) {
+      if (!words.length) return true;
+      if (words.includes("playera") && !words.includes("polo") && it.kind === "polo") return false;   // «playera polo» is a polo
+      const hay = normz(`${it.name} ${it.desc} ${catName} ${it.kind || ""} ${it.catId || ""} ${(it.models || []).join(" ")} ${itemLine(it)}`);
+      return words.every((w) => w === "50/50" ? /50 ?%.*50 ?%|50\/50/.test(hay) : hay.includes(w) || (w.length > 4 && hay.includes(w.replace(/(es|s)$/, ""))));
     }
     const allItems = () => SERVICES.filter((s) => !s.hidden).concat(LISTA(), GARMENTS || [], learnedItems());
     function frequent(max) {
@@ -560,14 +588,23 @@
       const freqBox = h("div", { class: "cz-freq" });
       const search = h("input", { class: "i", placeholder: "Buscar en el catálogo de Chilian: playera, polo, sudadera, bordado, etiqueta…", "aria-label": "Buscar producto" });
       const addSel = h("select", { class: "i", "aria-label": "Producto para agregar" });
+      // Filters next to the search: line (básica, clásica, premium) and order by price
+      const lineSel = h("select", { class: "i", "aria-label": "Línea", onchange: () => fillAdd() }, [["", "Todas las líneas"], ["basica", "Básica"], ["clasica", "Clásica"], ["premium", "Premium"]].map(([v, t]) => h("option", { value: v, text: t })));
+      const sortSel = h("select", { class: "i", "aria-label": "Ordenar", onchange: () => fillAdd() }, [["", "Orden del catálogo"], ["desc", "Precio: de más caro a más económico"], ["asc", "Precio: de más económico a más caro"]].map(([v, t]) => h("option", { value: v, text: t })));
+      const addCount = h("span", { class: "hint" });
       function fillAdd() {
-        const qq = search.value.trim().toLowerCase(), keep = addSel.value;
+        const words = normz(search.value).replace(/50 ?\/ ?50/g, " 50/50 ").split(/\s+/).filter((w) => w && !["de", "con", "la", "el", "y", "para"].includes(w)), keep = addSel.value, ln = lineSel.value, sort = sortSel.value;
+        const optOf = (p) => { const pr = itemPrice(p), rf = p.lp || p.garment ? [] : refsOf(p); return h("option", { value: p.key, text: p.name + (pr ? (p.lp || p.garment ? ` · ${money(pr)} (100 pz)` : rf.length ? " · desde " + money(pr) : "") : "") }); };
+        const pool = allItems().filter((p) => (!ln || itemLine(p) === ln) && itemMatches(p, words, (catOf[p.cat] || [])[1] || ""));
         addSel.replaceChildren();
-        for (const c of CATS) {
-          const items = allItems().filter((p) => p.cat === c[0] && (!qq || `${p.name} ${p.desc} ${c[1]} ${p.kind || ""} ${p.catId || ""}`.toLowerCase().includes(qq)));
-          if (!items.length) continue;
-          addSel.append(h("optgroup", { label: c[1] }, items.map((p) => { const rf = refsOf(p); return h("option", { value: p.key, text: p.name + (rf.length ? " · desde " + money(Math.min(...rf.map((r) => r[1]))) : "") }); })));
+        if (sort) {   // one list across categories, by price; items without a price to compare go last
+          const sorted = pool.slice().sort((a, b) => { const pa = itemPrice(a), pb = itemPrice(b); return !pa - !pb || (sort === "asc" ? pa - pb : pb - pa); });
+          if (sorted.length) addSel.append(h("optgroup", { label: sort === "asc" ? "Del más económico al más caro (precio antes de IVA)" : "Del más caro al más económico (precio antes de IVA)" }, sorted.map(optOf)));
+        } else for (const c of CATS) {
+          const items = pool.filter((p) => p.cat === c[0]);
+          if (items.length) addSel.append(h("optgroup", { label: c[1] }, items.map(optOf)));
         }
+        addCount.textContent = pool.length ? `${pool.length} producto${pool.length === 1 ? "" : "s"}${ln ? " · línea " + lineSel.selectedOptions[0].text.toLowerCase() : ""}${sort ? " · por precio" : ""}. Precio de prendas: lista a 100 pz, antes de IVA.` : "";
         if (!addSel.options.length) addSel.append(h("option", { value: "libre", text: "Sin resultados: agrega un concepto libre" }));
         if ([...addSel.options].some((o) => o.value === keep)) addSel.value = keep;
       }
@@ -657,7 +694,7 @@
       }
       const gLines = h("section", { class: "cz-group" }, h("h2", { text: "Conceptos" }),
         h("div", { class: "cz-freqbox" }, h("div", { class: "cz-freqhead" }, h("span", { text: "Productos frecuentes" }), h("span", { class: "hint", text: H.length ? `Aprendido de ${new Set(H.map((x) => x.fo)).size} cotizaciones del equipo` : "Se ajustan solos con cada cotización guardada" })), freqBox),
-        h("div", { class: "cz-add" }, search, addSel, h("button", { type: "button", class: "btn", onclick: () => addItem(addSel.value || "libre") }, "Agregar")),
+        h("div", { class: "cz-add" }, search, h("div", { class: "cz-add-f" }, lineSel, sortSel, addCount), addSel, h("button", { type: "button", class: "btn", onclick: () => addItem(addSel.value || "libre") }, "Agregar")),
         h("p", { class: "hint", text: "Cada producto trae los precios que el equipo ya cotizó. Al escribir la cantidad se sugiere el de volumen más cercano; toca una referencia para usarla o escribe tu precio." }),
         linesBox,
         h("div", { class: "row" }, check("Las líneas son opciones a elegir (no se suman)", () => q.opciones, (v) => { q.opciones = v; paintLines(); }),

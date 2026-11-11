@@ -290,6 +290,9 @@
   .cz-freq button b { margin-left: .35rem; color: var(--magenta); font: 600 .78rem var(--f-mono); }
   .cz-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
   .cz-add > input { grid-column: 1 / -1; }
+  .cz-add-f { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .cz-add-f select { width: auto; flex: 0 1 auto; min-width: 0; }
+  .cz-add-f .hint { flex: 1 1 14rem; margin: 0; }
   .cz-lines { display: grid; gap: .6rem; }
   .cz-line { border: 1px solid var(--rule); background: var(--paper); padding: .75rem; display: grid; grid-template-columns: minmax(0, 1fr) 96px 124px 2.2rem; gap: .5rem .6rem; align-items: end; }
   .cz-line .tag { font: 700 .62rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--steel); }

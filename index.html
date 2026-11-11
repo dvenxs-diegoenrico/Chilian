@@ -4224,7 +4224,7 @@
   function catPrice(e) {
     const P = PR; if (!P || !P.productos) return 0;
     const prod = P.productos.find((p) => p.id === CAT_PROD[e.kind]); if (!prod) return 0;
-    const row = (P.lista || []).find((r) => (e.models || []).includes(r.codigo));
+    const cz = (c) => String(c || "").toLowerCase().replace(/[\s-]/g, ""), mine = (e.models || []).map(cz), row = (P.lista || []).find((r) => mine.includes(cz(r.codigo)));
     const base = row ? row.precios[tierOf(100, P.listaTramos || [12, 50, 100, 300, 1000])] : qzGarment(P, prod, { linea: e.line, color: "blanca" }, 100).precio;
     return base * (1 + (P.iva ?? 16) / 100) * (1 + ((P.cargos || {}).comision ?? 5) / 100);
   }
