@@ -111,8 +111,9 @@
       DTGT.tramos.forEach((x, k) => { if (q >= x) ti = k; });
       return DTGT[dark ? "color" : "blanca"][si][ti];
     };
-    const lpTier = (q) => { let i = 0; LTRAMOS.forEach((m, j) => { if (q >= m) i = j; }); return i; };
-    const listPrice = (it, q) => (it && it.lp ? n(it.lp.precios[lpTier(q)]) : 0);
+    const lpTramos = (it) => (it && it.lp && it.lp.tramos) || LTRAMOS;   // the Chilian Sport matrix has its own scales (6 to 10,000 pz)
+    const lpTier = (q, it) => { let i = 0; lpTramos(it).forEach((m, j) => { if (q >= m) i = j; }); return i; };
+    const listPrice = (it, q) => (it && it.lp ? n(it.lp.precios[lpTier(q, it)]) : 0);
     const loadLista = () => fetch("/api/precios").then((r) => r.json()).then((d) => {
       const P = d.precios || {}, seen = {}; PRE = P;
       if (Array.isArray(P.listaTramos) && P.listaTramos.length) LTRAMOS = P.listaTramos;
@@ -125,8 +126,17 @@
           name: `Playera ${r.marca} ${r.codigo} · ${lc(r.genero)} · ${lc(r.color)}${r.tallas ? " · " + r.tallas : ""}`,
           desc: [r.tela, r.tallas ? "tallas " + r.tallas : "", r.iva === "SIN IVA" ? "la lista dice SIN IVA" : ""].filter(Boolean).join(" · ") };
       }
+      /* Chilian Sport sublimada (matriz de precios cliente, /api/precios → fullprint.modalidades): prenda + sublimación,
+         precio por pieza antes de IVA por escala de 6 a 10,000 pz. Con menos de 6 pz se usa la escala de 6. */
+      const F = P.fullprint || {};
+      for (const m of F.modalidades || []) {
+        const key = "sub:" + m.id;
+        BYKEY[key] = { key, cat: "sub", lp: { codigo: "CH-SPORT-" + m.id, color: "", precios: m.precios, tramos: F.tramos },
+          name: `Chilian Sport · ${m.nombre}`, desc: [m.tela, "prenda + sublimación", "precio por escala"].filter(Boolean).join(" · ") };
+      }
     }).catch(() => {});
-    const LISTA = () => Object.values(BYKEY).filter((x) => x.lp);
+    const LISTA = () => Object.values(BYKEY).filter((x) => x.lp && x.cat === "lp");   // the T-shirts of the list (garments to print on)
+    const SPORTS = () => Object.values(BYKEY).filter((x) => x.lp && x.cat === "sub");
     function ready() {
       if (ready.p) return ready.p;
       ready.p = Promise.all([loadLista(), fetch("/catalogo/catalogo.json").then((r) => r.json()).then((d) => {
@@ -205,13 +215,13 @@
       const hay = normz(`${it.name} ${it.desc} ${catName} ${it.kind || ""} ${it.catId || ""} ${(it.models || []).join(" ")} ${itemLine(it)}`);
       return words.every((w) => w === "50/50" ? /50 ?%.*50 ?%|50\/50/.test(hay) : hay.includes(w) || (w.length > 4 && hay.includes(w.replace(/(es|s)$/, ""))));
     }
-    const allItems = () => SERVICES.filter((s) => !s.hidden).concat(LISTA(), GARMENTS || [], learnedItems());
+    const allItems = () => SERVICES.filter((s) => !s.hidden).concat(SPORTS(), LISTA(), GARMENTS || [], learnedItems());
     function frequent(max) {
       const score = {}, now = Date.now();
       H.forEach((x) => { const age = (now - x.ts) / 864e5; score[x.k] = (score[x.k] || 0) + (age < 90 ? 3 : 2) + (x.estado === "aceptada" ? 2 : 0); });
       let list = Object.entries(score).sort((a, b) => b[1] - a[1]).map(([k]) => (BYKEY[k] || learnedItems().find((i) => i.key === k))).filter((it) => it && !it.hidden);
       if (list.length < max) {   // a new system starts from the usual suspects
-        const base = ["cat:PLT-3", "cat:OPT-14", "srv-seri-pos", "srv-bordado", "srv-dtf", "srv-sub", "srv-etiq-imp", "srv-polybag", "srv-pantalla", "srv-envio"].map((k) => BYKEY[k]).filter(Boolean);
+        const base = ["cat:PLT-3", "cat:OPT-14", "srv-seri-pos", "srv-bordado", "srv-dtf", "sub:clasica", "srv-sub", "srv-etiq-imp", "srv-polybag", "srv-pantalla", "srv-envio"].map((k) => BYKEY[k]).filter(Boolean);
         for (const b of base) if (!list.includes(b)) list.push(b);
       }
       return list.slice(0, max);
@@ -478,7 +488,7 @@
       const gList = !!(g && g.lp && S.gAuto !== false), gcost = !S.garment ? 0 : gList ? listPrice(g, qty) : n(S.gcost);
       const sale = r2(printCost * (1 + n(S.mkP) / 100) + gcost * (1 + n(S.mkG) / 100));
       const screens = S.pos.reduce((a, p) => a + inkN(p) + (S.prenda === "color" ? 1 : 0), 0);
-      return { qty, ti, tier: small ? CHICA_QT[ci] : QT[ti], small, rows, printCost, g, gList, gTier: gList ? LTRAMOS[lpTier(qty)] : 0, gcost, cost: printCost + gcost, sale, total: sale * qty, screens, warn };
+      return { qty, ti, tier: small ? CHICA_QT[ci] : QT[ti], small, rows, printCost, g, gList, gTier: gList ? lpTramos(g)[lpTier(qty, g)] : 0, gcost, cost: printCost + gcost, sale, total: sale * qty, screens, warn };
     }
     const tqCalc = () => tqCalcOf(TQ);
     function dbCalcOf(S, qtyIn) {
@@ -504,7 +514,7 @@
     function scaleOf(l, it) {
       if (l.calc && l.calc.kind === "db") return (l.calc.tec === "dtg" ? [1, 2, 5, 10, 20, 30, 40, 50, 100, 300, 1000] : [12, 50, 100, 300, 1000]).map((q) => [q, dbCalcOf(l.calc, q).sale]);
       if (l.calc) return [6, 12, 20, 30, 50, 100, 250, 500, 1000, 10000].map((q) => [q, tqCalcOf(l.calc, q).sale]);
-      if (it && it.lp) return LTRAMOS.map((q, i) => [q, n(it.lp.precios[i])]);
+      if (it && it.lp) return lpTramos(it).map((q, i) => [q, n(it.lp.precios[i])]);
       return null;
     }
 

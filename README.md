@@ -367,7 +367,7 @@ El cotizador del cliente sigue sencillo. En el estudio de diseño: prenda y colo
 
 La sección `#cotizar` funciona como un configurador con precio en vivo:
 
-- **Configurador:** producto, cantidad (campo, atajos 100 / 500 / 2,000 / 10,000 y deslizador), técnica, colores de tinta (1–6), tamaño de bordado, ubicaciones (1–4) y entrega (estándar o express). El full print solo se ofrece en la playera Chilian Sport y DTG no se ofrece en gorras. Cada técnica tiene su mínimo (serigrafía 50, DTG 1, bordado 12, full print 100).
+- **Configurador:** producto, cantidad (campo, atajos 100 / 500 / 2,000 / 10,000 y deslizador), técnica, colores de tinta (1–6), tamaño de bordado, ubicaciones (1–4) y entrega (estándar o express). El full print solo se ofrece en la playera Chilian Sport y DTG no se ofrece en gorras. Cada técnica tiene su mínimo (serigrafía 6, DTG 1, bordado 12, full print 6).
 - **Orden estimada:** una frase con lo que se cotiza, el desglose por pieza (prenda, impresión, pantallas o ponchado prorrateados, cargo express), el precio por pieza, el total antes y con IVA, la fecha de entrega en días hábiles y cuánto baja el precio en la siguiente escala, con un botón para usarla. En teléfono, una barra fija abajo muestra el precio mientras se configura.
 - **Mi cotización:** un panel lateral (botón en el encabezado, con contador) junta los estimados, lo que llega de Estampa tu idea y los modelos del catálogo con sus gráficos. Ahí se editan las piezas, se quita lo que sobra, se ve el total y se envía la solicitud (nombre, empresa, correo, WhatsApp, fecha y comentarios), por el sitio o por WhatsApp a la asesora del tipo de proyecto.
 - **Precios:** `/api/precios` (público) devuelve los precios de venta de referencia; se editan en **Chilian OS → Ajustes → Precios del cotizador web**. Los valores que trae son **de ejemplo** y el sitio lo dice hasta que se marquen como revisados.
@@ -662,3 +662,13 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - **Botón de cada una.** Abre el cotizador con ese producto, o el catálogo.
   - **Movimiento.** Avanza cada 6 s y se detiene con el mouse encima, con el foco, en una pestaña oculta o con movimiento reducido. Tiene puntos, pausa y deslizar.
   - **Imágenes generadas.** Las de Print on Demand y campaña son ilustrativas (`photos/print-on-demand-dtg.jpg`, `photos/campana-politica.jpg`), sin marcas ni partidos. Conviene cambiarlas por fotos de la planta.
+
+### Chilian Sport sublimada: matriz de precios cliente (noviembre 2026)
+
+- **Dónde vive.** `api/precios.js` (`SPORT`, que sale como `fullprint`): 15 escalas de 6 a 10,000 piezas y cinco modalidades, precio por pieza antes de IVA con prenda y sublimación.
+  - Modalidades: full print clásica manga corta (micro piqué), blanca con sublimado parcial, full print infantil, full print manga larga y full print manga larga en tela premium.
+  - Donde la matriz subía de precio en una escala mayor se dejó el precio de la escala anterior (por ejemplo 500 pz de manga corta a $112.00 y no $112.50).
+  - Tallas 2XL–3XL: el mismo recargo que ya tenía cada rango (`tallasExtra`): 7.72 % hasta 299 pz, 3.11 % de 300 a 999, 1.5 % de 1,000 a 2,999 y 16 % desde 3,000.
+  - La tabla está en el código y manda sobre lo guardado en Ajustes; el mínimo de full print baja de 100 a 6 piezas.
+- **Quién la usa.** El cotizador del sitio y el estudio (`qzCalc`, con la modalidad en el paso de calidad), la calculadora de volumen del sitio, el asistente (`api/_pricing.js`; pregunta la modalidad con su precio), el cotizador del OS (grupo «Sublimación · Chilian Sport», precio por escala) y Ajustes → Precios del cotizador web (tabla de consulta).
+- **Copias que hay que regenerar.** `index.html` trae una copia en `PRECIOS_BASE` y `tools/seo/build_landings.py` otra para `/playeras-deportivas-sublimadas`. Después de cambiar la matriz: `python3 tools/seo/build_seo.py && python3 tools/seo/build_landings.py`.

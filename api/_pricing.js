@@ -65,6 +65,8 @@ export function parseMedida(text) {
   if (one && +one[1] > 0 && +one[1] <= 300) { const w = +one[1]; return { w, h: w, area: Math.round(w * w), cuadrada: true }; }
   return null;
 }
+// Chilian Sport sublimada: the option picked (classic short sleeve when none)
+export const sportMod = (P, id) => { const M = P.fullprint.modalidades || []; return M.find((m) => m.id === id) || M[0] || { id: "clasica", precios: P.fullprint.precios }; };
 const tierOf = (q, tramos) => { let i = 0; tramos.forEach((x, k) => { if (q >= x) i = k; }); return i; };
 /* The garment's price per piece: T-shirts from the official list (by line and white/colored), other
    products from their own price breaks. Returns { precio, codigo, tela }. */
@@ -98,7 +100,8 @@ export function quote(P, c, lang = "es") {
   const q = Math.max(0, parseInt(c.qty, 10) || 0), i = tierOf(q, P.tramos);
   const locs = Math.min(4, Math.max(1, c.areas && c.areas.length ? c.areas.length : c.ubic && c.ubic.length ? c.ubic.length : c.locs | 0 || 1)), inks = Math.min(11, Math.max(1, c.inks | 0 || 1));
   let unit = 0, pc = null;
-  if (kind === "full") unit = P.fullprint.precios[tierOf(q, P.fullprint.tramos)] || 0;
+  const mod = kind === "full" ? sportMod(P, c.mod) : null;
+  if (kind === "full") unit = mod.precios[tierOf(q, P.fullprint.tramos)] || 0;
   else {
     const g = garment(P, prod, c, q); unit += g.precio; var gar = g;
     if (kind === "serigrafia") { pc = printCost(P, c, tec, prod, q, locs); unit += pc.base + pc.extra; }
@@ -115,7 +118,7 @@ export function quote(P, c, lang = "es") {
   else if (kind === "dtg" && prod.nodtg) err = L("DTG no se imprime en ese producto; elige serigrafía o bordado.", "DTG can't print on that product; pick screen printing or embroidery.");
   else if (q < min) err = L(`El mínimo en ${tec.es.toLowerCase()} es de ${min} piezas.`, `The minimum for ${tec.en.toLowerCase()} is ${min} pieces.`);
   const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
-  const how = kind === "full" ? L("en full print", "in full print")
+  const how = kind === "full" ? L(mod.frase || "en full print", mod.fraseEn || "in full print")
     : kind === "serigrafia" ? (() => {
       const S = P.serigrafia, ink = isChica(S, q) ? String(inks) : S.colores[inkIdx(inks)], plural = ink !== "1";
       const med = pc.ubic ? pc.ubic.map((u) => `${L(u.lugar, u.lugar)} ${u.cm || S.medidas[sizeIdx(S, u.area)].replace("≈ ", "")}`).join(", ") : [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + ");
@@ -129,7 +132,7 @@ export function quote(P, c, lang = "es") {
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);
-  return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
+  return { prod, tec, kind, mod, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
     unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null, excede: !!(pc && pc.ubic && pc.ubic.some((u) => u.excede)),
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

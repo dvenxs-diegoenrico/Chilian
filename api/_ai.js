@@ -22,8 +22,8 @@ Tu trabajo en cada mensaje del cliente es ENTENDERLO y usar las funciones:
 
 Datos de Chilian (úsalos solo si preguntan):
 - Hasta 20,000 piezas al día; auditorías Disney FAMA, WRAP, SMETA, Walmart, VF, C&A.
-- Técnicas: serigrafía plastisol, base agua, discharge, alta densidad, puff, glitter, brilla en la oscuridad; DTG digital (fotos, desde 1 pieza); bordado (desde 12 piezas); full print sublimado en la playera deportiva Chilian Sport (desde 100).
-- Mínimos: serigrafía 6 piezas (precio más alto en tirajes cortos), DTG 1, bordado 12, full print 100. Marcas y OEM desde 600.
+- Técnicas: serigrafía plastisol, base agua, discharge, alta densidad, puff, glitter, brilla en la oscuridad; DTG digital (fotos, desde 1 pieza); bordado (desde 12 piezas); sublimación en la playera deportiva Chilian Sport (desde 6 piezas): full print manga corta, blanca con sublimado parcial, infantil, manga larga y manga larga en tela premium.
+- Mínimos: serigrafía 6 piezas (precio más alto en tirajes cortos), DTG 1, bordado 12, full print 6. Marcas y OEM desde 600.
 - Líneas de prenda: Básica (eventos y promociones), Clásica (uniformes y uso diario), Premium (marcas de ropa, bandas, merch premium). También estampan la prenda del cliente.
 - Tiempos típicos: serigrafía 8 a 15 días hábiles, DTG 4 a 9, bordado 8 a 18, después de aprobar el arte; express con cargo.
 - Proceso: cotización, muestra o prueba de arte aprobada, producción y entrega. Anticipo para arrancar.
@@ -34,6 +34,7 @@ prod: playera (cuello redondo) | sport (playera deportiva Chilian Sport) | tiedy
 Los precios que ve el cliente ya incluyen IVA y la comisión de pago; el envío se cotiza aparte.
 Medidas del estampado: si el cliente da una medida (por ejemplo "20 x 25 cm" o "8 x 10 pulgadas"), conviértela a cm y regístrala en ancho_cm y alto_cm con su lugar (frente, espalda, pecho, manga, nuca). Si dice "chico", "grande" u otra palabra sin medida, no inventes centímetros: pon 0 y deja que el sistema le muestre las medidas reales.
 tec: plastisol | waterbase | discharge | hd | puff | glitter | gitd | dtg | embroidery | fullprint
+mod (solo si pide la Chilian Sport sublimada; si no lo dijo, déjalo vacío): clasica (full print manga corta) | blanca (playera blanca con sublimado parcial, por posición) | infantil (full print para niños) | mangalarga (full print manga larga) | mlpremium (full print manga larga en tela premium)
 uso: carrera | evento | negocio | uniforme | banda | marca | regalo
 perfil: experto (ya sabe tela, gramaje y sistema de impresión, o compara cotizaciones) | intermedio (sabe el producto, necesita asesoría) | explorador (no sabe qué cotizar) | cliente (ya le compra a Chilian)`;
 
@@ -51,6 +52,7 @@ const TOOLS = [
       color: str("Color de la prenda: blanca o de color", ["blanca", "color"]),
       qty: int("Piezas"),
       tec: str("Técnica", ["plastisol", "waterbase", "discharge", "hd", "puff", "glitter", "gitd", "dtg", "embroidery", "fullprint"]),
+      mod: str("Solo Chilian Sport sublimada: la opción que pidió", ["clasica", "blanca", "infantil", "mangalarga", "mlpremium"]),
       inks: int("Número de tintas o colores del diseño (1 a 11)"),
       size: { type: "integer", enum: [0, 100, 300, 600, 1200, 1800], description: "Área de impresión en cm²: 100 (≈10×10 cm, logo de pecho), 300 (≈17×17), 600 (≈24×24, carta), 1200 (≈35×35, doble carta), 1800 (≈42×42, frente completo) Pon 0 si no lo dijo." },
       extras: { type: "array", items: { type: "string", enum: ["antimigrante", "fleece", "export"] }, description: "Extras de serigrafía que pidió: antimigrante (base barrera, poliéster), fleece (prenda afelpada), export (calidad exportación). La prenda de color, HD, puff y glitter se suman solos. Lista vacía si no pidió ninguno." },

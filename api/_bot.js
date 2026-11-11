@@ -196,6 +196,7 @@ export async function botTurn(doc, input, ctx) {
   else if (pre === "qty") d.qty = +val;
   else if (pre === "dis") { d.dis = val; if (val === "logo") d.tec = USOS[d.uso]?.tec && !["fullprint", "embroidery"].includes(USOS[d.uso].tec) ? USOS[d.uso].tec : "plastisol"; else if (val === "foto") d.tec = (d.qty || 0) >= 300 ? "plastisol" : "dtg"; else if (val === "bordado") d.tec = "embroidery"; else if (val === "full") d.tec = "fullprint"; else if (val === "nodis") { d.tec = "plastisol"; d.inks = 1; } if (val === "foto" && d.tec === "plastisol") d.inks = 6; }
   else if (pre === "tec") d.tec = val;
+  else if (pre === "mod") d.mod = val;
   else if (pre === "inks") d.inks = +val;
   else if (pre === "lugar") { d.lugarActual = val; d.masUbic = false; }
   else if (pre === "mas") { if (val === "si") d.masUbic = true; else d.ubicListo = true; }
@@ -225,6 +226,7 @@ export async function botTurn(doc, input, ctx) {
       if (c.ancho_cm > 0 && c.alto_cm > 0 && c.ancho_cm <= 300 && c.alto_cm <= 300) { if (c.lugar && P.serigrafia.lugares[c.lugar]) d.lugarActual = c.lugar; addUbic(Math.round(c.ancho_cm * c.alto_cm), `${c.ancho_cm}×${c.alto_cm} cm`); }
       if (Array.isArray(c.extras) && c.extras.length) d.extras = [...new Set([...(d.extras || []), ...c.extras])];
       if (c.prod) b.prodElegido = true;
+      if (c.mod && (P.fullprint.modalidades || []).some((m) => m.id === c.mod)) { d.mod = c.mod; if (!c.tec) d.tec = "fullprint"; }
       if (okInt(c.qty, 1, 999999)) d.qty = c.qty;
       if (okInt(c.inks, 1, 11)) d.inks = c.inks;
       if (okInt(c.locs, 1, 4)) d.locs = c.locs;
@@ -403,6 +405,12 @@ export async function botTurn(doc, input, ctx) {
         b.paso = "mas"; return done();
       }
     }
+  }
+  if (tec.kind === "full" && (P.fullprint.modalidades || []).length > 1 && !P.fullprint.modalidades.some((m) => m.id === d.mod)) {   // Chilian Sport: which one, with its price at this quantity
+    const M = P.fullprint.modalidades, pr = (m) => { const r = quote(P, { ...d, prod: "sport", tec: "fullprint", mod: m.id, del: "estandar" }, b.lang); return r.err ? "" : L(`: ${money(r.unitFinal)} por pieza`, `: ${money(r.unitFinal)} MXN per piece`); };
+    say(L(`La Chilian Sport sublimada tiene estas opciones${d.qty ? ` para ${d.qty} piezas` : ""}:\n`, `The sublimated Chilian Sport comes in these options${d.qty ? ` for ${d.qty} pieces` : ""}:\n`) + M.map((m) => `• ${L(m.nombre, m.en)} (${L(m.tela, m.telaEn)})${pr(m)}`).join("\n") + L("\n(Precio con IVA y comisión de pago.) ¿Cuál quieres?", "\n(Price with VAT and payment fee.) Which one would you like?"),
+      M.map((m) => ({ id: "mod:" + m.id, title: L(m.corto || m.nombre, m.cortoEn || m.en).slice(0, 24) })));
+    b.paso = "mod"; return done();
   }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
   if (tec.kind !== "full" && tec.kind !== "serigrafia" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }

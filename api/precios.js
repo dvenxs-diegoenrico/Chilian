@@ -10,6 +10,27 @@ import { LISTA_PLAYERAS, LISTA_TRAMOS } from "./_lista.js";
 import { SERIGRAFIA } from "./_serigrafia.js";
 import { DTG } from "./_dtg.js";
 
+const SPORT_TRAMOS = [6, 12, 20, 30, 50, 100, 200, 300, 400, 500, 700, 1000, 3000, 5000, 10000];
+const SPORT_MODS = [
+  { corto: "Manga corta", cortoEn: "Short sleeve", id: "clasica", nombre: "Full print clásica manga corta", en: "Classic short-sleeve full print", tela: "Micro piqué", telaEn: "Micro piqué",
+    frase: "en full print, manga corta", fraseEn: "in full print, short sleeve",
+    precios: [323, 285, 255, 180, 180, 140, 135, 120, 112, 112, 105, 101.25, 97.5, 87.5, 84] },
+  { corto: "Blanca sublimado parcial", cortoEn: "White, placement print", id: "blanca", nombre: "Blanca con sublimado parcial", en: "White tee, placement sublimation", tela: "Playera blanca, estampado por posición", telaEn: "White tee, placement print",
+    frase: "blancas con sublimado parcial", fraseEn: "in white with placement sublimation",
+    precios: [127.33, 112.35, 112.35, 104.85, 97.35, 83.86, 74.12, 74.12, 69.86, 69.86, 62.16, 49.82, 45.5, 41.25, 36] },
+  { corto: "Infantil", cortoEn: "Kids", id: "infantil", nombre: "Full print infantil", en: "Kids full print", tela: "Micro piqué", telaEn: "Micro piqué",
+    frase: "en full print, talla infantil", fraseEn: "in full print, kids sizes",
+    precios: [246.5, 217.5, 217.5, 202.97, 188.45, 162.33, 143.46, 143.46, 135.23, 135.23, 120.32, 96.43, 88.08, 79.85, 69.7] },
+  { corto: "Manga larga", cortoEn: "Long sleeve", id: "mangalarga", nombre: "Full print manga larga", en: "Long-sleeve full print", tela: "Micro piqué, cuello redondo", telaEn: "Micro piqué, crew neck",
+    frase: "en full print, manga larga", fraseEn: "in full print, long sleeve",
+    precios: [314.5, 277.5, 277.5, 258.95, 240.44, 207.1, 183.03, 183.03, 172.54, 172.54, 153.51, 123.03, 112.37, 101.88, 88.92] },
+  { corto: "Manga larga premium", cortoEn: "Premium long sleeve", id: "mlpremium", nombre: "Full print manga larga premium", en: "Premium long-sleeve full print", tela: "Tela premium, cuello redondo", telaEn: "Premium fabric, crew neck",
+    frase: "en full print, manga larga en tela premium", fraseEn: "in full print, long sleeve in premium fabric",
+    precios: [382.5, 337.5, 337.5, 314.96, 292.43, 251.89, 222.62, 222.62, 209.83, 209.83, 186.69, 149.65, 136.68, 123.91, 108.16] }
+];
+// tallasExtra: % over the price for 2XL–3XL, by pieces (the surcharge each break already had in the store's list)
+const SPORT = { tramos: SPORT_TRAMOS, precios: SPORT_MODS[0].precios, modalidades: SPORT_MODS, tallasExtra: [[0, 7.72], [300, 3.11], [1000, 1.5], [3000, 16]] };
+
 export const DEFAULTS = {
   tramos: [50, 100, 500, 2000, 10000],   // price breaks by pieces; each list below has one price per break
   productos: [
@@ -31,8 +52,10 @@ export const DEFAULTS = {
     { id: "bolsa", nombre: "Bolsa de tela", plural: "bolsas de tela", en: "Tote bag", pluralEn: "tote bags", precios: [45, 40, 34, 31, 29] },
     { id: "propia", nombre: "Mi prenda (la envío yo)", plural: "prendas del cliente", en: "My own garment (I ship it)", pluralEn: "customer garments", precios: [0, 0, 0, 0, 0] }
   ],
-  // Chilian Sport Full Print: the price breaks published in the Chilian store (garment + sublimation)
-  fullprint: { tramos: [100, 300, 1000, 3000, 10000], precios: [310.8, 199.8, 177.6, 155.4, 133.2] },
+  // Chilian Sport sublimada: Chilian's customer price matrix (November 2026), per piece before VAT, from 6 to 10,000 pieces.
+  // Where the matrix went up at a bigger break, the price of the break before it stays (a bigger order never costs more per piece).
+  // "precios" is the classic short-sleeve full print, the default; "modalidades" has every option. Lives in the code (SPORT below).
+  fullprint: SPORT,
   serigrafia: SERIGRAFIA,                  // Chilian's official screen-printing table (LN1): by print size, pieces and colors, plus extras
   dtgTabla: DTG,                           // Chilian's DTG list: per location by the design's longest side, pieces and garment (white / colored)
   // Print on Demand garments: the official list's T-shirt for each option (white / colored). Oversized has no row in the list yet:
@@ -46,7 +69,7 @@ export const DEFAULTS = {
   ponchado: 450,                           // digitizing, per design (one per location)
   express: 18, diasExpress: 3,             // % surcharge and business days saved
   dias: { serigrafia: [[2000, 8], [10000, 10], [1e9, 15]], dtg: [[100, 4], [500, 6], [1e9, 9]], bordado: [[500, 8], [3000, 12], [1e9, 18]], full: [[1000, 12], [5000, 15], [1e9, 20]] },
-  minimos: { serigrafia: 6, dtg: 1, bordado: 12, full: 100 },   // screen printing: the 6–99 pz table, then LN1 from 100
+  minimos: { serigrafia: 6, dtg: 1, bordado: 12, full: 6 },   // screen printing: the 6–99 pz table, then LN1 from 100; Chilian Sport: the matrix starts at 6
   iva: 16,
   // Garment lines (Básica, Clásica, Premium). "factor" multiplies the garment price above (Clásica = the
   // price in the list). The specs are what the assistant tells customers; EXAMPLES until Chilian confirms them.
@@ -87,6 +110,8 @@ export function mergePrecios(saved) {
   if (!saved?.lista) { P.lista = DEFAULTS.lista; P.listaTramos = DEFAULTS.listaTramos; }
   P.serigrafia = DEFAULTS.serigrafia;   // the official table lives in code (_serigrafia.js)
   P.dtgTabla = DEFAULTS.dtgTabla;
+  P.fullprint = DEFAULTS.fullprint;     // the Chilian Sport matrix too: a list saved before it (5 breaks from 100 pz) must not come back
+  if (P.minimos && +P.minimos.full >= 100) P.minimos.full = 6;   // 100 was the old full-print minimum: the matrix starts at 6 pz
   if (P.minimos && +P.minimos.serigrafia >= 50) P.minimos.serigrafia = 6;   // 100 and 50 were the old minimums: screen printing now starts at 6 pz (6–99 pz table)       // and the DTG list (_dtg.js)
   P.pod = DEFAULTS.pod;
   for (const p of P.productos) if (p.id === "pod") p.pod = true;

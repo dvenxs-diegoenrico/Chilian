@@ -18,7 +18,18 @@ WA = {"marca": "522226925404", "uniformes": "522201759053", "merch": "5222265126
 AUDITS = "Walt Disney FAMA, WRAP, VF Corporation, C&A, SMETA (Sedex), Walmart y ChemIQ"
 AUDITS_EN = "Walt Disney FAMA, WRAP, VF Corporation, C&A, SMETA (Sedex), Walmart and ChemIQ"
 BRANDS = "Carhartt, The North Face, Vans, Supreme, Marvel, Bluey, Minecraft, Snoopy y Tom and Jerry"
-TIERS = [("100–299", 310.80, 334.78), ("300–999", 199.80, 206.02), ("1,000–2,999", 177.60, 180.26), ("3,000–9,999", 155.40, 180.26), ("10,000+", 133.20, 154.51)]
+# Chilian Sport sublimada: the customer price matrix (November 2026), MXN per piece before VAT. The same numbers as api/precios.js (SPORT).
+SPORT_TRAMOS = [6, 12, 20, 30, 50, 100, 200, 300, 400, 500, 700, 1000, 3000, 5000, 10000]
+SPORT = [("Full print manga corta", [323, 285, 255, 180, 180, 140, 135, 120, 112, 112, 105, 101.25, 97.5, 87.5, 84]),
+         ("Blanca, sublimado parcial", [127.33, 112.35, 112.35, 104.85, 97.35, 83.86, 74.12, 74.12, 69.86, 69.86, 62.16, 49.82, 45.5, 41.25, 36]),
+         ("Full print infantil", [246.5, 217.5, 217.5, 202.97, 188.45, 162.33, 143.46, 143.46, 135.23, 135.23, 120.32, 96.43, 88.08, 79.85, 69.7]),
+         ("Full print manga larga", [314.5, 277.5, 277.5, 258.95, 240.44, 207.1, 183.03, 183.03, 172.54, 172.54, 153.51, 123.03, 112.37, 101.88, 88.92]),
+         ("Manga larga premium", [382.5, 337.5, 337.5, 314.96, 292.43, 251.89, 222.62, 222.62, 209.83, 209.83, 186.69, 149.65, 136.68, 123.91, 108.16])]
+SPORT_XL = [(0, 7.72), (300, 3.11), (1000, 1.5), (3000, 16)]   # 2XL–3XL: % over the price, by pieces
+def sport_xl(q): return [pct for m, pct in SPORT_XL if q >= m][-1]
+def sport_label(k): return f"{SPORT_TRAMOS[k]:,}+" if k == len(SPORT_TRAMOS) - 1 else (f"{SPORT_TRAMOS[k]:,}–{SPORT_TRAMOS[k + 1] - 1:,}" if SPORT_TRAMOS[k + 1] - 1 > SPORT_TRAMOS[k] else f"{SPORT_TRAMOS[k]:,}")
+SPORT_LOW = min(min(p) for _, p in SPORT)
+SPORT_HIGH = max(p[k] * (1 + sport_xl(SPORT_TRAMOS[k]) / 100) for _, p in SPORT for k in range(len(SPORT_TRAMOS)))
 
 PAGES = [
   dict(slug="maquila-serigrafia-para-marcas", lang="es", tipo="marca",
@@ -53,12 +64,13 @@ PAGES = [
                ("¿Mayoreo o menudeo?", ["Mayoreo, empresas y eventos: cotiza en un minuto y tu asesora confirma el precio final en un día hábil.", "Pocas piezas o prendas listas: cómpralas en la tienda en línea de Chilian."])],
        faq=[2, 4, 3, 8], related=["playeras-deportivas-sublimadas", "uniformes-empresariales", "merch-eventos-y-campanas"]),
   dict(slug="playeras-deportivas-sublimadas", lang="es", tipo="promo", product=True,
-       title="Playeras deportivas sublimadas full print · Chilian Sport desde 100 piezas",
-       desc="Playera deportiva Chilian Sport sublimada de costura a costura con tu diseño, desde 100 piezas. Precios por volumen publicados desde $133.20 por pieza.",
+       title="Playeras deportivas sublimadas full print · Chilian Sport desde 6 piezas",
+       desc="Playera deportiva Chilian Sport sublimada con tu diseño, desde 6 piezas: full print manga corta, manga larga, infantil y blanca con sublimado parcial. Precios por volumen publicados.",
        h1="Playeras deportivas sublimadas full print", kicker="Chilian Sport",
-       lead="Playera deportiva de poliéster sublimada de costura a costura sobre su molde real, desde 100 piezas, con precios por volumen publicados.",
+       lead="Playera deportiva de poliéster sublimada de costura a costura sobre su molde real, desde 6 piezas, con precios por volumen publicados.",
        img="chilian-sport", img_alt="Playera deportiva Chilian Sport sublimada full print",
-       blocks=[("Por qué full print", ["Sublimado de costura a costura: el diseño cubre toda la prenda.", "El cuello es cinta de la misma tela, a un tono.", "Se arma en Estampa tu idea, sobre el molde real de la playera."])],
+       blocks=[("Por qué full print", ["Sublimado de costura a costura: el diseño cubre toda la prenda.", "El cuello es cinta de la misma tela, a un tono.", "Se arma en Estampa tu idea, sobre el molde real de la playera."]),
+               ("Cinco modalidades", ["Full print clásica manga corta, en micro piqué.", "Playera blanca con sublimado parcial, por posición.", "Full print infantil, en micro piqué.", "Full print manga larga cuello redondo, en micro piqué o en tela premium."])],
        faq=[4, 5, 8], related=["playeras-personalizadas-mayoreo", "merch-eventos-y-campanas", "uniformes-empresariales"]),
   dict(slug="merch-eventos-y-campanas", lang="es", tipo="merch",
        title="Merch para marcas, artistas, eventos y campañas · Chilian",
@@ -146,10 +158,14 @@ def page(p):
     blocks = "".join(f'<div><h2>{E(h)}</h2><ul>{"".join(f"<li>{E(x)}</li>" for x in xs)}</ul></div>' for h, xs in p["blocks"])
     extra = ""
     if p.get("product"):
-        rows = "".join(f'<tr><td>{a}</td><td class="r">${r:,.2f}</td><td class="r">${x:,.2f}</td></tr>' for a, r, x in TIERS)
-        extra = f'''<section class="b"><div class="wrap"><h2>Precio por volumen</h2>
+        ks = range(len(SPORT_TRAMOS))
+        rows = "".join(f'<tr><td>{sport_label(k)}</td><td class="r">${SPORT[0][1][k]:,.2f}</td><td class="r">${SPORT[0][1][k] * (1 + sport_xl(SPORT_TRAMOS[k]) / 100):,.2f}</td></tr>' for k in ks)
+        rows2 = "".join(f'<tr><td>{sport_label(k)}</td>' + "".join(f'<td class="r">${pr[k]:,.2f}</td>' for _, pr in SPORT[1:]) + '</tr>' for k in ks)
+        extra = f'''<section class="b"><div class="wrap"><h2>Precio por volumen · full print manga corta</h2>
 <table><thead><tr><th>Piezas</th><th class="r">CH–EG</th><th class="r">2XL–3XL</th></tr></thead><tbody>{rows}</tbody></table>
-<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza, precios de lista publicados en la <a href="{STORE}" rel="noopener">tienda en línea Chilian</a>. El precio final se confirma en tu cotización.</p></div></section>'''
+<h2 style="margin-top:2rem">Otras modalidades</h2>
+<div style="overflow-x:auto"><table style="max-width:none;min-width:560px"><thead><tr><th>Piezas</th>{"".join(f'<th class="r">{E(n)}</th>' for n, _ in SPORT[1:])}</tr></thead><tbody>{rows2}</tbody></table></div>
+<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza antes de IVA, desde 6 piezas; tallas CH–EG. El precio final se confirma en tu cotización.</p></div></section>'''
     if p["slug"] == "merch-eventos-y-campanas":
         extra = f'<section class="b"><div class="wrap"><a class="btn" href="{CAMPAIGN_PDF}" rel="noopener">Ver el catálogo de campañas políticas (PDF)</a></div></section>'
     retail = (f'<section class="b"><div class="wrap retail"><div><h2 style="margin:0 0 .3rem">¿Pocas piezas?</h2><p style="margin:0;color:var(--steel)">Compra prendas listas en la tienda en línea de Chilian; para mayoreo y programas, cotiza aquí.</p></div><a class="btn" href="{STORE}" rel="noopener">Ir a la tienda en línea ↗</a></div></section>'
@@ -157,8 +173,8 @@ def page(p):
     rel = "".join(f'<a href="/{r}">{E(TITLES[r])} →</a>' for r in p["related"])
     faq_html = "".join(f"<details><summary>{E(q)}</summary><p>{E(a)}</p></details>" for q, a in faqs)
     org = {"@id": SITE + "/#chilian"}
-    main = ({"@type": "Product", "name": "Playera deportiva Chilian Sport full print", "description": p["lead"], "image": f"{SITE}/photos/opt/{p['img']}-960.webp", "brand": {"@type": "Brand", "name": "Chilian Sport"}, "manufacturer": org,
-             "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": "133.20", "highPrice": "334.78", "offerCount": 10, "availability": "https://schema.org/InStock", "url": url, "seller": org}}
+    main = ({"@type": "Product", "name": "Playera deportiva Chilian Sport sublimada", "description": p["lead"], "image": f"{SITE}/photos/opt/{p['img']}-960.webp", "brand": {"@type": "Brand", "name": "Chilian Sport"}, "manufacturer": org,
+             "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": f"{SPORT_LOW:.2f}", "highPrice": f"{SPORT_HIGH:.2f}", "offerCount": len(SPORT) * len(SPORT_TRAMOS), "availability": "https://schema.org/InStock", "url": url, "seller": org}}
             if p.get("product") else
             {"@type": "Service", "name": p["h1"], "description": p["desc"], "serviceType": p["kicker"], "provider": org, "areaServed": ["MX", "US"], "url": url, "image": f"{SITE}/photos/opt/{p['img']}-960.webp"})
     ld = {"@context": "https://schema.org", "@graph": [main,

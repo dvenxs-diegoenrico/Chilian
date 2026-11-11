@@ -2115,8 +2115,10 @@
         h("div", { class: "label", text: "Bordado, por pieza (mismas escalas)" }),
         h("div", { class: "tbl" }, h("table", {}, h("tbody", {},
           rowOf("Bordado chico (≤ 7 cm)", P.bordado.chico), rowOf("Bordado mediano (≤ 12 cm)", P.bordado.mediano), rowOf("Bordado grande (≤ 25 cm)", P.bordado.grande)))),
-        h("div", { class: "label", text: "Chilian Sport full print (prenda + sublimación, por pieza)" }),
-        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, head(P.fullprint.tramos)), h("tbody", {}, rowOf("Precio por pieza", P.fullprint.precios)))),
+        h("div", { class: "label", text: "Chilian Sport sublimada (prenda + sublimación, por pieza antes de IVA)" }),
+        h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Piezas desde →" }), ...P.fullprint.tramos.map((q) => h("th", { class: "num", text: q.toLocaleString("es-MX") })))),
+          h("tbody", {}, ...(P.fullprint.modalidades || [{ nombre: "Full print", precios: P.fullprint.precios }]).map((m) => h("tr", {}, h("td", { text: m.nombre + (m.tela ? " · " + m.tela : "") }), ...m.precios.map((v) => h("td", { class: "num", text: "$" + v.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }))))))),
+        h("p", { class: "hint", text: "Matriz de precios cliente de noviembre 2026, de 6 a 10,000 piezas. Tallas 2XL–3XL: +7.72 % hasta 299 pz, +3.11 % de 300 a 999, +1.5 % de 1,000 a 2,999 y +16 % desde 3,000. Esta tabla está en el código: para cambiarla, pásale la nueva matriz a Claude." }),
         h("p", { class: "small", style: "background:var(--shade);padding:.5rem .7rem;margin:0" }, h("b", { text: "Serigrafía, DTG y prendas de playera: " }), "usan la lista oficial de Chilian (DTG por medida, piezas y prenda blanca o de color; tabla LN1 por tamaño, piezas y colores; lista de playera cuello redondo). Esas tablas están en el código: para cambiarlas, pásale la nueva lista a Claude."),
         h("div", { class: "label", text: "Cargos, mínimos y tiempos" }),
         h("div", { class: "grid g3" }, one(P, "ponchado", "Ponchado (MXN por ubicación)"), one(P, "express", "Cargo express (%)"),
@@ -2126,7 +2128,7 @@
         h("div", { class: "row" },
           h("button", { class: "btn accent", type: "button", onclick: async () => {
             for (const p of P.productos) p.id = p.id || "p" + Date.now().toString(36);
-            const { lista, listaTramos, serigrafia, ...mine } = P;   // the official tables stay in the code
+            const { lista, listaTramos, serigrafia, fullprint, ...mine } = P;   // the official tables stay in the code
             await save("ajustes", { ...(byId("ajustes", "precios-web") || {}), id: "precios-web", precios: mine, ejemplo: ej.v }); toast("Precios del sitio guardados. El sitio los muestra en unos minutos.");
           } }, "Guardar precios del sitio"),
           h("a", { class: "btn sm ghost", href: "/#cotizar", target: "_blank", rel: "noopener" }, "Ver el cotizador del sitio ↗")));
