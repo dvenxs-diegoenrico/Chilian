@@ -374,7 +374,7 @@ export async function botTurn(doc, input, ctx) {
       [{ id: "color:blanca", title: L("Blanca o clara", "White or light") }, { id: "color:color", title: L("De color u oscura", "Colored or dark") }]);
     b.paso = "color"; return done();
   }
-  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), ((d.qty || 0) < 100 ? [["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5], ["6", 6], ["7", 7], ["8", 8], [L("9 o más", "9 or more"), 9]] : [["1", 1], ["2-3", 2], ["4-5", 4], ["6-7", 6], ["8-9", 8], ["10-11", 10]]).map(([title, n]) => ({ id: "inks:" + n, title })));   // under 100 pieces the price goes by the exact number of inks b.paso = "inks"; return done(); }
+  if (tec.kind === "serigrafia" && !d.inks) { say(L("¿Cuántos colores tiene tu diseño?", "How many colors does your design have?"), ((d.qty || 0) < 100 ? [["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5], ["6", 6], ["7", 7], ["8", 8], [L("9 o más", "9 or more"), 9]] : [["1", 1], ["2-3", 2], ["4-5", 4], ["6-7", 6], ["8-9", 8], ["10-11", 10]]).map(([title, n]) => ({ id: "inks:" + n, title }))); b.paso = "inks"; return done(); }   // under 100 pieces the price goes by the exact number of inks
   if (tec.kind === "serigrafia" && !d.ubicListo) {
     const S = P.serigrafia, nm = (id) => L(S.lugares[id].es, S.lugares[id].en);
     if (!(d.ubic || []).length && d.size) {   // a size said in words, or an older answer: one location, or as many as said
