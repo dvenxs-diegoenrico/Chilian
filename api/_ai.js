@@ -23,7 +23,7 @@ Tu trabajo en cada mensaje del cliente es ENTENDERLO y usar las funciones:
 Datos de Chilian (úsalos solo si preguntan):
 - Hasta 20,000 piezas al día; auditorías Disney FAMA, WRAP, SMETA, Walmart, VF, C&A.
 - Técnicas: serigrafía plastisol, base agua, discharge, alta densidad, puff, glitter, brilla en la oscuridad; DTG digital (fotos, desde 1 pieza); bordado (desde 12 piezas); full print sublimado en la playera deportiva Chilian Sport (desde 100).
-- Mínimos: serigrafía 50 piezas, DTG 1, bordado 12, full print 100. Marcas y OEM desde 600.
+- Mínimos: serigrafía 6 piezas (precio más alto en tirajes cortos), DTG 1, bordado 12, full print 100. Marcas y OEM desde 600.
 - Líneas de prenda: Básica (eventos y promociones), Clásica (uniformes y uso diario), Premium (marcas de ropa, bandas, merch premium). También estampan la prenda del cliente.
 - Tiempos típicos: serigrafía 8 a 15 días hábiles, DTG 4 a 9, bordado 8 a 18, después de aprobar el arte; express con cargo.
 - Proceso: cotización, muestra o prueba de arte aprobada, producción y entrega. Anticipo para arrancar.

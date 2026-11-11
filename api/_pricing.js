@@ -28,6 +28,12 @@ export async function prices() {
 }
 export const EXTRAS_ELEGIBLES = ["antimigrante", "fleece", "export"];   // fabric (colored garment), HD/puff, glitter and fleece garments apply by themselves
 export const inkIdx = (n) => Math.min(5, Math.floor(Math.max(1, +n || 1) / 2));   // 1 | 2-3 | 4-5 | 6-7 | 8-9 | 10-11
+// Under 100 pieces: the 6–99 pz table by exact inks (chico up to 300 cm², grande above)
+export function chicaPrice(S, area, q, inks) {
+  const C = S.chica, t = C[area > 300 ? "grande" : "chico"][tierOf(q, C.tramos)], k = Math.min(11, Math.max(1, Math.round(+inks) || 1));
+  return k <= 8 ? t[k - 1] : t[7] + (t[7] - t[6]) * (k - 8);
+}
+export const isChica = (S, q) => !!(S.chica && q < S.tramos[0]);
 export const sizeIdx = (S, area) => { const i = S.tamanos.findIndex((x) => x >= area); return i < 0 ? S.tamanos.length - 1 : i; };
 // Extras that apply: the ones picked, the ink's own (HD/puff, glitter) and fleece garments.
 export function extrasOf(c, tec, prod) {
@@ -43,7 +49,8 @@ export function printCost(P, c, tec, prod, q, locs) {
   const S = P.serigrafia, t = tierOf(q, S.tramos), ik = inkIdx(c.inks);
   const areas = c.areas && c.areas.length ? c.areas.slice(0, 4) : c.ubic && c.ubic.length ? c.ubic.slice(0, 4).map((u) => +u.area || 300) : Array(locs).fill(+c.size || 300);
   const ids = extrasOf(c, tec, prod); let base = 0, extra = 0;
-  for (const a of areas) { const k = String(S.tamanos[sizeIdx(S, a)]); base += S.tabla[k][t][ik]; for (const id of ids) extra += S.extras[id][k][t]; }
+  const small = isChica(S, q);
+  for (const a of areas) { const k = String(S.tamanos[sizeIdx(S, a)]); base += small ? chicaPrice(S, a, q, c.inks) : S.tabla[k][t][ik]; for (const id of ids) extra += S.extras[id][k][t]; }
   return { base, extra, ids, areas, ubic: c.ubic && c.ubic.length ? c.ubic.slice(0, 4) : null };
 }
 // "20x25", "20 por 25 cm", "8×10 pulgadas", or one number in cm (a square): the customer's own measure.
@@ -102,7 +109,7 @@ export function quote(P, c, lang = "es") {
   const table = (P.dias || {})[kind] || [[1e9, 10]];
   let days = (table.find(([lim]) => q <= lim) || table[table.length - 1])[1];
   if (c.del === "express") days = Math.max(3, days - (P.diasExpress || 3));
-  const min = Math.max((P.minimos || {})[kind] || 1, kind === "serigrafia" ? P.serigrafia.tramos[0] : 0);
+  const min = Math.max((P.minimos || {})[kind] || 1, kind === "serigrafia" ? (P.serigrafia.chica ? P.serigrafia.chica.tramos[0] : P.serigrafia.tramos[0]) : 0);
   let err = "";
   if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.");
   else if (kind === "dtg" && prod.nodtg) err = L("DTG no se imprime en ese producto; elige serigrafía o bordado.", "DTG can't print on that product; pick screen printing or embroidery.");
@@ -110,7 +117,7 @@ export function quote(P, c, lang = "es") {
   const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
   const how = kind === "full" ? L("en full print", "in full print")
     : kind === "serigrafia" ? (() => {
-      const S = P.serigrafia, ink = S.colores[inkIdx(inks)], plural = ink !== "1";
+      const S = P.serigrafia, ink = isChica(S, q) ? String(inks) : S.colores[inkIdx(inks)], plural = ink !== "1";
       const med = pc.ubic ? pc.ubic.map((u) => `${L(u.lugar, u.lugar)} ${u.cm || S.medidas[sizeIdx(S, u.area)].replace("≈ ", "")}`).join(", ") : [...new Set(pc.areas.map((x) => S.medidas[sizeIdx(S, x)]))].join(" + ");
       const ex = pc.ids.filter((x) => !["hdpuff", "glitter"].includes(x)).map((x) => (S.extrasNombres[x][lang === "en" ? "en" : "es"]).toLowerCase());
       const ex2 = ex.filter((x) => !x.startsWith(S.extrasNombres.fabric.es.toLowerCase().slice(0, 10)) && !x.startsWith(S.extrasNombres.fabric.en.toLowerCase().slice(0, 10)));

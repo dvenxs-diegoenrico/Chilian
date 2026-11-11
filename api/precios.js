@@ -46,7 +46,7 @@ export const DEFAULTS = {
   ponchado: 450,                           // digitizing, per design (one per location)
   express: 18, diasExpress: 3,             // % surcharge and business days saved
   dias: { serigrafia: [[2000, 8], [10000, 10], [1e9, 15]], dtg: [[100, 4], [500, 6], [1e9, 9]], bordado: [[500, 8], [3000, 12], [1e9, 18]], full: [[1000, 12], [5000, 15], [1e9, 20]] },
-  minimos: { serigrafia: 100, dtg: 1, bordado: 12, full: 100 },   // screen printing: the official table starts at 100 pieces
+  minimos: { serigrafia: 6, dtg: 1, bordado: 12, full: 100 },   // screen printing: the 6–99 pz table, then LN1 from 100
   iva: 16,
   // Garment lines (Básica, Clásica, Premium). "factor" multiplies the garment price above (Clásica = the
   // price in the list). The specs are what the assistant tells customers; EXAMPLES until Chilian confirms them.
@@ -86,7 +86,8 @@ export function mergePrecios(saved) {
   }
   if (!saved?.lista) { P.lista = DEFAULTS.lista; P.listaTramos = DEFAULTS.listaTramos; }
   P.serigrafia = DEFAULTS.serigrafia;   // the official table lives in code (_serigrafia.js)
-  P.dtgTabla = DEFAULTS.dtgTabla;       // and the DTG list (_dtg.js)
+  P.dtgTabla = DEFAULTS.dtgTabla;
+  if (P.minimos && +P.minimos.serigrafia >= 50) P.minimos.serigrafia = 6;   // 100 and 50 were the old minimums: screen printing now starts at 6 pz (6–99 pz table)       // and the DTG list (_dtg.js)
   P.pod = DEFAULTS.pod;
   for (const p of P.productos) if (p.id === "pod") p.pod = true;
   for (const p of P.productos) if (DEFAULTS.productos.find((x) => x.id === p.id)?.fleece) p.fleece = true;
