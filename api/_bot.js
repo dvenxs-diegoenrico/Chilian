@@ -39,7 +39,7 @@ function parse(text, d) {
   const t = norm(text);
   for (const [id, rx] of PRODS) if (rx.test(t)) { d.prod = id; break; }
   for (const [id, rx] of TEC_RX) if (rx.test(t)) { d.tec = id; break; }
-  const qty = t.match(/(\d[\d,.]*)\s*(pzas?|piezas?|playeras|sudaderas|polos|camisas|gorras|bolsas|unidades|pcs|pieces|shirts|tees)?/);
+  const qty = t.match(/(\d[\d,.]*)\s*(pzas?|piezas?|playeras?|sudaderas?|polos?|camisas?|gorras?|bolsas?|unidad(?:es)?|pcs|pieces?|shirts?|tees?)?/);
   const inks = t.match(/(\d{1,2})\s*(tintas?|colou?res|colors?|inks?)/);
   if (inks) d.inks = Math.min(11, Math.max(1, +inks[1]));
   const cm = t.match(/(\d{1,2}(?:[.,]\d)?)\s*(?:x|por|×)\s*(\d{1,2}(?:[.,]\d)?)\s*cm/);
@@ -332,20 +332,23 @@ export async function botTurn(doc, input, ctx) {
     b.paso = "prod"; return done();
   }
   if (!d.qty) {
-    say(L("¿Cuántas piezas necesitas?", "How many pieces do you need?") + (advise ? L(" Si no sabes exacto, elige la más cercana.", " If you're not sure, pick the closest.") : ""),
-      [50, 100, 300, 500, 1000].map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
+    say(L("¿Cuántas piezas necesitas? Cotizamos desde 1 pieza: elige una opción o escribe tu cantidad.", "How many pieces do you need? We quote from 1 piece: pick an option or type your quantity.") + (advise ? L(" Si no sabes exacto, elige la más cercana.", " If you're not sure, pick the closest.") : ""),
+      [1, 6, 12, 50, 100, 300, 500, 1000].map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
   }
   const prod = P.productos.find((p) => p.id === d.prod) || P.productos[0];
 
   // 4. the line: three options side by side, with their price at this quantity (the middle one usually wins)
   const specs = P.specs?.[prod.id];
   if (specs && !d.linea) {
-    const rec = uso?.linea || "clasica";
-    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, size: d.size || 300, extras: d.extras, color: d.color || "color", locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
+    const rec0 = uso?.linea || "clasica";
+    const pocas = d.qty < (P.minimos?.serigrafia || 6);   // 1 to 5 pieces: only DTG has no minimum
+    const base = { prod: prod.id, qty: d.qty, tec: d.tec || (pocas ? "dtg" : (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol"), inks: d.inks || 1, size: d.size || 300, extras: d.extras, color: d.color || "color", locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
+    const lnOk = (id) => { const r = quote(P, { ...base, linea: id }, b.lang); return !(r.regla && !r.regla.ok); };   // with a few pieces (DTG) the blend line does not apply
+    const rec = lnOk(rec0) ? rec0 : ["clasica", "premium", "basica"].find(lnOk) || rec0;
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
-      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
-    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color hasta 27 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color up to 27 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta de unos 17×17 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink of about 17×17 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
-      [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
+      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? (r.regla && !r.regla.ok && base.tec === "dtg" ? L("No va en DTG: es mezcla.", "Not for DTG: it is a blend.") : "") : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
+    say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${d.qty === 1 ? L(`Para 1 ${prod.nombre.toLowerCase()}`, `For 1 ${(prod.en || prod.nombre).toLowerCase()}`) : L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color hasta 27 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color up to 27 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta de unos 17×17 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink of about 17×17 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
+      [...["basica", "clasica", "premium"].filter((id) => !pocas || lnOk(id)).map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
     b.paso = "linea"; return done();
   }
 
@@ -363,18 +366,38 @@ export async function botTurn(doc, input, ctx) {
       [{ id: "tela:algodon", title: L("Algodón", "Cotton") }, { id: "tela:mezcla", title: L("Mezcla (ej. 50/50)", "Blend (e.g. 50/50)") }, { id: "tela:poliester", title: L("Poliéster", "Polyester") }, { id: "tela:nose", title: L("No sé", "Not sure") }]);
     b.paso = "tela"; return done();
   }
+  // nothing can be printed on this garment at this quantity (e.g. 1 polyester piece: DTG is cotton only, the rest have minimums)
+  const sinOpcion = (por) => {
+    const m = Math.min(...ALL_TECS.filter(telaOk).map(minDe));
+    say((por ? por + " " : "") + L(`Para ${d.qty} pieza${d.qty === 1 ? "" : "s"} solo imprimimos en DTG digital, que va en prendas de algodón. En este producto podemos desde ${m} piezas, o cambia a una playera de algodón.`, `For ${d.qty} piece${d.qty === 1 ? "" : "s"} we only print in DTG digital, which goes on cotton garments. On this product we can start at ${m} pieces, or switch to a cotton tee.`),
+      [{ id: "qty:" + m, title: L(`Usar ${m} piezas`, `Use ${m} pieces`) }, (prod.lista ? { id: "linea:clasica", title: L("Playera de algodón", "Cotton tee") } : { id: "prod:playera", title: L("Playera de algodón", "Cotton tee") }), { id: "asesora", title: L("Hablar con asesora", "Talk to an advisor") }]);
+    delete d.tec; delete d.dis; b.paso = "tec"; return done();
+  };
   // the fabric of what is being quoted and what applies on it (reglas.js): only what applies is offered
   const regla = (id) => REGLAS.check({ tec: id, tela: REGLAS.telaDe(P, prod, d), color: d.color, prod });
-  const aplica = (id) => !(id === "fullprint" && !prod.fullprint) && regla(id).ok;
-  if (d.tec === "dtg" && d.dis === "foto" && !aplica("dtg")) { d.tec = "plastisol"; d.inks ||= 6; }   // a photo on a blend or polyester: screen printing instead
+  const minDe = (id) => { const k = (TECS.find((x) => x.id === id) || TECS[0]).kind; return Math.max(1, +(P.minimos || {})[k] || 1); };   // DTG 1, screen printing and full print 6, embroidery 12
+  const telaOk = (id) => !(id === "fullprint" && !prod.fullprint) && regla(id).ok;
+  const aplica = (id) => telaOk(id) && d.qty >= minDe(id);
+  if (d.tec === "dtg" && d.dis === "foto" && !telaOk("dtg") && d.qty >= minDe("plastisol")) { d.tec = "plastisol"; d.inks ||= 6; }   // a photo on a blend or polyester: screen printing instead
+  let nota = "";
+  if (d.tec && d.dis && d.tec !== "dtg" && telaOk(d.tec) && d.qty < minDe(d.tec) && aplica("dtg")) {   // a few pieces: the print suggested has a minimum, DTG has none
+    nota = L(`Para ${d.qty} pieza${d.qty === 1 ? "" : "s"} te lo cotizo en DTG digital, que no tiene mínimo (${(TECS.find((x) => x.id === d.tec) || TECS[0]).es.toLowerCase()} empieza en ${minDe(d.tec)} piezas).`, `For ${d.qty} piece${d.qty === 1 ? "" : "s"} I'll quote it in DTG digital, which has no minimum (${(TECS.find((x) => x.id === d.tec) || TECS[0]).en.toLowerCase()} starts at ${minDe(d.tec)} pieces).`);
+    d.tec = "dtg"; delete d.inks;
+  }
+  if (nota) say(nota);
 
   // 5. how it is printed: the expert picks the system; the rest describe their design and we suggest
   if (d.tec && !aplica(d.tec)) {
-    const r0 = regla(d.tec), ops = ALL_TECS.filter(aplica);
-    say((r0.ok ? L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.") : L(r0.motivo.es, r0.motivo.en)) + L(" ¿Con cuál lo hacemos?", " Which one shall we use?"),
-      ops.map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: L(t.es, t.en).slice(0, 24) }; }));
-    delete d.tec; delete d.dis; b.paso = "tec"; return done();
+    const r0 = regla(d.tec), ops = ALL_TECS.filter(aplica), tn = TECS.find((x) => x.id === d.tec) || TECS[0], m0 = minDe(d.tec);
+    const por = !r0.ok ? L(r0.motivo.es, r0.motivo.en) : !telaOk(d.tec) ? L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.")
+      : L(`${tn.es} se hace desde ${m0} piezas y pediste ${d.qty}.`, `${tn.en} starts at ${m0} pieces and you asked for ${d.qty}.`);
+    if (!ops.length) return sinOpcion(por);
+    say(por + L(" ¿Con cuál lo hacemos?", " Which one shall we use?"),
+      [...ops.map((id) => { const t = TECS.find((x) => x.id === id); return { id: "tec:" + id, title: L(t.es, t.en).slice(0, 24) }; }), ...(telaOk(d.tec) && d.qty < m0 ? [{ id: "qty:" + m0, title: L(`Usar ${m0} piezas`, `Use ${m0} pieces`) }] : [])]);
+    if (!(telaOk(d.tec) && d.qty < m0)) { delete d.tec; delete d.dis; }   // "use N pieces" keeps the technique asked for
+    b.paso = "tec"; return done();
   }
+  if (!d.tec && !ALL_TECS.some(aplica)) return sinOpcion("");
   if (!d.tec) {
     if (advise) {
       const opts = [{ id: "dis:logo", title: L("Logo o texto", "Logo or text") }, { id: "dis:foto", title: L("Foto o muchos colores", "Photo or many colors") }];

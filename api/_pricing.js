@@ -123,7 +123,7 @@ export function quote(P, c, lang = "es") {
   else if (kind === "full" && !prod.fullprint) err = L("El full print solo existe en la playera deportiva Chilian Sport.", "Full print only exists on the Chilian Sport tee.");
   else if (kind === "dtg" && prod.nodtg) err = L("DTG no se imprime en ese producto; elige serigrafía o bordado.", "DTG can't print on that product; pick screen printing or embroidery.");
   else if (q < min) err = L(`El mínimo en ${tec.es.toLowerCase()} es de ${min} piezas.`, `The minimum for ${tec.en.toLowerCase()} is ${min} pieces.`);
-  const plural = lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
+  const plural = q === 1 ? (lang === "en" ? prod.en || prod.nombre : prod.nombre).toLowerCase() : lang === "en" ? prod.pluralEn || prod.en || prod.nombre : prod.plural || prod.nombre;
   const how = kind === "full" ? L(mod.frase || "en full print", mod.fraseEn || "in full print")
     : kind === "serigrafia" ? (() => {
       const S = P.serigrafia, ink = isChica(S, q) ? String(inks) : S.colores[inkIdx(inks)], plural = ink !== "1";
