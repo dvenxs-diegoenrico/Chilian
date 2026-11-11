@@ -637,3 +637,28 @@ Cuando `ANTHROPIC_API_KEY` está en Vercel, cada mensaje escrito por el cliente 
   - **Escalas en el renglón.** Cada renglón muestra sus precios por escala; tocar una escala la usa.
   - **Precio a mano.** Si se escribe un precio a mano, el renglón deja de seguir la escala hasta tocar «Volver al precio por escala».
 - **Sitio y asistente.** Siguen cotizando serigrafía desde 100 pz con LN1. La tabla de 6 a 99 pz está solo en el OS.
+
+### DTG, Print on Demand, serigrafía desde 6 piezas, buscador y slideshow (noviembre 2026)
+
+- **DTG con la lista de Chilian** (`api/_dtg.js`).
+  - **Cómo se cobra.** Precio por estampado según el lado más largo del diseño (hasta 6, 11, 20, 27, 32, 40, 45, 49 o 53 cm), las piezas (1, 2, 5, 10, 20, 30, 40, 50 o 100+) y la prenda: negra o de color, o blanca.
+  - **Dónde.** Lo usan el sitio (pide la medida o la saca del ancho × alto del cliente), el asistente (27 cm por defecto) y el cotizador DTG del OS.
+  - **Margen.** En el OS la lista es el precio de venta, sin margen. El renglón se recalcula al cambiar las piezas.
+  - **Cargos.** El sitio suma IVA y comisión como en las demás listas.
+- **Print on Demand** (producto `pod`).
+  - **Qué es.** Solo se vende estampada, en tres opciones: oversized, regular (Óptima peso medio 100 % algodón) y económica (Óptima 50/50).
+  - **Precio.** Incluye 1 estampado DTG. Cada estampado adicional suma su precio de la lista DTG.
+  - **Oversized.** Usa la Óptima peso completo mientras Chilian manda su precio (marcado como provisional).
+  - **Dónde se vende.** En el sitio; el asistente no lo ofrece.
+- **Serigrafía desde 6 piezas en todos lados.** El sitio, el asistente y el OS usan la tabla de 6 a 99 pz (`SERIGRAFIA.chica`, por tintas exactas) y LN1 desde 100.
+  - **Mínimo.** Un mínimo de 50 o 100 guardado en Ajustes se toma como 6.
+- **Buscador del catálogo.**
+  - **Palabras clave.** Entiende sinónimos (camiseta, hoodie, cachucha, pants), telas y cortes (manga larga, cuello V, 50/50, 100 % algodón, dry fit, peinado, reciclado), gramaje («190g»), plurales y errores chicos.
+  - **Ordenar.** Por relevancia o por precio, de más caro a más económico o al revés.
+  - **Precio por modelo.** Cada modelo muestra un precio de referencia de la prenda sola, a 100 pz con IVA y comisión: el de su línea en la lista, o el de su renglón cuando el modelo está en ella.
+  - **Filtros.** Los conteos de línea, prenda y para quién siguen la búsqueda.
+- **Slideshow del hero.**
+  - **Diapositivas.** Serigrafía industrial, Print on Demand, Chilian Sport, merch y promocionales, y campaña política.
+  - **Botón de cada una.** Abre el cotizador con ese producto, o el catálogo.
+  - **Movimiento.** Avanza cada 6 s y se detiene con el mouse encima, con el foco, en una pestaña oculta o con movimiento reducido. Tiene puntos, pausa y deslizar.
+  - **Imágenes generadas.** Las de Print on Demand y campaña son ilustrativas (`photos/print-on-demand-dtg.jpg`, `photos/campana-politica.jpg`), sin marcas ni partidos. Conviene cambiarlas por fotos de la planta.

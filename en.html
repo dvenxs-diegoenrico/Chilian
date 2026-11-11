@@ -1095,6 +1095,26 @@
   /* Hero: the photo settles like a sheet landing on the pallet; slow drift on scroll. */
   .hero-photo { overflow: hidden; }
   .hero-photo img { animation: settle 1.8s var(--ease-out) both; transform: translateY(var(--drift, 0)); will-change: transform; }
+  /* Hero slideshow: one slide per business line, crossfade with a slow zoom; dots, pause, swipe. */
+  .hero-slides { isolation: isolate; }
+  .hs-slide { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility 0s linear .9s; }
+  .hs-slide:first-of-type { position: relative; }
+  .hero-slides .hs-slide:not(:first-of-type) img { object-position: center; }
+  .hs-slide.on { opacity: 1; visibility: visible; z-index: 1; transition: opacity .9s ease; }
+  .hero-slides .hs-slide img { animation: none; transform: translateY(var(--drift, 0)) scale(1.001); transition: transform 7s ease-out; }
+  html.motion .hero-slides .hs-slide.on img { transform: translateY(var(--drift, 0)) scale(1.06); }
+  html.motion .hero-slides .hs-slide:first-of-type.on img { animation: settle 1.8s var(--ease-out) both; }
+  .hero-slides figcaption { align-items: flex-end; padding: 3.2rem 1rem 1rem; }
+  .hs-cap { display: grid; gap: .25rem; }
+  .hs-cap b { font: 600 1.05rem/1.2 var(--f-body); letter-spacing: 0; text-transform: none; }
+  .hs-go { font: 500 .68rem var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: #fff; background: rgba(10,8,10,.35); border: 1px solid rgba(255,255,255,.7); padding: .55rem .8rem; min-height: 40px; cursor: pointer; transition: background .2s ease, color .2s ease; }
+  .hs-go:hover, .hs-go:focus-visible { background: #fff; color: #0a080a; outline: none; }
+  .hs-nav { position: absolute; top: .7rem; right: .7rem; z-index: 3; display: flex; align-items: center; gap: .15rem; padding: .2rem .35rem; background: rgba(10,8,10,.45); border-radius: 999px; }
+  .hs-dot, .hs-pause { width: 28px; height: 28px; display: grid; place-items: center; background: none; border: 0; padding: 0; cursor: pointer; color: #fff; }
+  .hs-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.5); transition: width .3s ease, background .3s ease; }
+  .hs-dot[aria-current="true"]::before { width: 18px; border-radius: 4px; background: #fff; }
+  .hs-pause { font-size: .62rem; letter-spacing: -.1em; }
+  .hs-dot:focus-visible, .hs-pause:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 50%; }
   @keyframes settle { from { transform: scale(1.08); filter: saturate(.4) contrast(1.1); } }
   /* Process: the line fills and each station lights up in turn. */
   .steps { position: relative; }
@@ -1253,11 +1273,30 @@
 <button class="btn btn-studio" data-studio="" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.6"></path></svg><span data-en="Print your idea" data-es="Estampa tu idea">Print your idea</span><span class="new" data-en="NEW" data-es="NUEVO">NEW</span></button>
 </div>
 </div>
-<figure class="hero-photo">
+<figure aria-label="What we make at Chilian" aria-roledescription="carrusel" class="hero-photo hero-slides" data-en-label="What we make at Chilian" data-es-label="Lo que hacemos en Chilian">
 <svg aria-hidden="true" class="reg-corner tl"><use href="#reg"></use></svg>
 <svg aria-hidden="true" class="reg-corner br"><use href="#reg"></use></svg>
+<div aria-label="1 de 5: Serigrafía industrial" aria-roledescription="diapositiva" class="hs-slide on" role="group">
 <img alt="Magenta emulsion screen mounted on an automatic press at the Chilian plant" data-en-alt="Magenta emulsion screen mounted on an automatic press at the Chilian plant" data-es-alt="Pantalla con emulsión magenta montada en un pulpo automático de la planta Chilian" decoding="async" fetchpriority="high" height="1067" sizes="(max-width: 860px) 100vw, 46vw" src="photos/opt/prensa-pantalla-magenta-960.webp" srcset="photos/opt/prensa-pantalla-magenta-480.webp 480w, photos/opt/prensa-pantalla-magenta-960.webp 960w, photos/opt/prensa-pantalla-magenta-1600.webp 1600w" width="1600"/>
-<figcaption><span data-en="Automatic press · Santa Isabel Cholula plant" data-es="Pulpo automático · planta Santa Isabel Cholula">Automatic press · Santa Isabel Cholula plant</span><span data-en="35+ years" data-es="35+ años">35+ years</span></figcaption>
+<figcaption><span class="hs-cap"><b data-en="Industrial screen printing" data-es="Serigrafía industrial">Industrial screen printing</b><span data-en="Automatic presses · from 6 pieces" data-es="Pulpos automáticos · desde 6 piezas">Automatic presses · from 6 pieces</span></span><button class="hs-go" data-en="Quote →" data-es="Cotizar →" data-go="playera|plastisol" type="button">Quote →</button></figcaption>
+</div>
+<div aria-label="2 de 5: Print on Demand" aria-roledescription="diapositiva" class="hs-slide" role="group">
+<img alt="DTG printer printing a full-color hummingbird on a black T-shirt" data-en-alt="DTG printer printing a full-color hummingbird on a black T-shirt" data-es-alt="Impresora DTG imprimiendo a todo color un colibrí sobre una playera negra" decoding="async" height="1067" loading="lazy" sizes="(max-width: 860px) 100vw, 46vw" src="photos/opt/print-on-demand-dtg-960.webp" srcset="photos/opt/print-on-demand-dtg-480.webp 480w, photos/opt/print-on-demand-dtg-960.webp 960w, photos/opt/print-on-demand-dtg-1600.webp 1536w" width="1600"/>
+<figcaption><span class="hs-cap"><b data-en="Print on demand" data-es="Print on Demand">Print on demand</b><span data-en="Garment + full-color DTG, from 1 piece" data-es="Prenda + DTG a todo color, desde 1 pieza">Garment + full-color DTG, from 1 piece</span></span><button class="hs-go" data-en="Quote →" data-es="Cotizar →" data-go="pod|dtg" type="button">Quote →</button></figcaption>
+</div>
+<div aria-label="3 de 5: Chilian Sport" aria-roledescription="diapositiva" class="hs-slide" role="group">
+<img alt="Chilian Sport performance tees sublimated seam to seam" data-en-alt="Chilian Sport performance tees sublimated seam to seam" data-es-alt="Playeras deportivas Chilian Sport sublimadas de costura a costura" decoding="async" height="1067" loading="lazy" sizes="(max-width: 860px) 100vw, 46vw" src="photos/opt/chilian-sport-960.webp" srcset="photos/opt/chilian-sport-480.webp 480w, photos/opt/chilian-sport-960.webp 960w, photos/opt/chilian-sport-1600.webp 1600w" width="1600"/>
+<figcaption><span class="hs-cap"><b data-en="Chilian Sport" data-es="Chilian Sport">Chilian Sport</b><span data-en="Seam-to-seam sublimated full print" data-es="Full print sublimado de costura a costura">Seam-to-seam sublimated full print</span></span><button class="hs-go" data-en="Quote →" data-es="Cotizar →" data-go="sport|fullprint" type="button">Quote →</button></figcaption>
+</div>
+<div aria-label="4 de 5: Merch y promocionales" aria-roledescription="diapositiva" class="hs-slide" role="group">
+<img alt="Chilian promotional bags, caps and T-shirts" data-en-alt="Chilian promotional bags, caps and T-shirts" data-es-alt="Bolsas, gorras y playeras promocionales de Chilian" decoding="async" height="1067" loading="lazy" sizes="(max-width: 860px) 100vw, 46vw" src="photos/opt/promocionales-960.webp" srcset="photos/opt/promocionales-480.webp 480w, photos/opt/promocionales-960.webp 960w, photos/opt/promocionales-1600.webp 1600w" width="1600"/>
+<figcaption><span class="hs-cap"><b data-en="Merch and promo" data-es="Merch y promocionales">Merch and promo</b><span data-en="T-shirts, caps, bags and more for your brand" data-es="Playeras, gorras, bolsas y más para tu marca">T-shirts, caps, bags and more for your brand</span></span><button class="hs-go" data-en="See catalog →" data-es="Ver catálogo →" data-go="catalogo" type="button">See catalog →</button></figcaption>
+</div>
+<div aria-label="5 de 5: Campaña política" aria-roledescription="diapositiva" class="hs-slide" role="group">
+<img alt="T-shirts, caps and flags printed for a campaign" data-en-alt="T-shirts, caps and flags printed for a campaign" data-es-alt="Playeras, gorras y banderas impresas para campaña" decoding="async" height="1067" loading="lazy" sizes="(max-width: 860px) 100vw, 46vw" src="photos/opt/campana-politica-960.webp" srcset="photos/opt/campana-politica-480.webp 480w, photos/opt/campana-politica-960.webp 960w, photos/opt/campana-politica-1600.webp 1536w" width="1600"/>
+<figcaption><span class="hs-cap"><b data-en="Political campaigns" data-es="Campaña política">Political campaigns</b><span data-en="T-shirts, caps and flags in volume, with invoice" data-es="Playeras, gorras y banderas en volumen, con factura">T-shirts, caps and flags in volume, with invoice</span></span><button class="hs-go" data-en="Quote →" data-es="Cotizar →" data-go="playera|plastisol" type="button">Quote →</button></figcaption>
+</div>
+<div class="hs-nav"><button aria-label="Pause the carousel" aria-pressed="false" class="hs-pause" data-en-label="Pause the carousel" data-es-label="Pausar el carrusel" type="button"><span aria-hidden="true">❚❚</span></button><button aria-current="true" aria-label="Show Industrial screen printing" class="hs-dot" data-en-label="Show Industrial screen printing" data-es-label="Ver Serigrafía industrial" type="button"></button><button aria-label="Show Print on demand" class="hs-dot" data-en-label="Show Print on demand" data-es-label="Ver Print on Demand" type="button"></button><button aria-label="Show Chilian Sport" class="hs-dot" data-en-label="Show Chilian Sport" data-es-label="Ver Chilian Sport" type="button"></button><button aria-label="Show Merch and promo" class="hs-dot" data-en-label="Show Merch and promo" data-es-label="Ver Merch y promocionales" type="button"></button><button aria-label="Show Political campaigns" class="hs-dot" data-en-label="Show Political campaigns" data-es-label="Ver Campaña política" type="button"></button></div>
 </figure>
 </div>
 <div class="specs">
@@ -2819,6 +2858,40 @@
     note.textContent = area > max ? L(`${w}×${h} cm (${area} cm²) pasa de nuestro tamaño máximo (${S.medidas[S.tamanos.length - 1].replace("≈ ", "")}): tu asesora la revisa.`, `${w}×${h} cm (${area} cm²) is above our largest size (${S.medidas[S.tamanos.length - 1].replace("≈ ", "")}): your advisor will review it.`)
       : L(`${w}×${h} cm (${area} cm²) entra en «${t(S.nombres[i])}» (hasta ${S.medidas[i].replace("≈ ", "")}).`, `${w}×${h} cm (${area} cm²) fits «${t(S.nombres[i])}» (up to ${S.medidas[i].replace("≈ ", "")}).`);
   }
+  /* Hero slideshow: screen printing, print on demand, Chilian Sport, merch, campaigns. Each slide's button opens the quote
+     with that product (or the catalog). Auto-advances every 6 s; stops on hover, focus, a hidden tab or reduced motion. */
+  function wireHero() {
+    const box = $(".hero-slides"); if (!box) return;
+    const slides = [...box.querySelectorAll(".hs-slide")], dots = [...box.querySelectorAll(".hs-dot")], pause = box.querySelector(".hs-pause");
+    let i = 0, timer = null, paused = reduceMotion(), hold = false;
+    const show = (k) => {
+      i = (k + slides.length) % slides.length;
+      slides.forEach((sl, j) => { sl.classList.toggle("on", j === i); sl.setAttribute("aria-hidden", String(j !== i)); sl.querySelectorAll("button").forEach((b) => { b.tabIndex = j === i ? 0 : -1; }); });
+      dots.forEach((d, j) => d.setAttribute("aria-current", String(j === i)));
+    };
+    const play = () => { clearInterval(timer); if (!paused && !hold && !document.hidden) timer = setInterval(() => show(i + 1), 6000); };
+    const setPause = (v) => { paused = v; pause.setAttribute("aria-pressed", String(v)); pause.firstElementChild.textContent = v ? "▶" : "❚❚"; pause.setAttribute("aria-label", v ? L("Reproducir el carrusel", "Play the carousel") : L("Pausar el carrusel", "Pause the carousel")); play(); };
+    dots.forEach((d, j) => d.addEventListener("click", () => { show(j); play(); }));
+    pause.addEventListener("click", () => setPause(!paused));
+    box.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") { hold = true; play(); } });
+    box.addEventListener("pointerleave", () => { hold = false; play(); });
+    box.addEventListener("focusin", () => { hold = true; play(); });
+    box.addEventListener("focusout", () => { hold = false; play(); });
+    document.addEventListener("visibilitychange", play);
+    let x0 = null;
+    box.addEventListener("pointerdown", (e) => { x0 = e.clientX; });
+    box.addEventListener("pointerup", (e) => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) { show(i + (dx < 0 ? 1 : -1)); play(); } });
+    box.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
+      const [prod, tec] = b.dataset.go.split("|");
+      if (prod === "catalogo") { showCatalog(); return; }
+      if (PR.productos.some((p) => p.id === prod)) qz.prod = prod;
+      if (tec) qz.tec = tec;
+      if (tec === "fullprint" && qz.qty < PR.minimos.full) qz.qty = PR.minimos.full;
+      if (prod === "pod" && qz.qty > 100) qz.qty = 1;
+      qzSave(); renderQz(); $("#cotizar").scrollIntoView({ behavior: smooth() });
+    }));
+    show(0); setPause(paused);
+  }
   function wireQz() {
     $("#qz-w").addEventListener("input", fitMeasure); $("#qz-h").addEventListener("input", fitMeasure);
     $("#qz-prod").addEventListener("change", (e) => { qz.prod = e.target.value; qzSave(); renderQz(); });
@@ -3925,6 +3998,7 @@
   $("#sport-qty").addEventListener("input", updateCalc);
   wireQuote();
   wireQz();
+  wireHero();
   // English for visitors whose browser is in English (US buyers), unless they chose.
   const saved = store.get("chilian-lang");
   // The address decides the language (/ Spanish, /en English) so search engines see each page in its own
@@ -4453,7 +4527,7 @@
       b.append(dot); dot.addEventListener("animationend", () => dot.remove());
     });
     // Header: shadow, reading bar, back-to-top, hero drift.
-    const header = $(".site-header"), bar = $(".read-bar"), top = $("#to-top"), heroImg = $(".hero-photo img");
+    const header = $(".site-header"), bar = $(".read-bar"), top = $("#to-top"), heroImg = $(".hero-photo");
     let ticking = false;
     const onScroll = () => {
       ticking = false;
