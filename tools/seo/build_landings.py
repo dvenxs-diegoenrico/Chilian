@@ -18,6 +18,12 @@ WA = {"marca": "522226925404", "uniformes": "522201759053", "merch": "5222265126
 AUDITS = "Walt Disney FAMA, WRAP, VF Corporation, C&A, SMETA (Sedex), Walmart y ChemIQ"
 AUDITS_EN = "Walt Disney FAMA, WRAP, VF Corporation, C&A, SMETA (Sedex), Walmart and ChemIQ"
 BRANDS = "Carhartt, The North Face, Vans, Supreme, Marvel, Bluey, Minecraft, Snoopy y Tom and Jerry"
+# Print on Demand and campaign prices: final price per piece (VAT 16 % + online payment fee 5 % included), from the site's
+# own price engine (api/_pricing.js quote). Regenerate them when the lists change.
+POD_TIERS = [("Económica · 50/50", [(1, 177.54, 234.98), (5, 139.78, 181.38), (12, 128.82, 164.33), (50, 101.56, 141.11), (100, 94.61, 134.98)]),
+             ("Regular · 100 % algodón", [(1, 182.18, 236.45), (5, 144.42, 182.86), (12, 133.46, 165.81), (50, 105.88, 142.49), (100, 98.79, 136.32)]),
+             ("Oversized", [(1, 187.29, 244.64), (5, 149.53, 191.04), (12, 138.57, 173.99), (50, 110.66, 150.13), (100, 103.40, 143.69)])]
+CAMP_TIERS = [(500, 66.22, 86.53), (1000, 59.19, 76.45), (10000, 58.22, 74.75)]
 TIERS = [("100–299", 310.80, 334.78), ("300–999", 199.80, 206.02), ("1,000–2,999", 177.60, 180.26), ("3,000–9,999", 155.40, 180.26), ("10,000+", 133.20, 154.51)]
 
 PAGES = [
@@ -70,6 +76,27 @@ PAGES = [
                ("Campañas", ["Catálogo de campañas políticas con sus prendas y artículos (PDF)."]),
                ("Antes de cotizar, ve tu diseño", ["En Estampa tu idea subes tu logo y lo ves en playera, sudadera o polo; el mockup y tus archivos llegan con tu solicitud."])],
        faq=[2, 4, 8], related=["playeras-personalizadas-mayoreo", "playeras-deportivas-sublimadas", "uniformes-empresariales"]),
+  dict(slug="print-on-demand-playeras-dtg", lang="es", tipo="promo", pod=True, quote="/?prod=pod#cotizar",
+       title="Print on Demand en México: playeras DTG desde 1 pieza · Chilian",
+       desc="Playeras con tu diseño a todo color desde 1 pieza: oversized, regular o económica con 1 estampado DTG incluido. Precio al momento con IVA, planta en Puebla.",
+       h1="Print on Demand: playeras DTG desde 1 pieza", kicker="Print on Demand · DTG",
+       lead="Elige la playera (oversized, regular o económica), sube tu diseño y ve el precio al momento. El primer estampado a todo color va incluido; cada estampado extra suma su precio.",
+       img="print-on-demand-dtg", img_alt="Impresora DTG imprimiendo a todo color sobre una playera negra",
+       blocks=[("Cómo funciona", ["Elige la prenda: oversized, regular (100 % algodón) o económica (50/50), blanca o de color.", "Elige el tamaño del estampado por su lado más largo: de 6 a 53 cm.", "Sube tu diseño en Estampa tu idea y ve el mockup antes de pagar.", "Imprimimos en DTG a todo color, sin pantallas: fotos, degradados y un diseño distinto por pieza."]),
+               ("Para quién", ["Creadores y marcas que venden por pedido, sin inventario.", "Regalos, eventos chicos y muestras antes de un pedido grande.", "Equipos y negocios que necesitan pocas piezas con su logo."]),
+               ("Precio claro", ["El precio por pieza baja con 2, 5, 10, 20, 30, 40, 50 y 100 piezas.", "Incluye IVA y comisión de pago en línea; el envío se cotiza aparte.", "Archivo recomendado: PNG de 300 DPI con fondo transparente."]),
+               ("Hecho en una planta auditada", ["Planta en Santa Isabel Cholula, Puebla, con 2 impresoras DTG y 8 pulpos automáticos.", f"Auditorías: {AUDITS}.", "Si tu pedido crece, lo pasamos a serigrafía con el precio de volumen."])],
+       faq=[2, 4, 8], related=["playeras-personalizadas-mayoreo", "merch-eventos-y-campanas", "playeras-deportivas-sublimadas"]),
+  dict(slug="playeras-para-campanas-politicas", lang="es", tipo="merch", camp=True, quote="/?prod=playera&tec=plastisol&qty=1000#cotizar",
+       title="Playeras para campañas políticas por mayoreo con factura · Chilian",
+       desc="Playeras, gorras y banderas para precampañas y campañas 2027, en volumen y con factura. Hasta 20,000 piezas al día en una planta formal en Puebla.",
+       h1="Playeras para campañas políticas", kicker="Precampañas y campañas 2027",
+       lead="Playeras, gorras, banderas y artículos para campaña en volumen, con factura, planta formal y entregas por semana. Aparta tu capacidad antes del arranque.",
+       img="campana-politica", img_alt="Playeras, gorras y banderas impresas para campaña",
+       blocks=[("Calendario 2027", ["Precampañas: 4 de enero a 12 de febrero.", "Campañas: 4 de abril a 2 de junio.", "Apartamos capacidad por semana de entrega con anticipo."]),
+               ("Lo que fabricamos", ["Playeras básicas, clásicas o premium, blancas o de color.", "Gorras, banderas textiles, totes y más.", "Serigrafía para volumen; DTG para muestras y tirajes cortos."]),
+               ("Por qué Chilian", ["Hasta 20,000 piezas al día con 8 pulpos automáticos.", "Factura y planta formal, auditada.", "Una asesora dedicada a tu campaña."])],
+       faq=[2, 4, 8], related=["merch-eventos-y-campanas", "playeras-personalizadas-mayoreo", "uniformes-empresariales"]),
   dict(slug="contract-screen-printing-mexico", lang="en", tipo="usa",
        title="Contract screen printing & apparel manufacturing in Mexico · Chilian",
        desc="Audited contract screen printing, embroidery and cut-and-sew in Mexico for US brands and licenses: Disney FAMA, WRAP, SMETA, Walmart; 20,000 pcs a day; US contact.",
@@ -138,7 +165,7 @@ def page(p):
     es = p["lang"] == "es"
     url = f"{SITE}/{p['slug']}"
     home = "/" if es else "/en"
-    quote = f"/?tipo={p['tipo']}#cotizar" if es else f"/en?tipo={p['tipo']}#cotizar"
+    quote = p.get("quote") or (f"/?tipo={p['tipo']}#cotizar" if es else f"/en?tipo={p['tipo']}#cotizar")
     wa_msg = ("Hola Chilian, vi la página «" + p["h1"] + "» y quiero cotizar.") if es else ("Hi Chilian, I saw the page “" + p["h1"] + "” and would like a quote.")
     from urllib.parse import quote as q_
     wa = f"https://wa.me/{WA[p['tipo']]}?text={q_(wa_msg)}"
@@ -150,6 +177,16 @@ def page(p):
         extra = f'''<section class="b"><div class="wrap"><h2>Precio por volumen</h2>
 <table><thead><tr><th>Piezas</th><th class="r">CH–EG</th><th class="r">2XL–3XL</th></tr></thead><tbody>{rows}</tbody></table>
 <p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza, precios de lista publicados en la <a href="{STORE}" rel="noopener">tienda en línea Chilian</a>. El precio final se confirma en tu cotización.</p></div></section>'''
+    if p.get("pod"):
+        rows = "".join(f'<tr><th scope="row" colspan="3" style="padding-top:1rem">{E(name)}</th></tr>' + "".join(f'<tr><td>{q} pz</td><td class="r">${w:,.2f}</td><td class="r">${c:,.2f}</td></tr>' for q, w, c in t) for name, t in POD_TIERS)
+        extra = f'''<section class="b"><div class="wrap"><h2>Precio por pieza</h2>
+<table><thead><tr><th>Piezas</th><th class="r">Prenda blanca</th><th class="r">Prenda de color</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza con 1 estampado DTG de hasta 27 cm, IVA y comisión de pago incluidos. Cada estampado adicional suma su precio. El envío se cotiza aparte.</p></div></section>'''
+    if p.get("camp"):
+        rows = "".join(f'<tr><td>{q:,} pz</td><td class="r">${w:,.2f}</td><td class="r">${c:,.2f}</td></tr>' for q, w, c in CAMP_TIERS)
+        extra = f'''<section class="b"><div class="wrap"><h2>Precio de referencia</h2>
+<table><thead><tr><th>Piezas</th><th class="r">Blanca, 1 tinta media carta</th><th class="r">De color, 2 tintas carta</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza, línea básica, con IVA y comisión de pago. Pedidos grandes los cotiza una asesora y pueden tener mejor precio. <a href="{CAMPAIGN_PDF}" rel="noopener">Catálogo de campañas (PDF)</a></p></div></section>'''
     if p["slug"] == "merch-eventos-y-campanas":
         extra = f'<section class="b"><div class="wrap"><a class="btn" href="{CAMPAIGN_PDF}" rel="noopener">Ver el catálogo de campañas políticas (PDF)</a></div></section>'
     retail = (f'<section class="b"><div class="wrap retail"><div><h2 style="margin:0 0 .3rem">¿Pocas piezas?</h2><p style="margin:0;color:var(--steel)">Compra prendas listas en la tienda en línea de Chilian; para mayoreo y programas, cotiza aquí.</p></div><a class="btn" href="{STORE}" rel="noopener">Ir a la tienda en línea ↗</a></div></section>'
@@ -157,7 +194,11 @@ def page(p):
     rel = "".join(f'<a href="/{r}">{E(TITLES[r])} →</a>' for r in p["related"])
     faq_html = "".join(f"<details><summary>{E(q)}</summary><p>{E(a)}</p></details>" for q, a in faqs)
     org = {"@id": SITE + "/#chilian"}
-    main = ({"@type": "Product", "name": "Playera deportiva Chilian Sport full print", "description": p["lead"], "image": f"{SITE}/photos/opt/{p['img']}-960.webp", "brand": {"@type": "Brand", "name": "Chilian Sport"}, "manufacturer": org,
+    pod_prices = [x for _, t in POD_TIERS for _, w, c in t for x in (w, c)]
+    main = ({"@type": "Product", "name": "Playera Print on Demand con estampado DTG", "description": p["lead"], "image": f"{SITE}/photos/opt/{p['img']}-960.webp", "brand": {"@type": "Brand", "name": "Chilian"}, "manufacturer": org,
+             "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": f"{min(pod_prices):.2f}", "highPrice": f"{max(pod_prices):.2f}", "offerCount": len(pod_prices), "availability": "https://schema.org/InStock", "url": url, "seller": org}}
+            if p.get("pod") else
+            {"@type": "Product", "name": "Playera deportiva Chilian Sport full print", "description": p["lead"], "image": f"{SITE}/photos/opt/{p['img']}-960.webp", "brand": {"@type": "Brand", "name": "Chilian Sport"}, "manufacturer": org,
              "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": "133.20", "highPrice": "334.78", "offerCount": 10, "availability": "https://schema.org/InStock", "url": url, "seller": org}}
             if p.get("product") else
             {"@type": "Service", "name": p["h1"], "description": p["desc"], "serviceType": p["kicker"], "provider": org, "areaServed": ["MX", "US"], "url": url, "image": f"{SITE}/photos/opt/{p['img']}-960.webp"})

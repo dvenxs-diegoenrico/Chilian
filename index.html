@@ -1784,6 +1784,7 @@
           </div>
           <div class="qz-eta"><span data-en="Estimated delivery">Entrega estimada</span><strong id="qz-date">—</strong><small id="qz-days"></small></div>
           <p class="qz-nudge" id="qz-nudge" hidden></p>
+          <p class="qz-nudge" id="qz-tip" hidden></p>
           <p class="qz-err" id="qz-err" role="alert" hidden></p>
           <div class="ticket-actions">
             <button class="btn btn-accent" type="button" id="qz-add"><span data-en="Add to my quote">Agregar a mi cotización</span> <span class="arrow" aria-hidden="true">+</span></button>
@@ -1864,6 +1865,8 @@
           <li><a href="/playeras-personalizadas-mayoreo" data-en="Custom tees, wholesale">Playeras por mayoreo</a></li>
           <li><a href="/playeras-deportivas-sublimadas" data-en="Chilian Sport full print">Playeras deportivas sublimadas</a></li>
           <li><a href="/merch-eventos-y-campanas" data-en="Merch, events and campaigns">Merch, eventos y campañas</a></li>
+          <li><a href="/print-on-demand-playeras-dtg" data-en="Print on demand (DTG)">Print on Demand (DTG)</a></li>
+          <li><a href="/playeras-para-campanas-politicas" data-en="Political campaign tees">Playeras para campañas</a></li>
           <li><a href="/contract-screen-printing-mexico" data-en="Contract printing in Mexico (EN)">Contract printing in Mexico (EN)</a></li>
         </ul>
       </div>
@@ -2747,6 +2750,15 @@
     const off = Math.round((1 - n.unit / r.unit) * 100);
     return off >= 3 ? { qty: next, unit: n.unit, off } : null;
   }
+  // Screen printing in a short run: the same print in DTG, when it costs at least 3 % less (by the print's longest side)
+  const DTG_OF_AREA = { 100: 11, 300: 27, 600: 32, 1200: 45, 1800: 53 };
+  function qzTip(r) {
+    if (r.err || r.kind !== "serigrafia" || r.prod.nodtg || r.q >= 300 || !PR.dtgTabla) return null;
+    const S = PR.serigrafia, cms = r.areas.map((a) => DTG_OF_AREA[S.tamanos[sizeIdx(S, a)]] || 53), dcm = Math.max(...cms);
+    const d = qzCalc({ ...r.c, tec: "dtg", dcm, locs: r.areas.length, areas: undefined });
+    const off = Math.round((1 - d.unit / r.unit) * 100);
+    return !d.err && off >= 3 ? { unit: d.unit, off, dcm } : null;
+  }
   // The slider is logarithmic: 1 to 20,000 pieces with room for small and big runs.
   const QZ_MAX = 20000;
   const sliderToQty = (v) => { const q = Math.pow(QZ_MAX, v / 1000); return q < 100 ? Math.max(1, Math.round(q)) : q < 1000 ? Math.round(q / 10) * 10 : q < 10000 ? Math.round(q / 50) * 50 : Math.round(q / 500) * 500; };
@@ -2861,6 +2873,10 @@
     nb.hidden = !nd;
     if (nd) nb.replaceChildren(L(`Con ${fmt(nd.qty)} piezas el precio baja a ${money(nd.unit)} por pieza, ${nd.off}% menos.`, `At ${fmt(nd.qty)} pieces the price drops to ${money(nd.unit)} per piece, ${nd.off}% less.`),
       el("button", { type: "button", text: L(`Usar ${fmt(nd.qty)}`, `Use ${fmt(nd.qty)}`), onclick: () => { qz.qty = nd.qty; qzSave(); renderQz(); } }));
+    // Price tip: the same design in DTG when it is cheaper (short runs of screen printing)
+    const tip = $("#qz-tip"), alt = qzTip(r); tip.hidden = !alt;
+    if (alt) tip.replaceChildren(L(`Tip: en DTG a todo color (hasta ${alt.dcm} cm) sale en ${money(alt.unit)} por pieza, ${alt.off}% menos, y sin límite de colores.`, `Tip: in full-color DTG (up to ${alt.dcm} cm) it is ${money(alt.unit)} per piece, ${alt.off}% less, with no color limit.`),
+      el("button", { type: "button", text: L("Usar DTG", "Use DTG"), onclick: () => { qz.tec = "dtg"; qz.dcm = alt.dcm; qzSave(); renderQz(); } }));
     const er = $("#qz-err"); er.hidden = !r.err || r.q < r.min; er.textContent = r.err;
     $("#qz-add").disabled = !!r.err;
     $("#qz-mbar-t").textContent = r.err ? L("Revisa la cantidad", "Check the quantity") : L(`Por pieza con IVA · total ${money(r.total, 0)}`, `Per piece with VAT · total ${money(r.total, 0)}`);
@@ -4037,6 +4053,15 @@
   // The address decides the language (/ Spanish, /en English) so search engines see each page in its own
   // language; a visitor's saved choice wins. English browsers without a choice get an offer, not a switch.
   setLang(window.CHILIAN_LANG || saved || "es");
+  { // links from the landing pages can open the quoter with a product, technique or quantity: ?prod=pod&tec=dtg&qty=12
+    const sp = new URLSearchParams(location.search), pr = sp.get("prod"), te = sp.get("tec"), qq = parseInt(sp.get("qty"), 10);
+    if (pr || te || qq) {
+      if (pr && PR.productos.some((p) => p.id === pr)) qz.prod = pr;
+      if (te && QZ_TECS.some((x) => x.id === te)) qz.tec = te;
+      if (qq > 0) qz.qty = Math.min(100000, qq); else if (pr === "pod") qz.qty = 1;
+      qzSave(); renderQz();
+    }
+  }
   { const tp = new URLSearchParams(location.search).get("tipo"); if (tp && TYPES.some((x) => x.id === tp)) { const r = $("#type-" + tp); if (r) { r.checked = true; updateTicket(); renderQz(); } } }
   if (!window.CHILIAN_LANG && lang === "en") langUrl("en");
   if (!window.CHILIAN_LANG && !saved && (navigator.language || "").toLowerCase().startsWith("en")) {

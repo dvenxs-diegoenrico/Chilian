@@ -78,5 +78,7 @@ Grupo Chilian is an audited screen printing, embroidery and cut-and-sew plant in
 - Playeras personalizadas por mayoreo: https://chilian.vercel.app/playeras-personalizadas-mayoreo
 - Playeras deportivas sublimadas Chilian Sport (precios por volumen): https://chilian.vercel.app/playeras-deportivas-sublimadas
 - Merch, eventos y campañas: https://chilian.vercel.app/merch-eventos-y-campanas
+- Print on Demand: playeras DTG desde 1 pieza (oversized, regular o económica, con 1 estampado incluido; precios publicados): https://chilian.vercel.app/print-on-demand-playeras-dtg
+- Playeras para campañas políticas 2027 (precampañas 4 ene–12 feb, campañas 4 abr–2 jun; precios de referencia): https://chilian.vercel.app/playeras-para-campanas-politicas
 - Contract screen printing in Mexico (English): https://chilian.vercel.app/contract-screen-printing-mexico
 - Menudeo (pocas piezas): https://grupochilian.com.mx/collections/all

@@ -168,8 +168,9 @@ export async function botTurn(doc, input, ctx) {
   if (consumed) { text = ""; btn = ""; }
   // a measure typed in words is read here, without Claude
   const midiendo = (b.paso === "medida" || b.paso === "size") && text && parseMedida(text);
+  const midiendoDtg = b.paso === "dcm" && text && parseMedida(text);   // DTG: the design's longest side picks the size
   // free text: Claude reads it (when the key is set) and calls the functions that apply
-  const ai = text && b.paso !== "spec" && b.paso !== "medida" && !midiendo && !/^\s*\d{1,6}\s*$/.test(text) ? await understand(doc, text, d) : null;
+  const ai = text && b.paso !== "spec" && b.paso !== "medida" && !midiendo && !midiendoDtg && !/^\s*\d{1,6}\s*$/.test(text) ? await understand(doc, text, d) : null;
   if (ai?.lead) b.leadAI = ai.lead;
   if (btn === "asesora") return handoff("El cliente pidió hablar con una asesora");
   if (ai?.asesora) { if (ai.respuesta) say(ai.respuesta); return handoff(ai.asesora); }
@@ -190,7 +191,9 @@ export async function botTurn(doc, input, ctx) {
   const pre = btn.split(":")[0], val = btn.slice(pre.length + 1);
   if (pre === "perfil") d.perfil = val;
   else if (pre === "uso") d.uso = val;
-  else if (pre === "prod") { if (val === "otro") b.todos = true; else if (val === "mas") { b.todos = true; b.mas = true; } else { d.prod = val; b.prodElegido = true; } }
+  else if (pre === "prod") { if (val === "otro") b.todos = true; else if (val === "mas") { b.todos = true; b.mas = true; } else { d.prod = val; b.prodElegido = true; if (val === "pod") d.tec = "dtg"; } }
+  else if (pre === "pod") { d.pod = val; d.tec = "dtg"; }
+  else if (pre === "dcm") d.dcm = +val;
   else if (pre === "color") d.color = val;
   else if (pre === "linea") { if (val === "otra") { b.paso = "spec"; say(L("Escríbeme la tela, la composición y el gramaje que buscas (por ejemplo: 100 % algodón peinado, 180 g/m², corte oversize).", "Tell me the fabric, blend and weight you need (for example: 100% combed cotton, 180 gsm, oversized fit).")); return done(); } d.linea = val; }
   else if (pre === "qty") d.qty = +val;
@@ -212,6 +215,7 @@ export async function botTurn(doc, input, ctx) {
     if (val === "repetir") return handoff(`Cliente que ya compra${d.cliente ? " (" + d.cliente + ")" : ""}: quiere repetir un pedido`);
     if (val === "nuevo") d.perfil = "experto";
   }
+  else if (midiendoDtg) { const med = parseMedida(text), side = Math.max(med.w, med.h), M = P.dtgTabla?.medidas || [53]; d.dcm = M.find((x) => x >= side) || M[M.length - 1]; }   // the size that covers it
   else if (midiendo) { const med = parseMedida(text); addUbic(med.area, `${med.w}×${med.h} cm`); b.paso = "size"; }
   else if (b.paso === "medida" && text) { say(L("No pude leer esa medida. Escríbela como ancho × alto en cm, por ejemplo 20 × 25.", "I couldn't read that size. Write it as width × height in cm, for example 20 × 25.")); return done(); }
   else if (b.paso === "spec" && text) { d.spec = text.slice(0, 160); d.linea ||= "clasica"; }
@@ -305,7 +309,7 @@ export async function botTurn(doc, input, ctx) {
   }
   const advise = d.perfil === "intermedio" || d.perfil === "explorador";
   const prodName = (id) => { const p = P.productos.find((x) => x.id === id); return ((b.lang === "en" ? p?.en : p?.nombre) || id).replace(/^Playera deportiva Chilian Sport$/, "Chilian Sport deportiva").replace(/^Chilian Sport performance tee$/i, "Chilian Sport tee").slice(0, 22); };
-  const ALL_PRODS = P.productos.filter((p) => !p.pod).map((p) => ({ id: "prod:" + p.id, title: prodName(p.id) }));
+  const ALL_PRODS = P.productos.map((p) => ({ id: "prod:" + p.id, title: p.pod ? "Print on Demand" : prodName(p.id) }));
 
   // 2. what it is for (advice path)
   if (advise && !d.uso) {
@@ -330,10 +334,18 @@ export async function botTurn(doc, input, ctx) {
   }
   if (!d.qty) {
     say(L("¿Cuántas piezas necesitas?", "How many pieces do you need?") + (advise ? L(" Si no sabes exacto, elige la más cercana.", " If you're not sure, pick the closest.") : ""),
-      [50, 100, 300, 500, 1000].map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
+      (d.prod === "pod" || d.tec === "dtg" ? [1, 5, 12, 50, 100] : [12, 50, 100, 500, 1000]).map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
   }
   const prod = P.productos.find((p) => p.id === d.prod) || P.productos[0];
 
+  // 4a. Print on Demand: the garment (oversized, regular or budget), sold printed with 1 DTG print included
+  if (prod.pod && !d.pod) {
+    const O = P.pod.opciones, pr = (id) => { const r = quote(P, { prod: "pod", pod: id, qty: d.qty, color: d.color || "blanca", dcm: d.dcm || 27, locs: 1, del: "estandar" }, b.lang); return r.err ? "" : money(r.unitFinal); };
+    say(L(`Print on Demand: la playera se vende estampada y el precio ya incluye 1 estampado DTG a todo color (hasta 27 cm). Para ${d.qty} pieza${d.qty === 1 ? "" : "s"}, en blanca:\n`, `Print on demand: the tee is sold printed and the price includes 1 full-color DTG print (up to 27 cm). For ${d.qty} piece${d.qty === 1 ? "" : "s"}, in white:\n`)
+      + ["oversized", "regular", "economica"].map((id) => `• ${L(O[id].nombre, O[id].en)} (${L(O[id].para, O[id].paraEn)}): ${pr(id)}${O[id].provisional ? L(" (por confirmar)", " (to be confirmed)") : ""}`).join("\n"),
+      ["oversized", "regular", "economica"].map((id) => ({ id: "pod:" + id, title: L(O[id].nombre, O[id].en) })));
+    b.paso = "pod"; return done();
+  }
   // 4. the line: three options side by side, with their price at this quantity (the middle one usually wins)
   const specs = P.specs?.[prod.id];
   if (specs && !d.linea) {
@@ -347,8 +359,8 @@ export async function botTurn(doc, input, ctx) {
   }
 
   // 4b. white or colored garment: the official list prices them apart
-  if ((prod.lista || prod.listaCodigo === "12030") && !d.color) {
-    const pr = (color) => { const r = quote(P, { prod: prod.id, qty: d.qty, linea: d.linea, color, tec: "plastisol", inks: 1, locs: 1, del: "estandar" }, b.lang); return r.err ? "" : ` · ${money(r.unitFinal)}`; };
+  if ((prod.lista || prod.pod || prod.listaCodigo === "12030") && !d.color) {
+    const pr = (color) => { const r = quote(P, { prod: prod.id, qty: d.qty, linea: d.linea, pod: d.pod, color, tec: prod.pod ? "dtg" : "plastisol", inks: 1, locs: 1, del: "estandar" }, b.lang); return r.err ? "" : ` · ${money(r.unitFinal)}`; };
     say(L("¿La prenda es blanca o de color? La blanca cuesta un poco menos.", "White or colored garment? White costs a little less."),
       [{ id: "color:blanca", title: L("Blanca", "White") + pr("blanca") }, { id: "color:color", title: L("De color", "Colored") + pr("color") }]);
     b.paso = "color"; return done();
@@ -404,8 +416,14 @@ export async function botTurn(doc, input, ctx) {
       }
     }
   }
+  if (tec.kind === "dtg" && !d.dcm && P.dtgTabla) {   // DTG is priced by the design's longest side
+    const D = P.dtgTabla, pick = [0, 1, 2, 3, 5, 6, 8];
+    say(L("¿Qué tan grande es tu diseño? Cuenta su lado más largo. También puedes escribirme la medida (por ejemplo 20 × 25 cm).", "How big is your design? Count its longest side. You can also type the size (for example 20 × 25 cm).") + "\n" + pick.map((i) => `• ${L("Hasta", "Up to")} ${D.medidas[i]} cm: ${L(D.usos[i].es, D.usos[i].en)}`).join("\n"),
+      pick.map((i) => ({ id: "dcm:" + D.medidas[i], title: `${L("Hasta", "Up to")} ${D.medidas[i]} cm${D.medidas[i] === 27 ? " ⭐" : ""}` })));
+    b.paso = "dcm"; return done();
+  }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
-  if (tec.kind !== "full" && tec.kind !== "serigrafia" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: String(n) }))); b.paso = "locs"; return done(); }
+  if (tec.kind !== "full" && tec.kind !== "serigrafia" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: prod.pod ? (n === 1 ? L("1 (incluido)", "1 (included)") : L(`${n} (+${n - 1} extra)`, `${n} (+${n - 1} extra)`)) : String(n) }))); b.paso = "locs"; return done(); }
   if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return done(); }
 
   // 6. the quote (the name and contact first, if they were skipped at the start)

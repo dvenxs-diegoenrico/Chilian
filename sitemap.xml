@@ -43,6 +43,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://chilian.vercel.app/print-on-demand-playeras-dtg</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://chilian.vercel.app/playeras-para-campanas-politicas</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://chilian.vercel.app/contract-screen-printing-mexico</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
