@@ -306,7 +306,9 @@ def page(p):
 
 
 def main():
+    RICH = {"print-on-demand-playeras-dtg", "print-on-demand-t-shirts-mexico"}   # written by build_pod.py (animated landing)
     for p in PAGES:
+        if p["slug"] in RICH: continue
         out = ROOT / (p["slug"] + ".html")
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(page(p))

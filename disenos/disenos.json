@@ -1,0 +1,35 @@
+[
+ {
+  "id": "ola",
+  "es": "La gran ola",
+  "en": "The Great Wave",
+  "autor": "Katsushika Hokusai",
+  "anio": "1831",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg",
+  "w": 1200,
+  "h": 807
+ },
+ {
+  "id": "medusas",
+  "es": "Medusas",
+  "en": "Jellyfish",
+  "autor": "Ernst Haeckel",
+  "anio": "1904",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Haeckel_Discomedusae_8.jpg",
+  "w": 836,
+  "h": 1200
+ },
+ {
+  "id": "rinoceronte",
+  "es": "Rinoceronte",
+  "en": "Rhinoceros",
+  "autor": "Albrecht Dürer",
+  "anio": "1515",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:The_Rhinoceros_(NGA_1964.8.697)_enhanced.png",
+  "w": 1200,
+  "h": 834
+ }
+]

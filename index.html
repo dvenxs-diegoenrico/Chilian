@@ -886,6 +886,7 @@
   .st-lib-label { font-size: .8rem; color: var(--steel); }
   .st-lib-row { display: flex; gap: .5rem; overflow-x: auto; padding: .15rem .1rem .35rem; scroll-snap-type: x proximity; }
   .st-lib-row button { flex: none; width: 4.6rem; height: 4.6rem; padding: .3rem; border: 1px solid var(--rule); background: repeating-conic-gradient(#e9e8ec 0 25%, #f7f6f8 0 50%) 0 0/14px 14px; cursor: pointer; scroll-snap-align: start; position: relative; transition: border-color .15s ease, transform .15s ease; }
+  .st-lib-note { font: 400 .68rem/1.4 var(--f-body); color: var(--steel); }
   .st-lib-row button img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .st-lib-row button.on { border: 2px solid var(--ink); }
   .st-lib-row button.on::after { content: "✓"; position: absolute; top: .15rem; right: .25rem; font: 700 .62rem var(--f-mono); color: var(--paper); background: var(--ink); width: 1rem; height: 1rem; display: grid; place-items: center; border-radius: 50%; }
@@ -2117,6 +2118,11 @@
       <div class="st-step st-design">
         <span data-en="Your design · one graphic per section">Tu diseño · un gráfico por sección</span>
         <div class="chips st-sections" id="st-sections"></div>
+        <div class="st-library" id="st-free" hidden>
+          <span class="st-lib-label" data-en="Free designs (public domain) · tap one to print it">Diseños libres (dominio público) · toca uno para estamparlo</span>
+          <div class="st-lib-row" id="st-free-row"></div>
+          <span class="st-lib-note" id="st-free-note"></span>
+        </div>
         <div class="st-library" id="st-library" hidden>
           <span class="st-lib-label" data-en="Your files · tap one to use it in this section">Tus archivos · toca uno para usarlo en esta sección</span>
           <div class="st-lib-row" id="st-lib-row"></div>
@@ -3883,6 +3889,19 @@
       img.onerror = () => { $("#st-file-name").textContent = L("No pudimos abrir ese archivo. Prueba con PNG o JPG.", "We could not open that file. Try a PNG or JPG."); };
       img.src = url;
     };
+    // Free designs: artworks in the public domain (Wikimedia Commons). Tap one and it is used like an uploaded file.
+    fetch("/disenos/disenos.json").then((r) => (r.ok ? r.json() : [])).then((list) => {
+      if (!Array.isArray(list) || !list.length) return;
+      $("#st-free").hidden = false;
+      $("#st-free-row").replaceChildren(...list.map((d) => {
+        const b = el("button", { type: "button", "data-id": d.id, title: `${t({ es: d.es, en: d.en })} · ${d.autor}, ${d.anio}`, "aria-label": L("Estampar " + d.es, "Print " + d.en) }, [el("img", { src: `/disenos/${d.id}-s.webp`, alt: "", loading: "lazy", width: 64, height: 64 })]);
+        b.addEventListener("click", async () => {
+          $("#st-free-note").textContent = `${t({ es: d.es, en: d.en })} · ${d.autor}, ${d.anio} · ${L("dominio público", "public domain")}`;
+          try { const blob = await (await fetch(`/disenos/${d.id}.webp`)).blob(); useFile(new File([blob], `${d.id}.webp`, { type: "image/webp" })); } catch (e) { $("#st-free-note").textContent = L("No pudimos cargar ese diseño. Intenta de nuevo.", "We could not load that design. Try again."); }
+        });
+        return b;
+      }));
+    }).catch(() => {});
     // A text instead of a file: drawn big on a transparent canvas, then used like any upload.
     $("#st-text-go").addEventListener("click", async () => {
       const txt = $("#st-text-in").value.trim(); if (!txt) { $("#st-text-in").focus(); return; }
@@ -4178,12 +4197,25 @@
       bar.append(msg, yes, no); document.body.prepend(bar);
     }
   } catch (e) {}
+  { // ?studio=1 opens the design studio; &design=ola also loads that free design
+    const sp0 = new URLSearchParams(location.search);
+    if (sp0.get("studio")) {
+      const want = sp0.get("design");
+      setTimeout(() => { openStudio(); if (want) { let n = 0; const tick = setInterval(() => { const b = document.querySelector(`#st-free-row button[data-id="${want}"]`); if (b) { b.click(); clearInterval(tick); } else if (++n > 40) clearInterval(tick); }, 250); } }, 600);
+    }
+  }
   { // links from the landing pages can open the quoter with a product, technique or quantity: ?prod=pod&tec=dtg&qty=12
     const sp = new URLSearchParams(location.search), pr = sp.get("prod"), te = sp.get("tec"), qq = parseInt(sp.get("qty"), 10);
     if (pr || te || qq) {
       if (pr && PR.productos.some((p) => p.id === pr)) qz.prod = pr;
       if (te && QZ_TECS.some((x) => x.id === te)) qz.tec = te;
       if (qq > 0) qz.qty = Math.min(100000, qq); else if (pr === "pod") qz.qty = 1;
+      const po = sp.get("pod"), pk = sp.get("pack"), co = sp.get("color"), dc = parseFloat(sp.get("dcm")), de = sp.get("dest");
+      if (po && PR.pod && PR.pod.opciones[po]) qz.pod = po;
+      if (pk && PR.pod && PR.pod.packs[pk]) { qz.pack = pk; qz.qty = PR.pod.packs[pk].piezas; }
+      if (co === "blanca" || co === "color") qz.color = co;
+      if (dc > 0) qz.dcm = dc;
+      if (de === "mx" || de === "intl") qz.dest = de;
       qzSave(); renderQz();
     }
   }
