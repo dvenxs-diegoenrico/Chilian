@@ -352,6 +352,8 @@
     render.keepScroll = false;
   }
   const rerender = () => { render.keepScroll = true; render(); };
+  // an empty screen that says what to do next, with the button to do it
+  const emptyDo = (text, label, fn) => h("div", { class: "empty" }, h("p", { style: "margin:0 0 .8rem", text }), label ? h("button", { class: "btn sm accent", type: "button", onclick: fn }, label) : null);
   const top = (sub, title, ...actions) => h("div", { class: "topbar" }, h("div", {}, h("div", { class: "sub", text: sub }), h("h1", { text: title })), h("div", { class: "actions" }, actions));
 
   /* ---------------- search everything + create anything (Ctrl/⌘ K) ---------------- */
@@ -612,7 +614,7 @@
         h("div", { class: "chips" }, chip("nueva", "Nuevas"), chip("valiosas", "Valen la pena"), chip("convertida", "Convertidas"), chip("descartada", "Descartadas"), chip("todas", "Todas")),
         h("button", { class: "btn accent", type: "button", onclick: () => manualRequestModal() }, "+ Solicitud")),
       rows.length ? h("div", { class: "grid" }, rows.map((s) => inboxCard(s)))
-        : h("div", { class: "empty", text: filter === "nueva" ? "No hay solicitudes nuevas. Llegan del cotizador y el catálogo del sitio, de Instagram Direct y de las que registra el equipo (+ Solicitud)." : "Nada en esta vista." }));
+        : filter === "nueva" ? emptyDo("No hay solicitudes nuevas. Llegan del cotizador y el catálogo del sitio, del chat, de WhatsApp e Instagram y de las que registra el equipo.", "+ Registrar una solicitud", () => manualRequestModal()) : emptyDo("Nada en esta vista. Cambia el filtro de arriba para ver otras."));
   }
   function inboxCard(s) {
     const contact = s.contacto || "";
@@ -1120,7 +1122,7 @@
         h("tbody", {}, cs.map((c) => { const os = oppsOf(c.id), open = os.filter((o) => !["ganado", "perdido"].includes(o.etapa)); return h("tr", { class: "click", onclick: () => go("cuenta/" + c.id) },
           h("td", {}, h("b", { text: c.nombre })), h("td", { text: segName(c.segmento) }), h("td", { class: c.responsable ? "" : "muted", text: c.responsable || "Sin asignar" }),
           h("td", { class: "small", text: c.contactos?.[0] ? `${c.contactos[0].nombre} · ${c.contactos[0].contacto}` : "—" }), h("td", { class: "r num", text: os.length }), h("td", { class: "r money", text: moneyK(open.reduce((a, o) => a + oppValue(o), 0)) })); }))))
-        : h("div", { class: "empty", text: "Aún no hay cuentas. Agrega prospectos uno por uno o importa una lista en CSV desde Prospección." }));
+        : emptyDo("Aún no hay cuentas. Agrega un cliente o prospecto, o importa una lista en CSV desde Prospección.", "+ Agregar una cuenta", () => accountModal()));
   }
   function accountModal(c = {}) {
     const contacts = c.contactos?.length ? c.contactos : [{ nombre: "", puesto: "", contacto: "" }];
@@ -1280,7 +1282,7 @@
       h("input", { class: "i search", type: "search", placeholder: "Buscar folio, cliente o producto", value: f.q, oninput: (e) => { f.q = e.target.value; clearTimeout(viewQuotes.t); viewQuotes.t = setTimeout(rerender, 250); } }),
       h("select", { class: "i", style: "width:auto", onchange: (e) => { f.estado = e.target.value; rerender(); } }, [["", "Todas"], ["pre", "Pre-cotizaciones"], ["borrador", "Borrador"], ["enviada", "Enviadas"], ["aceptada", "Aceptadas"], ["rechazada", "Rechazadas"]].map(([v, t]) => h("option", { value: v, text: t, selected: f.estado === v }))),
       h("button", { class: "btn accent", type: "button", onclick: () => newQuoteModal() }, "+ Cotización")),
-      qs.length ? quoteTable(qs) : h("div", { class: "empty", text: "Crea una cotización aquí o desde una oportunidad. Cada cotización guardada enseña sus precios al cotizador." }));
+      qs.length ? quoteTable(qs) : emptyDo("Todavía no hay cotizaciones. Crea la primera: cada cotización guardada le enseña sus precios al cotizador.", "+ Nueva cotización", () => newQuoteModal()));
   }
   function newQuoteModal() {
     const cs = list("cuentas").sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -1483,7 +1485,7 @@
   function otTable(ots) {
     return h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Etapa", "Arte", "Piezas", "Máquinas", "Compromiso"].map((x, i) => h("th", { class: i === 4 ? "r" : "", text: x })))),
       h("tbody", {}, ots.sort((a, b) => (a.fechaCompromiso || "9").localeCompare(b.fechaCompromiso || "9")).map((o) => h("tr", { class: "click", onclick: () => go("ot/" + o.id) },
-        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa), !o.previa && otPending(o).length ? h("span", { class: "pill p-warn", title: otPending(o).map((x) => x.txt).join("\n"), style: "margin-left:.3rem", text: `⚠ ${otPending(o).length}` }) : null),
+        h("td", { class: "num", text: o.id }), h("td", { text: o.clienteNombre || cuentaName(o.cuentaId) }), h("td", {}, o.previa ? h("span", { class: "pill p-acc", text: "previa" }) : otPill(o.etapa), !o.previa && otPending(o).length ? h("span", { class: "pill p-warn", title: otPending(o).map((x) => x.txt).join("\n"), style: "margin-left:.3rem", text: `${otPending(o).length}` }) : null),
         h("td", {}, h("span", { class: "pill " + ({ aprobada: "p-ok", cambios: "p-bad", enviada: "p-info" }[o.arte?.estado] || "p-mut"), text: o.arte?.estado || "pendiente" })),
         h("td", { class: "r num", text: fmtN((o.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0)) }),
         h("td", { class: "small", text: (o.programacion || []).map((p) => `${S.settings.pulpos.find((x) => x.id === p.pulpo)?.nombre || p.pulpo} · ${fmtDate(p.fecha)}`).join("; ") || "—" }),
@@ -1501,7 +1503,7 @@
         h("div", { class: "seg" }, [["tablero", "Tablero"], ["lista", "Lista"]].map(([v, t]) => h("button", { type: "button", class: f.vista === v ? "on" : "", onclick: () => { f.vista = v; store.set("chilian-os-otvista", v); rerender(); } }, t))),
         h("button", { class: "btn ghost", type: "button", onclick: () => manualOT() }, "+ OT sin cotización")),
       (() => { const n = list("ots").filter((o) => !o.previa && o.etapa !== "entregada" && otPending(o).length).length;
-        return n ? h("p", { class: "pend sm", style: "margin:0 0 .8rem" }, h("b", { text: `⚠ ${n} OT con procesos sin terminar.` }), h("span", { text: " Arrastra cada tarjeta a su siguiente etapa (en el teléfono, usa «Mover a…»); si le falta algo, el sistema te dice qué antes de moverla." })) : null; })(),
+        return n ? h("p", { class: "pend sm", style: "margin:0 0 .8rem" }, h("b", { text: `${n} OT con procesos sin terminar.` }), h("span", { text: " Arrastra cada tarjeta a su siguiente etapa (en el teléfono, usa «Mover a…»); si le falta algo, el sistema te dice qué antes de moverla." })) : null; })(),
       f.vista === "tablero"
         ? (ots.length || f.etapa !== "activas" ? otBoard(f.etapa === "activas" || f.etapa === "" ? ots : ots) : h("div", { class: "empty", text: "No hay órdenes activas. Una OT nace cuando se acepta una cotización." }))
         : h("div", {}, h("div", { class: "kpis" }, OT_STAGES.map((s) => h("a", { class: "kpi", href: "#ots", onclick: () => { f.etapa = s.id; } }, h("span", { class: "label", text: s.name }), h("strong", { text: list("ots").filter((o) => o.etapa === s.id).length })))),
@@ -1571,7 +1573,7 @@
   // The legend on a card or an OT: what of the current stage (and before) is unfinished.
   const pendLegend = (ot, compact) => {
     const p = otPending(ot); if (!p.length) return null;
-    return h("div", { class: "pend" + (compact ? " sm" : "") }, h("b", { text: `⚠ ${p.length} proceso${p.length > 1 ? "s" : ""} sin terminar` }),
+    return h("div", { class: "pend" + (compact ? " sm" : "") }, h("b", { text: `${p.length} proceso${p.length > 1 ? "s" : ""} sin terminar` }),
       compact ? h("span", { text: p.slice(0, 2).map((x) => x.txt).join(" · ") + (p.length > 2 ? "…" : "") }) : h("ul", {}, p.map((x) => h("li", {}, h("b", { text: stageName(OT_STAGES, x.etapa) + ": " }), x.txt))));
   };
   function otBoard(ots) {
@@ -1830,7 +1832,7 @@
       const saved = await save("ots", setStage(ot, sid, `Escaneo en ${name}${pend.length ? " con pendientes: " + pend.map((p) => p.txt).join("; ") : ""}`), { quiet: true });
       const card = h("div", { class: "card flash" }, h("div", { class: "row between" }, h("h2", { text: `${saved.id} → ${stageName(OT_STAGES, sid)}` }), otPill(saved.etapa)),
         h("p", { text: `${saved.clienteNombre || ""} · ${fmtN(saved.lineas.reduce((a, l) => a + (+l.piezas || 0), 0))} piezas · compromiso ${fmtDate(saved.fechaCompromiso)}` }),
-        pend.length ? h("div", { class: "pend" }, h("b", { text: `⚠ Llegó a ${name} con ${pend.length} proceso${pend.length > 1 ? "s" : ""} sin terminar` }), h("ul", {}, pend.map((x) => h("li", {}, h("b", { text: stageName(OT_STAGES, x.etapa) + ": " }), x.txt)))) : null,
+        pend.length ? h("div", { class: "pend" }, h("b", { text: `Llegó a ${name} con ${pend.length} proceso${pend.length > 1 ? "s" : ""} sin terminar` }), h("ul", {}, pend.map((x) => h("li", {}, h("b", { text: stageName(OT_STAGES, x.etapa) + ": " }), x.txt)))) : null,
         sid === "calidad" ? mermaForm(saved, async (patch, msg) => { await save("ots", { ...saved, ...patch }, { quiet: true }); toast(msg); }) : null,
         h("a", { class: "link small", href: "#ot/" + saved.id }, "Abrir la OT"));
       result.replaceChildren(card);

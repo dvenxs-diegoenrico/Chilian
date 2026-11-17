@@ -325,7 +325,7 @@ export async function botTurn(doc, input, ctx) {
   if (!d.prod) {
     if (advise && uso && !b.todos) {
       say(`${L(uso.tip[0], uso.tip[1])}\n\n${L("Te sugiero una de estas tres:", "I suggest one of these three:")}`,
-        [...uso.prods.map((id, i) => ({ id: "prod:" + id, title: (i === 0 ? "⭐ " : "") + prodName(id) })), { id: "prod:otro", title: L("Otro producto", "Other product") }]);
+        [...uso.prods.map((id, i) => ({ id: "prod:" + id, title: (i === 0 ? L("Rec. ", "Rec. ") : "") + prodName(id) })), { id: "prod:otro", title: L("Otro producto", "Other product") }]);
     } else {   // WhatsApp lists hold 10 options: the rest go on a second page
       const page = ALL_PRODS.length <= 10 ? ALL_PRODS : b.mas ? ALL_PRODS.slice(9) : [...ALL_PRODS.slice(0, 9), { id: "prod:mas", title: L("Más productos", "More products") }];
       say(L("¿Qué producto necesitas?", "What product do you need?"), page);
@@ -352,9 +352,9 @@ export async function botTurn(doc, input, ctx) {
     const rec = uso?.linea || "clasica";
     const base = { prod: prod.id, qty: d.qty, tec: d.tec || (uso?.tec === "fullprint" ? "plastisol" : uso?.tec) || "plastisol", inks: d.inks || 1, size: d.size || 300, extras: d.extras, color: d.color || "color", locs: d.locs || 1, emb: d.emb || "mediano", del: "estandar" };
     const rows = ["basica", "clasica", "premium"].map((id) => { const ln = P.lineas[id], r = quote(P, { ...base, linea: id }, b.lang);
-      return `${id === rec && advise ? "⭐ " : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
+      return `${id === rec && advise ? L("Recomendada: ", "Recommended: ") : "• "}${L(ln.nombre, ln.en)}: ${specs[id]}. ${L("Para", "For")} ${L(ln.para, ln.paraEn)}. ${r.err ? "" : L(`Aprox. ${money(r.unitFinal)} por pieza`, `About ${money(r.unitFinal)} MXN per piece`)}`; });
     say(`${advise ? L("Tenemos tres calidades. ", "We have three qualities. ") : ""}${L(`Para ${d.qty} ${prod.plural || prod.nombre}`, `For ${d.qty} ${prod.pluralEn || prod.en}`)}:\n${rows.join("\n")}${advise ? L(`\n\nPara lo que me cuentas te recomiendo la ${P.lineas[rec].nombre.toLowerCase()}.`, `\n\nFor what you told me I'd go with ${P.lineas[rec].en.toLowerCase()}.`) : ""}\n${(base.tec === "dtg" ? L("(Precio a todo color hasta 27 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(Full color up to 27 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)") : base.tec === "embroidery" ? L("(Precio con 1 bordado mediano, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 medium embroidery, with VAT and payment fee; I'll adjust it to your design.)") : L("(Precio con 1 tinta de unos 17×17 cm en 1 lugar, con IVA y comisión de pago; lo ajusto con tu diseño.)", "(1 ink of about 17×17 cm in 1 location, with VAT and payment fee; I'll adjust it to your design.)"))}`,
-      [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? "⭐ " : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
+      [...["basica", "clasica", "premium"].map((id) => ({ id: "linea:" + id, title: (id === rec && advise ? L("Rec. ", "Rec. ") : "") + L(P.lineas[id].nombre, P.lineas[id].en) })), ...(advise ? [] : [{ id: "linea:otra", title: L("Otra tela o gramaje", "Other fabric/weight") }])]);
     b.paso = "linea"; return done();
   }
 
@@ -370,8 +370,8 @@ export async function botTurn(doc, input, ctx) {
   if (!d.tec) {
     if (advise) {
       const opts = [{ id: "dis:logo", title: L("Logo o texto", "Logo or text") }, { id: "dis:foto", title: L("Foto o muchos colores", "Photo or many colors") }];
-      if (prod.fullprint) opts.unshift({ id: "dis:full", title: L("⭐ Full print", "⭐ Full print") });
-      opts.push(["polo", "camisa", "gorra"].includes(prod.id) || d.uso === "uniforme" ? { id: "dis:bordado", title: L("⭐ Bordado", "⭐ Embroidery") } : { id: "dis:bordado", title: L("Bordado", "Embroidery") });
+      if (prod.fullprint) opts.unshift({ id: "dis:full", title: L("Rec. Full print", "Rec. Full print") });
+      opts.push(["polo", "camisa", "gorra"].includes(prod.id) || d.uso === "uniforme" ? { id: "dis:bordado", title: L("Rec. Bordado", "Rec. Embroidery") } : { id: "dis:bordado", title: L("Bordado", "Embroidery") });
       opts.push({ id: "dis:nodis", title: L("Aún no tengo diseño", "No design yet") });
       say(L("¿Cómo es tu diseño? Con eso te sugiero la impresión: serigrafía para logos de pocos colores y volumen, DTG para fotos en pocas piezas, bordado para un acabado formal" + (prod.fullprint ? " y full print para cubrir toda la prenda." : "."),
         "What is your design like? With that I'll suggest the print: screen printing for logos with few colors and volume, DTG for photos in short runs, embroidery for a formal finish" + (prod.fullprint ? " and full print to cover the whole garment." : ".")), opts);
@@ -397,9 +397,9 @@ export async function botTurn(doc, input, ctx) {
       const n2 = (d.ubic || []).length;
       if (d.lugarActual) {   // its measure: real sizes with what they are for, or the customer's own
         const sug = sizeIdx(S, S.lugares[d.lugarActual]?.sugerida || 600);
-        const lines = S.tamanos.map((a, i) => `${i === sug ? "⭐ " : "• "}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i]}: ${L(S.usos[i].es, S.usos[i].en)}`).join("\n");
+        const lines = S.tamanos.map((a, i) => `${i === sug ? L("Sugerida: ", "Suggested: ") : "• "}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i]}: ${L(S.usos[i].es, S.usos[i].en)}`).join("\n");
         say(L(`¿De qué medida es ${nm(d.lugarActual).toLowerCase()}? Estas son nuestras medidas:\n${lines}\n\nElige una, o escríbeme tu medida (por ejemplo 20 × 25 cm) y la acomodo.`, `What size is the ${nm(d.lugarActual).toLowerCase()} print? These are our sizes:\n${lines}\n\nPick one, or write your own size (for example 20 × 25 cm) and I'll fit it.`),
-          [...S.tamanos.map((a, i) => ({ id: "size:" + a, title: `${i === sug ? "⭐ " : ""}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i].replace("≈ ", "")}`.slice(0, 24) })), { id: "size:otra", title: L("Otra medida", "Other size") }]);
+          [...S.tamanos.map((a, i) => ({ id: "size:" + a, title: `${i === sug ? L("Sug. ", "Sug. ") : ""}${L(S.nombres[i].es, S.nombres[i].en)} ${S.medidas[i].replace("≈ ", "")}`.slice(0, 24) })), { id: "size:otra", title: L("Otra medida", "Other size") }]);
         b.paso = "size"; return done();
       }
       if (!n2 || d.masUbic) {   // where
@@ -419,7 +419,7 @@ export async function botTurn(doc, input, ctx) {
   if (tec.kind === "dtg" && !d.dcm && P.dtgTabla) {   // DTG is priced by the design's longest side
     const D = P.dtgTabla, pick = [0, 1, 2, 3, 5, 6, 8];
     say(L("¿Qué tan grande es tu diseño? Cuenta su lado más largo. También puedes escribirme la medida (por ejemplo 20 × 25 cm).", "How big is your design? Count its longest side. You can also type the size (for example 20 × 25 cm).") + "\n" + pick.map((i) => `• ${L("Hasta", "Up to")} ${D.medidas[i]} cm: ${L(D.usos[i].es, D.usos[i].en)}`).join("\n"),
-      pick.map((i) => ({ id: "dcm:" + D.medidas[i], title: `${L("Hasta", "Up to")} ${D.medidas[i]} cm${D.medidas[i] === 27 ? " ⭐" : ""}` })));
+      pick.map((i) => ({ id: "dcm:" + D.medidas[i], title: `${L("Hasta", "Up to")} ${D.medidas[i]} cm${D.medidas[i] === 27 ? L(" (sug.)", " (sug.)") : ""}` })));
     b.paso = "dcm"; return done();
   }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }

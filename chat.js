@@ -180,7 +180,7 @@
     tools.append(bNueva, bCerrar);
     log = el("div", "cc-log"); log.setAttribute("aria-live", "polite");
     form = el("form", "cc-form"); input = el("input"); input.placeholder = T("Escribe aquí…", "Type here…"); input.setAttribute("aria-label", T("Mensaje", "Message")); input.maxLength = 1500; input.autocomplete = "off";
-    go = el("button", "", "➤"); go.type = "submit"; go.setAttribute("aria-label", T("Enviar", "Send"));
+    go = el("button", ""); go.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>'; go.type = "submit"; go.setAttribute("aria-label", T("Enviar", "Send"));
     form.append(input, go);
     form.onsubmit = (e) => { e.preventDefault(); const v = input.value.trim(); if (!v) return; input.value = ""; send(v, ""); };
     root.append(head, tools, log, form);
