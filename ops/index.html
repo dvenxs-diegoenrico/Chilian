@@ -150,6 +150,26 @@
   .kpi { background: var(--card); padding: .9rem 1rem; display: grid; gap: .25rem; text-decoration: none; }
   .kpi strong { font: 650 1.32rem/1.04 var(--f-display); font-variant-numeric: tabular-nums; }
   .kpi.alert strong { color: var(--magenta); }
+  /* help card above each screen + the guide */
+  .os-help { border: 1px solid var(--rule); background: var(--card); border-left: 3px solid var(--accent, #C9922E); margin-bottom: 1rem; }
+  .os-help summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem; min-height: 44px; font: 600 .84rem var(--f-body); }
+  .os-help summary::-webkit-details-marker { display: none; }
+  .os-help .q { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent, #C9922E); color: #0B0B0B; font: 700 .78rem var(--f-body); flex: none; }
+  .os-help summary::after { content: "▾"; margin-left: auto; transition: transform .2s ease; }
+  .os-help[open] summary::after { transform: rotate(180deg); }
+  .os-help .body { padding: 0 .9rem .9rem 2.9rem; display: grid; gap: .6rem; font-size: .88rem; line-height: 1.5; }
+  .os-help ol { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+  .os-help .row, .os-roles + .card + .card + .row { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .os-roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+  .os-steps { display: grid; gap: .5rem; }
+  .os-step { display: flex; gap: .75rem; align-items: flex-start; padding: .65rem .7rem; border: 1px solid var(--rule); text-decoration: none; color: inherit; min-height: 44px; }
+  .os-step:hover { border-color: var(--ink); }
+  .os-step .n { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; font: 700 .76rem var(--f-body); flex: none; }
+  .os-step b { display: block; font-size: .9rem; } .os-step small { display: block; color: var(--steel); font-size: .78rem; line-height: 1.4; margin-top: .15rem; }
+  .os-tips { margin: 0; padding-left: 1.1rem; display: grid; gap: .4rem; font-size: .88rem; line-height: 1.5; }
+  .os-gloss { display: grid; grid-template-columns: minmax(120px, 190px) 1fr; gap: .45rem 1rem; margin: 0; font-size: .88rem; line-height: 1.45; }
+  .os-gloss dt { font-weight: 700; } .os-gloss dd { margin: 0; color: var(--steel); }
+  @media (max-width: 560px) { .os-gloss { grid-template-columns: 1fr; gap: .1rem; } .os-gloss dd { margin-bottom: .5rem; } .os-help .body { padding-left: .9rem; } }
   .empty { padding: 1.4rem; border: 1px dashed var(--rule); text-align: center; color: var(--steel); background: var(--card); }
 
   /* tables */
@@ -427,6 +447,7 @@
 <script src="/ops/alerts.js"></script>
 <script src="/ops/code128.js"></script>
 <script src="/ops/cotizador.js"></script>
+<script src="/ops/ayuda.js"></script>
 <script src="/ops/app.js"></script>
 </body>
 </html>

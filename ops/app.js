@@ -308,12 +308,13 @@
   const ROUTES = {
     inicio: viewHome, avisos: viewAlerts, reportes: viewReports, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
     prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
-    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam
+    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam,
+    guia: () => window.OSHelp.guide(h, go)
   };
   const NAV = [
     ["inicio", "Tablero"], ["avisos", "Avisos"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
     ["cotizaciones", "Cotizaciones"], ["reportes", "Reportes"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
-    ["group", "Sistema"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
+    ["group", "Sistema"], ["guia", "Guía y ayuda"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
   ];
   const route = () => { const [r, ...rest] = (location.hash.slice(1) || "inicio").split("/"); return { r: ROUTES[r] ? r : "inicio", arg: decodeURIComponent(rest.join("/")) }; };
   const go = (hash) => { if (location.hash === "#" + hash) render(); else location.hash = hash; };
@@ -346,7 +347,7 @@
     app.replaceChildren(shell());
     const { r, arg } = route();
     const CRUMB = { oportunidad: ["pipeline", "Oportunidades"], cuenta: ["cuentas", "Cuentas"], cotizacion: ["cotizaciones", "Cotizaciones"], ot: ["ots", "Órdenes de trabajo"] }[r];
-    try { $("#view").replaceChildren(...[CRUMB ? h("a", { class: "crumb", href: "#" + CRUMB[0], text: "← " + CRUMB[1] }) : null, ROUTES[r](arg)].filter(Boolean)); } catch (e) { console.error(e); $("#view").replaceChildren(h("div", { class: "empty", text: "Algo falló al mostrar esta vista: " + e.message })); }
+    try { $("#view").replaceChildren(...[CRUMB ? h("a", { class: "crumb", href: "#" + CRUMB[0], text: "← " + CRUMB[1] }) : null, (window.OSHelp && !CRUMB ? window.OSHelp.card(h, r, go) : null), ROUTES[r](arg)].filter(Boolean)); } catch (e) { console.error(e); $("#view").replaceChildren(h("div", { class: "empty", text: "Algo falló al mostrar esta vista: " + e.message })); }
     if (render.keepScroll) scrollTo(0, y); else scrollTo(0, 0);
     render.keepScroll = false;
   }
@@ -367,6 +368,7 @@
     const k = norm(q).trim(); if (!k) return [];
     const words = k.split(/\s+/), hit = (txt) => { const n = norm(txt); return words.every((w) => n.includes(w)); };
     const out = [];
+    if (/ayuda|guia|como|glosario|que es|tutorial|manual/.test(k)) out.push(["Ayuda", "Guía de Chilian OS", "El camino de un pedido, atajos y glosario", "guia"]);
     for (const c of list("cuentas")) if (hit([c.nombre, c.ciudad, ...(c.contactos || []).map((x) => x.nombre + " " + x.contacto)].join(" "))) out.push(["Cuenta", c.nombre, `${segName(c.segmento)} · ${c.responsable || "sin responsable"}`, "cuenta/" + c.id]);
     for (const o of list("oportunidades")) if (hit(o.titulo + " " + cuentaName(o.cuentaId) + " " + (o.origen || ""))) out.push(["Oportunidad", o.titulo, `${cuentaName(o.cuentaId)} · ${stageName(OPP_STAGES, o.etapa)}`, "oportunidad/" + o.id]);
     for (const q2 of list("cotizaciones")) if (hit(q2.id + " " + CZ.clientOf(q2) + " " + (q2.lineas || []).map((l) => l.concepto).join(" "))) out.push(["Cotización", `${q2.id} · ${CZ.clientOf(q2) || "sin cliente"}`, `${q2.estado || "borrador"} · ${money(calcCot(q2).total)}`, "cotizacion/" + q2.id]);
