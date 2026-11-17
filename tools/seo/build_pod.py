@@ -113,11 +113,11 @@ POD_CSS = """
 .pcard .pr{font:700 1.9rem "Jost",sans-serif}.pcard .pr small{font:500 .72rem "Jost",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);margin-left:.3rem}
 .pcard .sub{font-size:.84rem;color:var(--steel)}
 .calc{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:1.4rem;align-items:start}
-.calc .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
-.calc label{display:grid;gap:.3rem;font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--steel)}
-.calc select,.calc input{width:100%;padding:.8rem .8rem;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:500 1rem "Questrial",sans-serif;border-radius:2px;min-height:48px}
-.calc select:focus,.calc input:focus{outline:none;border-color:var(--ink)}
-.calc .full{grid-column:1/-1}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
+.form label{display:grid;gap:.3rem;font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--steel)}
+.form select,.form input{width:100%;padding:.8rem .8rem;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:500 1rem "Questrial",sans-serif;border-radius:2px;min-height:48px}
+.form select:focus,.form input:focus{outline:none;border-color:var(--ink)}
+.form .full{grid-column:1/-1}
 .res{border:1px solid var(--ink);background:var(--card);padding:1.2rem 1.3rem;display:grid;gap:.6rem;position:sticky;top:84px}
 .res .big{font:700 2.6rem/1 "Jost",sans-serif;color:var(--magenta)}
 .res .row{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid var(--rule);padding-top:.5rem;font-size:.95rem}
@@ -138,27 +138,90 @@ POD_CSS = """
 .stickybar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:none;gap:.6rem;padding:.6rem 16px calc(.6rem + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--rule)}
 .stickybar .btn{flex:1}
 @media (max-width:900px){.pod-hero .wrap,.calc,.shipgrid{grid-template-columns:minmax(0,1fr)}.steps4,.cards4,.trust4{grid-template-columns:repeat(2,minmax(0,1fr))}.cards3{grid-template-columns:minmax(0,1fr)}.res{position:static}.stickybar{display:flex}.stage{max-width:380px}}
-@media (max-width:520px){.steps4,.cards4,.trust4{grid-template-columns:minmax(0,1fr)}.calc .form{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.steps4,.cards4,.trust4{grid-template-columns:minmax(0,1fr)}.form{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.print-art{animation:none;clip-path:none}.gantry,.head,.drop,.float,.marquee .row{animation:none}.rv{opacity:1;transform:none;transition:none}.step4::after{width:100%;transition:none}}
+
+/* ===== v2: a landing that stops the scroll ===== */
+.progress{position:fixed;left:0;top:0;height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#C9922E,#F3EBDD);z-index:30}
+.pod-hero{isolation:isolate;padding-block:2.2rem 3.4rem;background:radial-gradient(1200px 600px at 78% 12%,rgba(201,146,46,.16),transparent 60%)}
+.halftone{position:absolute;inset:-20% -10%;z-index:-2;background-image:radial-gradient(circle,rgba(201,146,46,.30) 1.6px,transparent 1.8px);background-size:24px 24px;-webkit-mask-image:linear-gradient(115deg,transparent 18%,#000 55%,transparent 92%);mask-image:linear-gradient(115deg,transparent 18%,#000 55%,transparent 92%);animation:ht 40s linear infinite}
+@keyframes ht{to{background-position:240px 120px}}
+.blob{position:absolute;border-radius:50%;filter:blur(46px);opacity:.5;z-index:-1;animation:blobf 11s ease-in-out infinite}
+.blob.c{width:240px;height:240px;background:#1fb6e8;left:44%;top:6%;opacity:.28}
+.blob.m{width:200px;height:200px;background:#e2358b;right:2%;bottom:6%;opacity:.26;animation-delay:-4s}
+.blob.y{width:170px;height:170px;background:#C9922E;left:-3%;bottom:4%;opacity:.35;animation-delay:-7s}
+@keyframes blobf{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(26px,-30px) scale(1.14)}}
+.reg-mark{position:absolute;width:22px;height:22px;border:1.5px solid var(--magenta);border-radius:50%;opacity:.8}
+.reg-mark::before,.reg-mark::after{content:"";position:absolute;background:var(--magenta)}
+.reg-mark::before{left:50%;top:-7px;bottom:-7px;width:1.5px;transform:translateX(-50%)}.reg-mark::after{top:50%;left:-7px;right:-7px;height:1.5px;transform:translateY(-50%)}
+.reg-mark.a{left:1.2rem;top:6.5rem;animation:spin 18s linear infinite}.reg-mark.b{right:2rem;bottom:3rem;animation:spin 24s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pod-hero h1{font-size:clamp(2.1rem,5vw,3.7rem);line-height:1}
+.pod-hero h1 .ln{display:block;overflow:hidden;padding-bottom:.06em}
+.pod-hero h1 .ln>span{display:block;transform:translateY(108%);animation:up .9s cubic-bezier(.2,.8,.2,1) forwards}
+.pod-hero h1 .ln:nth-child(2)>span{animation-delay:.12s}.pod-hero h1 .ln:nth-child(3)>span{animation-delay:.24s}
+@keyframes up{to{transform:none}}
+.uline{background:linear-gradient(var(--magenta),var(--magenta)) no-repeat 0 96%/0 .09em;animation:sweepx 1s .9s cubic-bezier(.2,.8,.2,1) forwards;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+@keyframes sweepx{to{background-size:100% .09em}}
+.offer{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0 1.3rem}
+.offer span{display:inline-flex;align-items:center;gap:.45rem;padding:.4rem .75rem;border:1px solid var(--rule);background:color-mix(in srgb,var(--card) 80%,transparent);font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);animation:pop .6s forwards}
+.offer span:nth-child(1){animation-delay:1s}.offer span:nth-child(2){animation-delay:1.12s}.offer span:nth-child(3){animation-delay:1.24s}.offer span:nth-child(4){animation-delay:1.36s}
+.offer i{width:7px;height:7px;border-radius:50%;background:var(--magenta);flex:none}
+@keyframes pop{to{opacity:1;transform:none}}
+.cta .btn.accent{position:relative;overflow:hidden;box-shadow:0 10px 34px rgba(201,146,46,.35)}
+.cta .btn.accent::after{content:"";position:absolute;top:0;bottom:0;width:60%;left:-80%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 3.4s 2s infinite}
+@keyframes shine{0%{left:-80%}40%,100%{left:140%}}
+.stage{max-width:560px}
+.badge-price{position:absolute;right:2%;top:6%;z-index:3;width:116px;height:116px;border-radius:50%;background:var(--magenta);color:var(--on-accent);display:grid;place-content:center;text-align:center;transform:rotate(-10deg);font:700 .62rem/1.15 "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 12px 30px rgba(0,0,0,.45);animation:pulse 2.6s ease-in-out infinite}
+.badge-price b{display:block;font:700 1.55rem/1 "Jost",sans-serif;letter-spacing:0;margin:.1rem 0}
+@keyframes pulse{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(-6deg) scale(1.08)}}
+#hero-tee .teefill{transition:fill .7s ease}
+#hero-tee .art{opacity:0}
+#hero-tee .art.run{opacity:1;clip-path:inset(100% 0 0 0);animation:artin 2.6s .15s cubic-bezier(.5,0,.2,1) forwards}
+@keyframes artin{to{clip-path:inset(0 0 0 0)}}
+#hero-tee .gantry2{transform:translateY(190px);transform-box:fill-box}
+#hero-tee .gantry2.run{animation:gsweep 2.6s .15s cubic-bezier(.5,0,.2,1) forwards}
+@keyframes gsweep{0%{transform:translateY(190px)}85%{transform:translateY(-14px)}100%{transform:translateY(-30px);opacity:0}}
+.sw{display:flex;gap:.5rem;position:absolute;left:50%;bottom:-.2rem;transform:translateX(-50%)}
+.sw i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--rule);transition:transform .3s,border-color .3s}.sw i.on{transform:scale(1.35);border-color:var(--ink)}
+.strip{border-block:1px solid var(--rule);background:var(--card)}
+.strip .wrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;padding-block:1.4rem}
+.strip .n{font:700 clamp(1.6rem,3.6vw,2.4rem)/1 "Jost",sans-serif;color:var(--magenta);font-variant-numeric:tabular-nums}
+.strip .l{font:600 .7rem "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-top:.3rem}
+.try{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.6rem;align-items:start}
+.try .view{position:sticky;top:84px;border:1px solid var(--ink);background:radial-gradient(circle at 50% 38%,#4a4234,#1b1813 70%);padding:1rem 1rem 1.4rem}
+.try .view svg{width:100%;height:auto;display:block;max-height:430px}
+#try-tee .teefill{transition:fill .5s ease}#try-art{transition:opacity .35s ease}
+.chips2{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.chips2 button{width:64px;height:64px;padding:4px;border:1.5px solid var(--rule);background:repeating-conic-gradient(#e9e8ec 0 25%,#f7f6f8 0 50%) 50%/12px 12px;cursor:pointer;transition:transform .2s,border-color .2s}
+.chips2 button img{width:100%;height:100%;object-fit:contain;display:block}
+.chips2 button[aria-pressed="true"]{border-color:var(--magenta);transform:translateY(-3px);box-shadow:0 0 0 2px var(--magenta)}
+.swatches2{display:flex;gap:.55rem;margin-top:.8rem;align-items:center}
+.swatches2 button{width:34px;height:34px;border-radius:50%;border:2px solid var(--rule);cursor:pointer;transition:transform .2s}
+.swatches2 button[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.18)}
+.try .lbl{font:600 .7rem "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-top:1rem}
+.countdown{display:inline-flex;gap:.4rem;align-items:center;font:600 .74rem "Jost",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.tilt{transform-style:preserve-3d;will-change:transform}
+.cards3 .pcard,.cards4 .pcard{transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}.pcard:hover{box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.bigtext{overflow:hidden;border-block:1px solid var(--rule);padding:.4rem 0}
+.bigtext .row{display:flex;gap:3rem;width:max-content;animation:slide 30s linear infinite reverse;font:700 clamp(2.2rem,6vw,4.2rem)/1.1 "Jost",sans-serif;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.5px rgba(243,235,221,.38)}
+.bigtext .row b{color:var(--ink);-webkit-text-stroke:0}
+@media (max-width:900px){.try{grid-template-columns:minmax(0,1fr)}.try .view{position:static}.strip .wrap{grid-template-columns:repeat(2,minmax(0,1fr))}.badge-price{width:92px;height:92px;font-size:.52rem}.badge-price b{font-size:1.2rem}.reg-mark{display:none}}
+@media (prefers-reduced-motion:reduce){.halftone,.blob,.reg-mark,.badge-price,.bigtext .row{animation:none}.pod-hero h1 .ln>span{transform:none;animation:none}.uline{background-size:100% .09em;animation:none}.offer span{opacity:1;transform:none;animation:none}.cta .btn.accent::after{display:none}#hero-tee .art{opacity:1;clip-path:none;animation:none}#hero-tee .gantry2{display:none}}
 """
 
-SCENE = """<svg viewBox="0 0 400 400" role="img" aria-label="{alt}">
-  <defs><clipPath id="teeclip"><path id="teepath" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath>
-  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9922E"/><stop offset="1" stop-color="#E8C16B"/></linearGradient>
-  <linearGradient id="g2" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1B6FB5"/><stop offset="1" stop-color="#5BC0DE"/></linearGradient></defs>
-  <ellipse cx="200" cy="352" rx="120" ry="10" fill="#000" opacity=".25"/>
-  <path class="tee-body" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
-  <path class="tee-shade" d="M126 134 L126 330 L170 330 L170 120 Z"/>
-  <g clip-path="url(#teeclip)"><g class="print-art">
-    <circle cx="200" cy="190" r="50" fill="url(#g1)"/>
-    <path d="M126 235 C150 205 170 265 200 235 S250 205 274 235 L274 300 L126 300 Z" fill="url(#g2)"/>
-    <path d="M126 262 C150 240 175 290 200 262 S250 240 274 262 L274 300 L126 300 Z" fill="#0B0B0B" opacity=".25"/>
-    <circle cx="172" cy="170" r="5" fill="#fff" opacity=".8"/><circle cx="232" cy="150" r="3" fill="#fff" opacity=".7"/>
-  </g></g>
-  <g class="gantry" style="transform-origin:200px 60px">
-    <rect x="86" y="58" width="228" height="10" rx="5" fill="#2a2620"/><rect x="86" y="58" width="228" height="3" rx="1.5" fill="#C9922E"/>
-    <g class="head"><rect x="186" y="50" width="28" height="26" rx="4" fill="#0B0B0B" stroke="#C9922E" stroke-width="2"/>
-      <circle class="drop" cx="193" cy="82" r="2.2"/><circle class="drop" cx="200" cy="82" r="2.2"/><circle class="drop" cx="207" cy="82" r="2.2"/></g>
+SCENE = """<svg id="hero-tee" viewBox="0 0 400 420" role="img" aria-label="{alt}">
+  <defs><clipPath id="teeclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath>
+  <clipPath id="printarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
+  <ellipse cx="200" cy="362" rx="125" ry="11" fill="#000" opacity=".35"/>
+  <path class="teefill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
+  <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
+  <path fill="none" stroke="#000" stroke-opacity=".12" d="M135 62 C145 92 255 92 265 62"/>
+  <g clip-path="url(#teeclip)"><g clip-path="url(#printarea)"><image id="hero-art" class="art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g>
+  <g class="gantry2" id="hero-gantry" style="transform-origin:200px 70px">
+    <rect x="84" y="60" width="232" height="10" rx="5" fill="#2a2620"/><rect x="84" y="60" width="232" height="3" rx="1.5" fill="#C9922E"/>
+    <rect x="186" y="50" width="28" height="26" rx="4" fill="#0B0B0B" stroke="#C9922E" stroke-width="2"/>
+    <circle cx="193" cy="84" r="2.4" fill="#1fb6e8"/><circle cx="200" cy="84" r="2.4" fill="#e2358b"/><circle cx="207" cy="84" r="2.4" fill="#C9922E"/>
   </g>
 </svg>"""
 
@@ -190,8 +253,10 @@ def page(t):
     des = ""
     for d in DESIGNS:
         des += f'<a class="dcard rv" href="{t["studio"]}&design={d["id"]}" aria-label="{esc(t["d_use"])}: {esc(d["es"] if es else d["en"])}"><span class="ph"><img src="/disenos/{d["id"]}-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>{esc(d["es"] if es else d["en"])}</b><small>{esc(d["autor"])}, {esc(d["anio"])}</small><em>{esc(t["d_pd"])} · {esc(t["d_use"])} →</em></span></a>'
+    design_chips = "".join(f'<button type="button" data-id="{d["id"]}" data-dark="{1 if d["id"] == "rinoceronte" else 0}" aria-pressed="{"true" if i == 0 else "false"}" title="{esc(d["es"] if es else d["en"])}"><img src="/disenos/{d["id"]}-s.webp" alt="{esc(d["es"] if es else d["en"])}" width="56" height="56"></button>' for i, d in enumerate(DESIGNS))
     marquee_items = [(d["es"] if es else d["en"]) for d in DESIGNS] + [L("Desde 1 pieza", "From 1 piece"), L("DTG a todo color", "Full-color DTG"), L("Envío a todo México", "Shipping across Mexico"), L("Sin mínimos", "No minimums")]
     mq = "".join(f"<span>{esc(x)}</span>" for x in marquee_items * 2)
+    bigrow = "".join(f"<b>{esc(w)}</b><span>{esc(x)}</span>" for w, x in ((L("Diseña", "Design"), L("Imprime", "Print")), (L("Recibe", "Receive"), L("Repite", "Repeat")))) * 4
     steps = "".join(f'<div class="step4 rv"><div class="n">{i + 1}</div><h3>{esc(h)}</h3><p>{esc(p)}</p></div>' for i, (h, p) in enumerate(t["steps"]))
     ship_rows = "".join(f"<div><dt>{esc(a)}</dt><dd>{esc(b)}</dd></div>" for a, b in t["ship_rows"])
     ship_tbl = "".join(f'<tr><td>{esc(t["ship_upto"])} {m}</td><td class="r">{mx(p)}</td></tr>' for m, p in env["mx"]) + f'<tr><td>{esc(t["ship_over"])}</td><td class="r">{mx(env["gratisDesde"])}</td></tr>'
@@ -237,6 +302,26 @@ def page(t):
     var big=q>P.pod.recargo.maxPiezas;$("#r-big").hidden=!big;
     var go=$("#c-go");go.href=go.dataset.base+"&pod="+tee+"&color="+(white?"blanca":"color")+"&dcm="+cm+"&qty="+q+(pk?"&pack="+pk:"")+"&dest="+dest+"#cotizar";
   }
+
+  // scroll progress bar
+  var bar=$("#prog");addEventListener("scroll",function(){var h=document.documentElement;bar.style.transform="scaleX("+(h.scrollTop/(h.scrollHeight-h.clientHeight||1))+")"},{passive:true});
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // count-up numbers
+  var cio=("IntersectionObserver" in window)?new IntersectionObserver(function(en){en.forEach(function(e){if(!e.isIntersecting)return;cio.unobserve(e.target);var el=e.target,to=+el.dataset.count,suf=el.dataset.suf||"",t0=null;function f(ts){t0=t0||ts;var k=Math.min(1,(ts-t0)/1300),v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=(el.dataset.sep?v.toLocaleString(es?"es-MX":"en-US"):v)+suf;if(k<1&&!reduce)requestAnimationFrame(f)}requestAnimationFrame(f)})},{threshold:.6}):null;
+  document.querySelectorAll("[data-count]").forEach(function(el){if(cio&&!reduce)cio.observe(el);else el.textContent=(el.dataset.sep?(+el.dataset.count).toLocaleString():el.dataset.count)+(el.dataset.suf||"")});
+  // hero: the same printer prints a famous design on four garments in turn
+  var HERO=[["medusas","#161411"],["ola","#F3EBDD"],["rinoceronte","#E7DBC6"],["medusas","#1B2A49"]],hi=0,tee=$("#hero-tee");
+  if(tee){var art=$("#hero-art"),fill=tee.querySelector(".teefill"),g=$("#hero-gantry"),dots=document.querySelectorAll(".sw i");
+    var runHero=function(){var c=HERO[hi%HERO.length];fill.setAttribute("fill",c[1]);art.classList.remove("run");g.classList.remove("run");art.setAttribute("href","/disenos/"+c[0]+".webp");void art.getBoundingClientRect();art.classList.add("run");g.classList.add("run");dots.forEach(function(d,i){d.classList.toggle("on",i===hi%HERO.length)});hi++};
+    runHero();if(!reduce)setInterval(runHero,5200)}
+  // fitting room: design + color drive the preview and the links; the form drives the price
+  var tryArt=$("#try-art"),tryFill=$("#try-fill"),COLORS=[["blanca","#F3EBDD",es?"Blanca":"White"],["color","#161411",es?"Negra":"Black"],["color","#1B2A49",es?"Marino":"Navy"],["color","#8e1f2b",es?"Roja":"Red"],["color","#3e4a35",es?"Militar":"Olive"]],curDesign="ola",curColor=0;
+  if(tryArt){
+    var sw=$("#try-colors");COLORS.forEach(function(c,i){var b=document.createElement("button");b.type="button";b.style.background=c[1];b.title=c[2];b.setAttribute("aria-label",c[2]);b.setAttribute("aria-pressed",String(i===0));b.addEventListener("click",function(){curColor=i;$("#c-color").value=c[0];tryFill.setAttribute("fill",c[1]);sw.querySelectorAll("button").forEach(function(x,k){x.setAttribute("aria-pressed",String(k===i))});calc();links()});sw.appendChild(b)});
+    document.querySelectorAll("#try-designs button").forEach(function(b){b.addEventListener("click",function(){curDesign=b.dataset.id;tryArt.style.opacity=0;setTimeout(function(){tryArt.setAttribute("href","/disenos/"+curDesign+".webp");tryArt.style.opacity=1},180);document.querySelectorAll("#try-designs button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});links()})});
+    window.__links=links;function links(){var s=$("#c-studio"),base=s.dataset.b||(s.dataset.b=s.getAttribute("href"));s.href=base+(base.indexOf("?")>-1?"&":"?")+"design="+curDesign}links()}
+  // cards lean toward the pointer
+  if(!reduce&&matchMedia("(hover:hover)").matches)document.querySelectorAll(".pcard,.dcard").forEach(function(c){c.classList.add("tilt");c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.transform="perspective(700px) rotateY("+(x*7)+"deg) rotateX("+(-y*7)+"deg) translateY(-4px)"});c.addEventListener("pointerleave",function(){c.style.transform=""})});
   $("#c-qty").addEventListener("input",function(){var pk=$("#c-pack").value;if(pk&&this.value!==$("#c-pack").selectedOptions[0].dataset.q)$("#c-pack").value=""});
   $("#c-pack").addEventListener("change",function(){var o=this.selectedOptions[0];if(o&&o.dataset.q)$("#c-qty").value=o.dataset.q});
   ["c-tee","c-color","c-size","c-pack","c-qty","c-dest"].forEach(function(id){var el=$("#"+id);if(el){el.addEventListener("input",calc);el.addEventListener("change",calc)}});
@@ -265,46 +350,71 @@ def page(t):
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False, separators=(",", ":"))}</script>
 </head>
 <body>
+<div class="progress" id="prog"></div>
 <header><div class="wrap">
   <a class="logo" href="{t['home']}" aria-label="Grupo Chilian"><img src="/logos/chilian-logo-header.png" alt="" width="36" height="36"><i aria-hidden="true"></i></a>
   <nav aria-label="{L('Principal', 'Main')}"><a class="opt" href="#precios">{esc(t['cta2'])}</a><a class="opt" href="#disenos">{esc(t['designs_k'])}</a><a class="btn accent" href="{t['studio']}">{esc(t['cta1'])}</a></nav>
 </div></header>
 <main>
-  <section class="pod-hero"><div class="wrap">
+  <section class="pod-hero"><div class="halftone"></div><span class="blob c"></span><span class="blob m"></span><span class="blob y"></span><span class="reg-mark a"></span><span class="reg-mark b"></span><div class="wrap">
     <div>
       <p class="kicker">{esc(t['kicker'])}</p>
-      <h1><span>{esc(t['h1a'])}</span><span class="acc">{esc(t['h1b'])}</span><span>{esc(t['h1c'])}</span></h1>
-      <div class="price-chip">{esc(t['from_'])} <b>{mx(a_from)}</b> {esc(t['vat'])}</div>
+      <h1><span class="ln"><span>{esc(t['h1a'])}</span></span><span class="ln"><span class="acc">{esc(t['h1b'].rsplit(' ', 1)[0])} <span class="uline">{esc(t['h1b'].rsplit(' ', 1)[1])}</span></span></span><span class="ln"><span>{esc(t['h1c'])}</span></span></h1>
+      <div class="offer"><span><i></i>{esc(t['from_'])} {mx(a_from)} {esc(t['vat'])}</span><span><i></i>{esc(L('Sin mínimos', 'No minimums'))}</span><span><i></i>{esc(L('Envío a todo México', 'Shipping across Mexico'))}</span><span><i></i>{esc(L('Producción en 4 días hábiles', 'Production in 4 business days'))}</span></div>
       <p class="lead">{esc(t['lead'])}</p>
-      <div class="cta"><a class="btn accent" href="{t['studio']}">{esc(t['cta1'])} →</a><a class="btn" href="#precios">{esc(t['cta2'])}</a></div>
+      <div class="cta"><a class="btn accent" href="{t['studio']}">{esc(t['cta1'])} →</a><a class="btn" href="#probador">{esc(L('Pruébala y ve tu precio', 'Try it and see your price'))}</a></div>
     </div>
-    <div class="stage" aria-hidden="false">
-      {SCENE.format(alt=esc(L('Una impresora DTG imprime un diseño a todo color sobre una playera', 'A DTG printer prints a full-color design on a T-shirt')))}
-      <span class="tag a float">{esc(L('Desde 1 pieza', 'From 1 piece'))}</span><span class="tag b float d2">{esc(L('DTG a todo color', 'Full-color DTG'))}</span><span class="tag c float d3">{esc(L('Envío a todo México', 'Shipping across Mexico'))}</span>
+    <div class="stage">
+      <div class="badge-price" aria-hidden="true">{esc(t['from_'])}<b>{mx(a_from)}</b>{esc(t['vat'])}</div>
+      {SCENE.format(alt=esc(L('Una impresora DTG imprime un diseño famoso a todo color sobre una playera', 'A DTG printer prints a famous design in full color on a T-shirt')))}
+      <div class="sw" aria-hidden="true"><i style="background:#111"></i><i style="background:#F3EBDD"></i><i style="background:#E7DBC6"></i><i style="background:#1B2A49"></i></div>
     </div>
   </div></section>
+  <div class="strip"><div class="wrap">
+    <div><div class="n" data-count="35" data-suf="+">0</div><div class="l">{esc(L('años de experiencia', 'years of experience'))}</div></div>
+    <div><div class="n" data-count="20000" data-sep="1">0</div><div class="l">{esc(L('piezas al día de capacidad', 'pieces a day of capacity'))}</div></div>
+    <div><div class="n" data-count="1">0</div><div class="l">{esc(L('pieza basta para empezar', 'piece is enough to start'))}</div></div>
+    <div><div class="n" data-count="4">0</div><div class="l">{esc(L('días hábiles de producción', 'business days of production'))}</div></div>
+  </div></div>
   <div class="marquee" aria-hidden="true"><div class="row">{mq}</div></div>
+  <div class="bigtext" aria-hidden="true"><div class="row">{bigrow}</div></div>
   <section class="b"><div class="wrap"><p class="kicker">{esc(t['how_k'])}</p><h2>{esc(t['how_h'])}</h2><div class="steps4">{steps}</div></div></section>
   <section class="b" id="precios"><div class="wrap"><p class="kicker">{esc(t['pick_k'])}</p><h2>{esc(t['pick_h'])}</h2><div class="cards3" style="margin-top:1.4rem">{opts}</div><p class="note" style="margin-top:.9rem;color:var(--steel);font-size:.84rem">{esc(t['pick_note'])}</p></div></section>
   <section class="b"><div class="wrap"><p class="kicker">{esc(t['packs_k'])}</p><h2>{esc(t['packs_h'])}</h2><div class="cards4" style="margin-top:1.4rem">{packs}</div></div></section>
-  <section class="b" id="calculadora"><div class="wrap"><p class="kicker">{esc(t['calc_k'])}</p><h2>{esc(t['calc_h'])}</h2>
-    <div class="calc" style="margin-top:1.4rem">
-      <div class="form">
-        <label>{esc(t['c_tee'])}<select id="c-tee">{tee_opts}</select></label>
-        <label>{esc(t['c_color'])}<select id="c-color"><option value="blanca">{esc(t['white'])}</option><option value="color">{esc(t['color'])}</option></select></label>
-        <label class="full">{esc(t['c_size'])}<select id="c-size">{size_opts}</select></label>
-        <label>{esc(t['c_qty'])}<input id="c-qty" type="number" inputmode="numeric" min="1" max="200" value="1"></label>
-        <label>{esc(t['c_pack'])}<select id="c-pack">{pack_opts}</select></label>
-        <label class="full">{esc(t['c_dest'])}<select id="c-dest"><option value="mx">{esc(t['c_mx'])}</option><option value="intl">{esc(t['c_intl'])}</option></select></label>
+  <section class="b" id="probador"><div class="wrap"><p class="kicker">{esc(t['calc_k'])}</p><h2>{esc(L('Pruébala y ve tu precio al momento', 'Try it and see your price instantly'))}</h2>
+    <div class="try" style="margin-top:1.4rem">
+      <div>
+        <div class="view" id="try-view">
+          <svg id="try-tee" viewBox="0 0 400 400" role="img" aria-label="{esc(L('Vista previa de tu playera', 'Preview of your T-shirt'))}"><defs><clipPath id="tclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath><clipPath id="tarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
+            <ellipse cx="200" cy="352" rx="125" ry="10" fill="#000" opacity=".35"/>
+            <path class="teefill" id="try-fill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
+            <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
+            <g clip-path="url(#tclip)"><g clip-path="url(#tarea)"><image id="try-art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g></svg>
+        </div>
+        <div class="lbl">{esc(L('1. Elige un diseño libre', '1. Pick a free design'))}</div>
+        <div class="chips2" id="try-designs">{design_chips}</div>
+        <div class="lbl">{esc(L('2. Elige el color', '2. Pick the color'))}</div>
+        <div class="swatches2" id="try-colors"></div>
       </div>
-      <div class="res" aria-live="polite">
-        <div><span class="kicker">{esc(t['c_unit'])}</span><div class="big" id="r-unit">{mx(a_from)}</div></div>
-        <div class="row"><span>{esc(t['c_total'])}</span><b id="r-total">{mx(a_from)}</b></div>
-        <div class="row"><span>{esc(t['c_ship'])}</span><b id="r-ship" data-f="{esc(t['c_free'])}" data-q="{esc(t['c_quote'])}">{mx(env['mx'][0][1])}</b></div>
-        <div class="row"><span><b>{esc(L('Total con envío', 'Total with shipping'))}</b></span><b id="r-sum">{mx(a_from + env['mx'][0][1])}</b></div>
-        <p class="note" id="r-big" hidden>{esc(L('Con tantas piezas la serigrafía sale más barata: el cotizador te muestra el ahorro.', 'At this volume screen printing is cheaper: the quoter shows the saving.'))}</p>
-        <p class="note">{esc(t['c_note'])}</p>
-        <a class="btn accent" id="c-go" data-base="{t['quoter'].split('#')[0]}" href="{t['quoter']}">{esc(t['c_go'])} →</a>
+      <div>
+        <div class="form">
+          <label>{esc(t['c_tee'])}<select id="c-tee">{tee_opts}</select></label>
+          <input type="hidden" id="c-color" value="blanca">
+          <label>{esc(t['c_qty'])}<input id="c-qty" type="number" inputmode="numeric" min="1" max="200" value="1"></label>
+          <label class="full">{esc(t['c_size'])}<select id="c-size">{size_opts}</select></label>
+          <label>{esc(t['c_pack'])}<select id="c-pack">{pack_opts}</select></label>
+          <label>{esc(t['c_dest'])}<select id="c-dest"><option value="mx">{esc(t['c_mx'])}</option><option value="intl">{esc(t['c_intl'])}</option></select></label>
+        </div>
+        <div class="res" aria-live="polite" style="margin-top:1rem">
+          <div><span class="kicker">{esc(t['c_unit'])}</span><div class="big" id="r-unit">{mx(a_from)}</div></div>
+          <div class="row"><span>{esc(t['c_total'])}</span><b id="r-total">{mx(a_from)}</b></div>
+          <div class="row"><span>{esc(t['c_ship'])}</span><b id="r-ship" data-f="{esc(t['c_free'])}" data-q="{esc(t['c_quote'])}">{mx(env['mx'][0][1])}</b></div>
+          <div class="row"><span><b>{esc(L('Total con envío', 'Total with shipping'))}</b></span><b id="r-sum">{mx(a_from + env['mx'][0][1])}</b></div>
+          <p class="note" id="r-big" hidden>{esc(L('Con tantas piezas la serigrafía sale más barata: el cotizador te muestra el ahorro.', 'At this volume screen printing is cheaper: the quoter shows the saving.'))}</p>
+          <p class="note">{esc(t['c_note'])}</p>
+          <a class="btn accent" id="c-studio" href="{t['studio']}">{esc(L('Diseñar mi playera con este diseño', 'Design my T-shirt with this design'))} →</a>
+          <a class="btn" id="c-go" data-base="{t['quoter'].split('#')[0]}" href="{t['quoter']}">{esc(t['c_go'])} →</a>
+        </div>
       </div>
     </div></div></section>
   <section class="b" id="disenos"><div class="wrap"><p class="kicker">{esc(t['designs_k'])}</p><h2>{esc(t['designs_h'])}</h2><p style="color:var(--steel);max-width:62ch">{esc(t['designs_p'])}</p><div class="designs" style="margin-top:1.2rem">{des}</div></div></section>

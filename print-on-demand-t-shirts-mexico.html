@@ -98,11 +98,11 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
 .pcard .pr{font:700 1.9rem "Jost",sans-serif}.pcard .pr small{font:500 .72rem "Jost",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);margin-left:.3rem}
 .pcard .sub{font-size:.84rem;color:var(--steel)}
 .calc{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:1.4rem;align-items:start}
-.calc .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
-.calc label{display:grid;gap:.3rem;font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--steel)}
-.calc select,.calc input{width:100%;padding:.8rem .8rem;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:500 1rem "Questrial",sans-serif;border-radius:2px;min-height:48px}
-.calc select:focus,.calc input:focus{outline:none;border-color:var(--ink)}
-.calc .full{grid-column:1/-1}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
+.form label{display:grid;gap:.3rem;font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--steel)}
+.form select,.form input{width:100%;padding:.8rem .8rem;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:500 1rem "Questrial",sans-serif;border-radius:2px;min-height:48px}
+.form select:focus,.form input:focus{outline:none;border-color:var(--ink)}
+.form .full{grid-column:1/-1}
 .res{border:1px solid var(--ink);background:var(--card);padding:1.2rem 1.3rem;display:grid;gap:.6rem;position:sticky;top:84px}
 .res .big{font:700 2.6rem/1 "Jost",sans-serif;color:var(--magenta)}
 .res .row{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid var(--rule);padding-top:.5rem;font-size:.95rem}
@@ -123,70 +123,158 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
 .stickybar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:none;gap:.6rem;padding:.6rem 16px calc(.6rem + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--rule)}
 .stickybar .btn{flex:1}
 @media (max-width:900px){.pod-hero .wrap,.calc,.shipgrid{grid-template-columns:minmax(0,1fr)}.steps4,.cards4,.trust4{grid-template-columns:repeat(2,minmax(0,1fr))}.cards3{grid-template-columns:minmax(0,1fr)}.res{position:static}.stickybar{display:flex}.stage{max-width:380px}}
-@media (max-width:520px){.steps4,.cards4,.trust4{grid-template-columns:minmax(0,1fr)}.calc .form{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.steps4,.cards4,.trust4{grid-template-columns:minmax(0,1fr)}.form{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.print-art{animation:none;clip-path:none}.gantry,.head,.drop,.float,.marquee .row{animation:none}.rv{opacity:1;transform:none;transition:none}.step4::after{width:100%;transition:none}}
+
+/* ===== v2: a landing that stops the scroll ===== */
+.progress{position:fixed;left:0;top:0;height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#C9922E,#F3EBDD);z-index:30}
+.pod-hero{isolation:isolate;padding-block:2.2rem 3.4rem;background:radial-gradient(1200px 600px at 78% 12%,rgba(201,146,46,.16),transparent 60%)}
+.halftone{position:absolute;inset:-20% -10%;z-index:-2;background-image:radial-gradient(circle,rgba(201,146,46,.30) 1.6px,transparent 1.8px);background-size:24px 24px;-webkit-mask-image:linear-gradient(115deg,transparent 18%,#000 55%,transparent 92%);mask-image:linear-gradient(115deg,transparent 18%,#000 55%,transparent 92%);animation:ht 40s linear infinite}
+@keyframes ht{to{background-position:240px 120px}}
+.blob{position:absolute;border-radius:50%;filter:blur(46px);opacity:.5;z-index:-1;animation:blobf 11s ease-in-out infinite}
+.blob.c{width:240px;height:240px;background:#1fb6e8;left:44%;top:6%;opacity:.28}
+.blob.m{width:200px;height:200px;background:#e2358b;right:2%;bottom:6%;opacity:.26;animation-delay:-4s}
+.blob.y{width:170px;height:170px;background:#C9922E;left:-3%;bottom:4%;opacity:.35;animation-delay:-7s}
+@keyframes blobf{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(26px,-30px) scale(1.14)}}
+.reg-mark{position:absolute;width:22px;height:22px;border:1.5px solid var(--magenta);border-radius:50%;opacity:.8}
+.reg-mark::before,.reg-mark::after{content:"";position:absolute;background:var(--magenta)}
+.reg-mark::before{left:50%;top:-7px;bottom:-7px;width:1.5px;transform:translateX(-50%)}.reg-mark::after{top:50%;left:-7px;right:-7px;height:1.5px;transform:translateY(-50%)}
+.reg-mark.a{left:1.2rem;top:6.5rem;animation:spin 18s linear infinite}.reg-mark.b{right:2rem;bottom:3rem;animation:spin 24s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pod-hero h1{font-size:clamp(2.1rem,5vw,3.7rem);line-height:1}
+.pod-hero h1 .ln{display:block;overflow:hidden;padding-bottom:.06em}
+.pod-hero h1 .ln>span{display:block;transform:translateY(108%);animation:up .9s cubic-bezier(.2,.8,.2,1) forwards}
+.pod-hero h1 .ln:nth-child(2)>span{animation-delay:.12s}.pod-hero h1 .ln:nth-child(3)>span{animation-delay:.24s}
+@keyframes up{to{transform:none}}
+.uline{background:linear-gradient(var(--magenta),var(--magenta)) no-repeat 0 96%/0 .09em;animation:sweepx 1s .9s cubic-bezier(.2,.8,.2,1) forwards;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+@keyframes sweepx{to{background-size:100% .09em}}
+.offer{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0 1.3rem}
+.offer span{display:inline-flex;align-items:center;gap:.45rem;padding:.4rem .75rem;border:1px solid var(--rule);background:color-mix(in srgb,var(--card) 80%,transparent);font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);animation:pop .6s forwards}
+.offer span:nth-child(1){animation-delay:1s}.offer span:nth-child(2){animation-delay:1.12s}.offer span:nth-child(3){animation-delay:1.24s}.offer span:nth-child(4){animation-delay:1.36s}
+.offer i{width:7px;height:7px;border-radius:50%;background:var(--magenta);flex:none}
+@keyframes pop{to{opacity:1;transform:none}}
+.cta .btn.accent{position:relative;overflow:hidden;box-shadow:0 10px 34px rgba(201,146,46,.35)}
+.cta .btn.accent::after{content:"";position:absolute;top:0;bottom:0;width:60%;left:-80%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 3.4s 2s infinite}
+@keyframes shine{0%{left:-80%}40%,100%{left:140%}}
+.stage{max-width:560px}
+.badge-price{position:absolute;right:2%;top:6%;z-index:3;width:116px;height:116px;border-radius:50%;background:var(--magenta);color:var(--on-accent);display:grid;place-content:center;text-align:center;transform:rotate(-10deg);font:700 .62rem/1.15 "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 12px 30px rgba(0,0,0,.45);animation:pulse 2.6s ease-in-out infinite}
+.badge-price b{display:block;font:700 1.55rem/1 "Jost",sans-serif;letter-spacing:0;margin:.1rem 0}
+@keyframes pulse{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(-6deg) scale(1.08)}}
+#hero-tee .teefill{transition:fill .7s ease}
+#hero-tee .art{opacity:0}
+#hero-tee .art.run{opacity:1;clip-path:inset(100% 0 0 0);animation:artin 2.6s .15s cubic-bezier(.5,0,.2,1) forwards}
+@keyframes artin{to{clip-path:inset(0 0 0 0)}}
+#hero-tee .gantry2{transform:translateY(190px);transform-box:fill-box}
+#hero-tee .gantry2.run{animation:gsweep 2.6s .15s cubic-bezier(.5,0,.2,1) forwards}
+@keyframes gsweep{0%{transform:translateY(190px)}85%{transform:translateY(-14px)}100%{transform:translateY(-30px);opacity:0}}
+.sw{display:flex;gap:.5rem;position:absolute;left:50%;bottom:-.2rem;transform:translateX(-50%)}
+.sw i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--rule);transition:transform .3s,border-color .3s}.sw i.on{transform:scale(1.35);border-color:var(--ink)}
+.strip{border-block:1px solid var(--rule);background:var(--card)}
+.strip .wrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;padding-block:1.4rem}
+.strip .n{font:700 clamp(1.6rem,3.6vw,2.4rem)/1 "Jost",sans-serif;color:var(--magenta);font-variant-numeric:tabular-nums}
+.strip .l{font:600 .7rem "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-top:.3rem}
+.try{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.6rem;align-items:start}
+.try .view{position:sticky;top:84px;border:1px solid var(--ink);background:radial-gradient(circle at 50% 38%,#4a4234,#1b1813 70%);padding:1rem 1rem 1.4rem}
+.try .view svg{width:100%;height:auto;display:block;max-height:430px}
+#try-tee .teefill{transition:fill .5s ease}#try-art{transition:opacity .35s ease}
+.chips2{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.chips2 button{width:64px;height:64px;padding:4px;border:1.5px solid var(--rule);background:repeating-conic-gradient(#e9e8ec 0 25%,#f7f6f8 0 50%) 50%/12px 12px;cursor:pointer;transition:transform .2s,border-color .2s}
+.chips2 button img{width:100%;height:100%;object-fit:contain;display:block}
+.chips2 button[aria-pressed="true"]{border-color:var(--magenta);transform:translateY(-3px);box-shadow:0 0 0 2px var(--magenta)}
+.swatches2{display:flex;gap:.55rem;margin-top:.8rem;align-items:center}
+.swatches2 button{width:34px;height:34px;border-radius:50%;border:2px solid var(--rule);cursor:pointer;transition:transform .2s}
+.swatches2 button[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.18)}
+.try .lbl{font:600 .7rem "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-top:1rem}
+.countdown{display:inline-flex;gap:.4rem;align-items:center;font:600 .74rem "Jost",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.tilt{transform-style:preserve-3d;will-change:transform}
+.cards3 .pcard,.cards4 .pcard{transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}.pcard:hover{box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.bigtext{overflow:hidden;border-block:1px solid var(--rule);padding:.4rem 0}
+.bigtext .row{display:flex;gap:3rem;width:max-content;animation:slide 30s linear infinite reverse;font:700 clamp(2.2rem,6vw,4.2rem)/1.1 "Jost",sans-serif;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.5px rgba(243,235,221,.38)}
+.bigtext .row b{color:var(--ink);-webkit-text-stroke:0}
+@media (max-width:900px){.try{grid-template-columns:minmax(0,1fr)}.try .view{position:static}.strip .wrap{grid-template-columns:repeat(2,minmax(0,1fr))}.badge-price{width:92px;height:92px;font-size:.52rem}.badge-price b{font-size:1.2rem}.reg-mark{display:none}}
+@media (prefers-reduced-motion:reduce){.halftone,.blob,.reg-mark,.badge-price,.bigtext .row{animation:none}.pod-hero h1 .ln>span{transform:none;animation:none}.uline{background-size:100% .09em;animation:none}.offer span{opacity:1;transform:none;animation:none}.cta .btn.accent::after{display:none}#hero-tee .art{opacity:1;clip-path:none;animation:none}#hero-tee .gantry2{display:none}}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Product","name":"Print on demand T-shirt with DTG print","description":"Upload your art or pick a free design, see how it looks and get it delivered. Full-color DTG printing in an audited plant in Puebla, with clear pricing and flat-rate shipping across Mexico.","image":"https://chilian.vercel.app/photos/opt/print-on-demand-dtg-960.webp","brand":{"@type":"Brand","name":"Chilian"},"manufacturer":{"@id":"https://chilian.vercel.app/#chilian"},"offers":{"@type":"AggregateOffer","priceCurrency":"MXN","lowPrice":"236.83","highPrice":"342.49","offerCount":6,"availability":"https://schema.org/InStock","url":"https://chilian.vercel.app/print-on-demand-t-shirts-mexico","seller":{"@id":"https://chilian.vercel.app/#chilian"},"shippingDetails":{"@type":"OfferShippingDetails","shippingRate":{"@type":"MonetaryAmount","value":"129","currency":"MXN"},"shippingDestination":{"@type":"DefinedRegion","addressCountry":"MX"},"deliveryTime":{"@type":"ShippingDeliveryTime","handlingTime":{"@type":"QuantitativeValue","minValue":1,"maxValue":4,"unitCode":"DAY"},"transitTime":{"@type":"QuantitativeValue","minValue":3,"maxValue":5,"unitCode":"DAY"}}}}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Grupo Chilian","item":"https://chilian.vercel.app/en"},{"@type":"ListItem","position":2,"name":"Your design, on a real T-shirt.","item":"https://chilian.vercel.app/print-on-demand-t-shirts-mexico"}]},{"@type":"HowTo","name":"Four steps, no minimums","step":[{"@type":"HowToStep","position":1,"name":"Pick your T-shirt","text":"Oversized, regular or budget, white or colored."},{"@type":"HowToStep","position":2,"name":"Upload your design","text":"Or pick a free public-domain design. You see it on the garment before you pay."},{"@type":"HowToStep","position":3,"name":"We print in DTG","text":"Full color, no screens: photos, gradients, a different design on every piece."},{"@type":"HowToStep","position":4,"name":"We ship it","text":"Flat rate across Mexico, free on larger orders. Abroad, an advisor quotes it."}]},{"@type":"FAQPage","inLanguage":"en-US","mainEntity":[{"@type":"Question","name":"What is the minimum?","acceptedAnswer":{"@type":"Answer","text":"One piece. There is no minimum in print on demand."}},{"@type":"Question","name":"What does the price include?","acceptedAnswer":{"@type":"Answer","text":"The T-shirt, one full-color DTG print up to the size you choose, setup, quality check and individual packing, VAT and payment fee. An extra print adds its price; shipping is separate."}},{"@type":"Question","name":"What file do I need?","acceptedAnswer":{"@type":"Answer","text":"A 300 DPI PNG with a transparent background is ideal. We also accept JPG, SVG and WebP, and we warn you if the resolution is low."}},{"@type":"Question","name":"Can I order different designs in one order?","acceptedAnswer":{"@type":"Answer","text":"Yes. The price per piece drops with the total pieces, even if each one has a different design."}},{"@type":"Question","name":"Can I use the free designs?","acceptedAnswer":{"@type":"Answer","text":"Yes. They are public-domain works taken from Wikimedia Commons; you are responsible for not combining them with protected brands or text."}},{"@type":"Question","name":"Do you ship abroad?","acceptedAnswer":{"@type":"Answer","text":"Yes, we ship nationally and internationally. Outside Mexico your advisor quotes freight and export documents; the final price is confirmed in pesos."}}]}]}</script>
 </head>
 <body>
+<div class="progress" id="prog"></div>
 <header><div class="wrap">
   <a class="logo" href="/en" aria-label="Grupo Chilian"><img src="/logos/chilian-logo-header.png" alt="" width="36" height="36"><i aria-hidden="true"></i></a>
   <nav aria-label="Main"><a class="opt" href="#precios">See prices</a><a class="opt" href="#disenos">Free designs</a><a class="btn accent" href="/en?studio=1">Design your T-shirt</a></nav>
 </div></header>
 <main>
-  <section class="pod-hero"><div class="wrap">
+  <section class="pod-hero"><div class="halftone"></div><span class="blob c"></span><span class="blob m"></span><span class="blob y"></span><span class="reg-mark a"></span><span class="reg-mark b"></span><div class="wrap">
     <div>
       <p class="kicker">Print on demand · DTG</p>
-      <h1><span>Your design,</span><span class="acc">on a real T-shirt.</span><span>From 1 piece.</span></h1>
-      <div class="price-chip">from <b>$237</b> with VAT</div>
+      <h1><span class="ln"><span>Your design,</span></span><span class="ln"><span class="acc">on a real <span class="uline">T-shirt.</span></span></span><span class="ln"><span>From 1 piece.</span></span></h1>
+      <div class="offer"><span><i></i>from $237 with VAT</span><span><i></i>No minimums</span><span><i></i>Shipping across Mexico</span><span><i></i>Production in 4 business days</span></div>
       <p class="lead">Upload your art or pick a free design, see how it looks and get it delivered. Full-color DTG printing in an audited plant in Puebla, with clear pricing and flat-rate shipping across Mexico.</p>
-      <div class="cta"><a class="btn accent" href="/en?studio=1">Design your T-shirt →</a><a class="btn" href="#precios">See prices</a></div>
+      <div class="cta"><a class="btn accent" href="/en?studio=1">Design your T-shirt →</a><a class="btn" href="#probador">Try it and see your price</a></div>
     </div>
-    <div class="stage" aria-hidden="false">
-      <svg viewBox="0 0 400 400" role="img" aria-label="A DTG printer prints a full-color design on a T-shirt">
-  <defs><clipPath id="teeclip"><path id="teepath" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath>
-  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9922E"/><stop offset="1" stop-color="#E8C16B"/></linearGradient>
-  <linearGradient id="g2" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1B6FB5"/><stop offset="1" stop-color="#5BC0DE"/></linearGradient></defs>
-  <ellipse cx="200" cy="352" rx="120" ry="10" fill="#000" opacity=".25"/>
-  <path class="tee-body" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
-  <path class="tee-shade" d="M126 134 L126 330 L170 330 L170 120 Z"/>
-  <g clip-path="url(#teeclip)"><g class="print-art">
-    <circle cx="200" cy="190" r="50" fill="url(#g1)"/>
-    <path d="M126 235 C150 205 170 265 200 235 S250 205 274 235 L274 300 L126 300 Z" fill="url(#g2)"/>
-    <path d="M126 262 C150 240 175 290 200 262 S250 240 274 262 L274 300 L126 300 Z" fill="#0B0B0B" opacity=".25"/>
-    <circle cx="172" cy="170" r="5" fill="#fff" opacity=".8"/><circle cx="232" cy="150" r="3" fill="#fff" opacity=".7"/>
-  </g></g>
-  <g class="gantry" style="transform-origin:200px 60px">
-    <rect x="86" y="58" width="228" height="10" rx="5" fill="#2a2620"/><rect x="86" y="58" width="228" height="3" rx="1.5" fill="#C9922E"/>
-    <g class="head"><rect x="186" y="50" width="28" height="26" rx="4" fill="#0B0B0B" stroke="#C9922E" stroke-width="2"/>
-      <circle class="drop" cx="193" cy="82" r="2.2"/><circle class="drop" cx="200" cy="82" r="2.2"/><circle class="drop" cx="207" cy="82" r="2.2"/></g>
+    <div class="stage">
+      <div class="badge-price" aria-hidden="true">from<b>$237</b>with VAT</div>
+      <svg id="hero-tee" viewBox="0 0 400 420" role="img" aria-label="A DTG printer prints a famous design in full color on a T-shirt">
+  <defs><clipPath id="teeclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath>
+  <clipPath id="printarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
+  <ellipse cx="200" cy="362" rx="125" ry="11" fill="#000" opacity=".35"/>
+  <path class="teefill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
+  <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
+  <path fill="none" stroke="#000" stroke-opacity=".12" d="M135 62 C145 92 255 92 265 62"/>
+  <g clip-path="url(#teeclip)"><g clip-path="url(#printarea)"><image id="hero-art" class="art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g>
+  <g class="gantry2" id="hero-gantry" style="transform-origin:200px 70px">
+    <rect x="84" y="60" width="232" height="10" rx="5" fill="#2a2620"/><rect x="84" y="60" width="232" height="3" rx="1.5" fill="#C9922E"/>
+    <rect x="186" y="50" width="28" height="26" rx="4" fill="#0B0B0B" stroke="#C9922E" stroke-width="2"/>
+    <circle cx="193" cy="84" r="2.4" fill="#1fb6e8"/><circle cx="200" cy="84" r="2.4" fill="#e2358b"/><circle cx="207" cy="84" r="2.4" fill="#C9922E"/>
   </g>
 </svg>
-      <span class="tag a float">From 1 piece</span><span class="tag b float d2">Full-color DTG</span><span class="tag c float d3">Shipping across Mexico</span>
+      <div class="sw" aria-hidden="true"><i style="background:#111"></i><i style="background:#F3EBDD"></i><i style="background:#E7DBC6"></i><i style="background:#1B2A49"></i></div>
     </div>
   </div></section>
+  <div class="strip"><div class="wrap">
+    <div><div class="n" data-count="35" data-suf="+">0</div><div class="l">years of experience</div></div>
+    <div><div class="n" data-count="20000" data-sep="1">0</div><div class="l">pieces a day of capacity</div></div>
+    <div><div class="n" data-count="1">0</div><div class="l">piece is enough to start</div></div>
+    <div><div class="n" data-count="4">0</div><div class="l">business days of production</div></div>
+  </div></div>
   <div class="marquee" aria-hidden="true"><div class="row"><span>The Great Wave</span><span>Jellyfish</span><span>Rhinoceros</span><span>From 1 piece</span><span>Full-color DTG</span><span>Shipping across Mexico</span><span>No minimums</span><span>The Great Wave</span><span>Jellyfish</span><span>Rhinoceros</span><span>From 1 piece</span><span>Full-color DTG</span><span>Shipping across Mexico</span><span>No minimums</span></div></div>
+  <div class="bigtext" aria-hidden="true"><div class="row"><b>Design</b><span>Print</span><b>Receive</b><span>Repeat</span><b>Design</b><span>Print</span><b>Receive</b><span>Repeat</span><b>Design</b><span>Print</span><b>Receive</b><span>Repeat</span><b>Design</b><span>Print</span><b>Receive</b><span>Repeat</span></div></div>
   <section class="b"><div class="wrap"><p class="kicker">How it works</p><h2>Four steps, no minimums</h2><div class="steps4"><div class="step4 rv"><div class="n">1</div><h3>Pick your T-shirt</h3><p>Oversized, regular or budget, white or colored.</p></div><div class="step4 rv"><div class="n">2</div><h3>Upload your design</h3><p>Or pick a free public-domain design. You see it on the garment before you pay.</p></div><div class="step4 rv"><div class="n">3</div><h3>We print in DTG</h3><p>Full color, no screens: photos, gradients, a different design on every piece.</p></div><div class="step4 rv"><div class="n">4</div><h3>We ship it</h3><p>Flat rate across Mexico, free on larger orders. Abroad, an advisor quotes it.</p></div></div></div></section>
   <section class="b" id="precios"><div class="wrap"><p class="kicker">Pick your T-shirt</p><h2>Three options, one plant-grade quality</h2><div class="cards3" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">Best seller</span><h3>Regular</h3><p>100% cotton, 155 g. The best seller: classic cut, great for DTG.</p><div class="pr">$237<small>White</small></div><div class="sub">$331 colored</div><a class="btn" href="/en?prod=pod&pod=regular#cotizar">Design your T-shirt →</a></div><div class="pcard rv"><span class="badge">Price to be confirmed</span><h3>Oversized</h3><p>Relaxed cut, 100% cotton. For fashion and streetwear brands.</p><div class="pr">$243<small>White</small></div><div class="sub">$342 colored</div><a class="btn" href="/en?prod=pod&pod=oversized#cotizar">Design your T-shirt →</a></div><div class="pcard rv"><span class="badge">Lowest price</span><h3>Budget</h3><p>50% cotton, 50% polyester. For gifts and events; best with light designs.</p><div class="pr">$231<small>White</small></div><div class="sub">$329 colored</div><a class="btn" href="/en?prod=pod&pod=economica#cotizar">Design your T-shirt →</a></div></div><p class="note" style="margin-top:.9rem;color:var(--steel);font-size:.84rem">Price for 1 piece, white, with one print up to 27 cm. VAT, payment fee and service included. Prices in Mexican pesos (MXN).</p></div></section>
   <section class="b"><div class="wrap"><p class="kicker">Packs</p><h2>More pieces, less per piece</h2><div class="cards4" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">−5% off</span><h3>Duo pack</h3><p>2 tees, same design or different ones</p><div class="pr">$225<small>per piece</small></div><div class="sub">2 pieces · $579 · Shipping $129</div><a class="btn" href="/en?prod=pod&pack=duo#cotizar">Choose pack →</a></div><div class="pcard rv"><span class="badge">−5% off</span><h3>Creator pack</h3><p>3 different designs, one of each</p><div class="pr">$225<small>per piece</small></div><div class="sub">3 pieces · $804 · Shipping $129</div><a class="btn" href="/en?prod=pod&pack=creador#cotizar">Choose pack →</a></div><div class="pcard rv"><span class="badge">−6% off</span><h3>Team pack</h3><p>6 tees for your team</p><div class="pr">$176<small>per piece</small></div><div class="sub">6 pieces · $1,228 · Shipping $169</div><a class="btn" href="/en?prod=pod&pack=equipo#cotizar">Choose pack →</a></div><div class="pcard rv"><span class="badge">−4% off</span><h3>Event pack</h3><p>12 tees with free shipping</p><div class="pr">$167<small>per piece</small></div><div class="sub">12 pieces · $1,999 · Free shipping</div><a class="btn" href="/en?prod=pod&pack=evento#cotizar">Choose pack →</a></div></div></div></section>
-  <section class="b" id="calculadora"><div class="wrap"><p class="kicker">Calculator</p><h2>Your price in seconds</h2>
-    <div class="calc" style="margin-top:1.4rem">
-      <div class="form">
-        <label>T-shirt<select id="c-tee"><option value="regular">Regular</option><option value="oversized">Oversized</option><option value="economica">Budget</option></select></label>
-        <label>Garment<select id="c-color"><option value="blanca">White</option><option value="color">Colored</option></select></label>
-        <label class="full">Print size<select id="c-size"><option value="6">Up to 6 cm · label</option><option value="11">Up to 11 cm · chest logo</option><option value="20">Up to 20 cm · half letter</option><option value="27" selected>Up to 27 cm · letter</option><option value="40">Up to 40 cm · double letter</option><option value="53">Up to 53 cm · maximum</option></select></label>
-        <label>Pieces<input id="c-qty" type="number" inputmode="numeric" min="1" max="200" value="1"></label>
-        <label>Pack<select id="c-pack"><option value="">No pack</option><option value="duo" data-q="2">Duo pack (2)</option><option value="creador" data-q="3">Creator pack (3)</option><option value="equipo" data-q="6">Team pack (6)</option><option value="evento" data-q="12">Event pack (12)</option></select></label>
-        <label class="full">Ship to<select id="c-dest"><option value="mx">Mexico</option><option value="intl">Other country</option></select></label>
+  <section class="b" id="probador"><div class="wrap"><p class="kicker">Calculator</p><h2>Try it and see your price instantly</h2>
+    <div class="try" style="margin-top:1.4rem">
+      <div>
+        <div class="view" id="try-view">
+          <svg id="try-tee" viewBox="0 0 400 400" role="img" aria-label="Preview of your T-shirt"><defs><clipPath id="tclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath><clipPath id="tarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
+            <ellipse cx="200" cy="352" rx="125" ry="10" fill="#000" opacity=".35"/>
+            <path class="teefill" id="try-fill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
+            <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
+            <g clip-path="url(#tclip)"><g clip-path="url(#tarea)"><image id="try-art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g></svg>
+        </div>
+        <div class="lbl">1. Pick a free design</div>
+        <div class="chips2" id="try-designs"><button type="button" data-id="ola" data-dark="0" aria-pressed="true" title="The Great Wave"><img src="/disenos/ola-s.webp" alt="The Great Wave" width="56" height="56"></button><button type="button" data-id="medusas" data-dark="0" aria-pressed="false" title="Jellyfish"><img src="/disenos/medusas-s.webp" alt="Jellyfish" width="56" height="56"></button><button type="button" data-id="rinoceronte" data-dark="1" aria-pressed="false" title="Rhinoceros"><img src="/disenos/rinoceronte-s.webp" alt="Rhinoceros" width="56" height="56"></button></div>
+        <div class="lbl">2. Pick the color</div>
+        <div class="swatches2" id="try-colors"></div>
       </div>
-      <div class="res" aria-live="polite">
-        <div><span class="kicker">Per piece</span><div class="big" id="r-unit">$237</div></div>
-        <div class="row"><span>Estimated total</span><b id="r-total">$237</b></div>
-        <div class="row"><span>Shipping</span><b id="r-ship" data-f="Free" data-q="Quoted by your advisor">$129</b></div>
-        <div class="row"><span><b>Total with shipping</b></span><b id="r-sum">$366</b></div>
-        <p class="note" id="r-big" hidden>At this volume screen printing is cheaper: the quoter shows the saving.</p>
-        <p class="note">VAT and payment fee included, in Mexican pesos. Your advisor confirms the final price after reviewing your art.</p>
-        <a class="btn accent" id="c-go" data-base="/en?prod=pod" href="/en?prod=pod#cotizar">Design with this price →</a>
+      <div>
+        <div class="form">
+          <label>T-shirt<select id="c-tee"><option value="regular">Regular</option><option value="oversized">Oversized</option><option value="economica">Budget</option></select></label>
+          <input type="hidden" id="c-color" value="blanca">
+          <label>Pieces<input id="c-qty" type="number" inputmode="numeric" min="1" max="200" value="1"></label>
+          <label class="full">Print size<select id="c-size"><option value="6">Up to 6 cm · label</option><option value="11">Up to 11 cm · chest logo</option><option value="20">Up to 20 cm · half letter</option><option value="27" selected>Up to 27 cm · letter</option><option value="40">Up to 40 cm · double letter</option><option value="53">Up to 53 cm · maximum</option></select></label>
+          <label>Pack<select id="c-pack"><option value="">No pack</option><option value="duo" data-q="2">Duo pack (2)</option><option value="creador" data-q="3">Creator pack (3)</option><option value="equipo" data-q="6">Team pack (6)</option><option value="evento" data-q="12">Event pack (12)</option></select></label>
+          <label>Ship to<select id="c-dest"><option value="mx">Mexico</option><option value="intl">Other country</option></select></label>
+        </div>
+        <div class="res" aria-live="polite" style="margin-top:1rem">
+          <div><span class="kicker">Per piece</span><div class="big" id="r-unit">$237</div></div>
+          <div class="row"><span>Estimated total</span><b id="r-total">$237</b></div>
+          <div class="row"><span>Shipping</span><b id="r-ship" data-f="Free" data-q="Quoted by your advisor">$129</b></div>
+          <div class="row"><span><b>Total with shipping</b></span><b id="r-sum">$366</b></div>
+          <p class="note" id="r-big" hidden>At this volume screen printing is cheaper: the quoter shows the saving.</p>
+          <p class="note">VAT and payment fee included, in Mexican pesos. Your advisor confirms the final price after reviewing your art.</p>
+          <a class="btn accent" id="c-studio" href="/en?studio=1">Design my T-shirt with this design →</a>
+          <a class="btn" id="c-go" data-base="/en?prod=pod" href="/en?prod=pod#cotizar">Design with this price →</a>
+        </div>
       </div>
     </div></div></section>
   <section class="b" id="disenos"><div class="wrap"><p class="kicker">Free designs</p><h2>Famous art, ready to print</h2><p style="color:var(--steel);max-width:62ch">Public-domain artworks: you can print them without paying royalties. Pick one and open it in the studio.</p><div class="designs" style="margin-top:1.2rem"><a class="dcard rv" href="/en?studio=1&design=ola" aria-label="Print: The Great Wave"><span class="ph"><img src="/disenos/ola-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>The Great Wave</b><small>Katsushika Hokusai, 1831</small><em>Public domain · Print →</em></span></a><a class="dcard rv" href="/en?studio=1&design=medusas" aria-label="Print: Jellyfish"><span class="ph"><img src="/disenos/medusas-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>Jellyfish</b><small>Ernst Haeckel, 1904</small><em>Public domain · Print →</em></span></a><a class="dcard rv" href="/en?studio=1&design=rinoceronte" aria-label="Print: Rhinoceros"><span class="ph"><img src="/disenos/rinoceronte-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>Rhinoceros</b><small>Albrecht Dürer, 1515</small><em>Public domain · Print →</em></span></a></div></div></section>
@@ -226,6 +314,26 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
     var big=q>P.pod.recargo.maxPiezas;$("#r-big").hidden=!big;
     var go=$("#c-go");go.href=go.dataset.base+"&pod="+tee+"&color="+(white?"blanca":"color")+"&dcm="+cm+"&qty="+q+(pk?"&pack="+pk:"")+"&dest="+dest+"#cotizar";
   }
+
+  // scroll progress bar
+  var bar=$("#prog");addEventListener("scroll",function(){var h=document.documentElement;bar.style.transform="scaleX("+(h.scrollTop/(h.scrollHeight-h.clientHeight||1))+")"},{passive:true});
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // count-up numbers
+  var cio=("IntersectionObserver" in window)?new IntersectionObserver(function(en){en.forEach(function(e){if(!e.isIntersecting)return;cio.unobserve(e.target);var el=e.target,to=+el.dataset.count,suf=el.dataset.suf||"",t0=null;function f(ts){t0=t0||ts;var k=Math.min(1,(ts-t0)/1300),v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=(el.dataset.sep?v.toLocaleString(es?"es-MX":"en-US"):v)+suf;if(k<1&&!reduce)requestAnimationFrame(f)}requestAnimationFrame(f)})},{threshold:.6}):null;
+  document.querySelectorAll("[data-count]").forEach(function(el){if(cio&&!reduce)cio.observe(el);else el.textContent=(el.dataset.sep?(+el.dataset.count).toLocaleString():el.dataset.count)+(el.dataset.suf||"")});
+  // hero: the same printer prints a famous design on four garments in turn
+  var HERO=[["medusas","#161411"],["ola","#F3EBDD"],["rinoceronte","#E7DBC6"],["medusas","#1B2A49"]],hi=0,tee=$("#hero-tee");
+  if(tee){var art=$("#hero-art"),fill=tee.querySelector(".teefill"),g=$("#hero-gantry"),dots=document.querySelectorAll(".sw i");
+    var runHero=function(){var c=HERO[hi%HERO.length];fill.setAttribute("fill",c[1]);art.classList.remove("run");g.classList.remove("run");art.setAttribute("href","/disenos/"+c[0]+".webp");void art.getBoundingClientRect();art.classList.add("run");g.classList.add("run");dots.forEach(function(d,i){d.classList.toggle("on",i===hi%HERO.length)});hi++};
+    runHero();if(!reduce)setInterval(runHero,5200)}
+  // fitting room: design + color drive the preview and the links; the form drives the price
+  var tryArt=$("#try-art"),tryFill=$("#try-fill"),COLORS=[["blanca","#F3EBDD",es?"Blanca":"White"],["color","#161411",es?"Negra":"Black"],["color","#1B2A49",es?"Marino":"Navy"],["color","#8e1f2b",es?"Roja":"Red"],["color","#3e4a35",es?"Militar":"Olive"]],curDesign="ola",curColor=0;
+  if(tryArt){
+    var sw=$("#try-colors");COLORS.forEach(function(c,i){var b=document.createElement("button");b.type="button";b.style.background=c[1];b.title=c[2];b.setAttribute("aria-label",c[2]);b.setAttribute("aria-pressed",String(i===0));b.addEventListener("click",function(){curColor=i;$("#c-color").value=c[0];tryFill.setAttribute("fill",c[1]);sw.querySelectorAll("button").forEach(function(x,k){x.setAttribute("aria-pressed",String(k===i))});calc();links()});sw.appendChild(b)});
+    document.querySelectorAll("#try-designs button").forEach(function(b){b.addEventListener("click",function(){curDesign=b.dataset.id;tryArt.style.opacity=0;setTimeout(function(){tryArt.setAttribute("href","/disenos/"+curDesign+".webp");tryArt.style.opacity=1},180);document.querySelectorAll("#try-designs button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});links()})});
+    window.__links=links;function links(){var s=$("#c-studio"),base=s.dataset.b||(s.dataset.b=s.getAttribute("href"));s.href=base+(base.indexOf("?")>-1?"&":"?")+"design="+curDesign}links()}
+  // cards lean toward the pointer
+  if(!reduce&&matchMedia("(hover:hover)").matches)document.querySelectorAll(".pcard,.dcard").forEach(function(c){c.classList.add("tilt");c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.transform="perspective(700px) rotateY("+(x*7)+"deg) rotateX("+(-y*7)+"deg) translateY(-4px)"});c.addEventListener("pointerleave",function(){c.style.transform=""})});
   $("#c-qty").addEventListener("input",function(){var pk=$("#c-pack").value;if(pk&&this.value!==$("#c-pack").selectedOptions[0].dataset.q)$("#c-pack").value=""});
   $("#c-pack").addEventListener("change",function(){var o=this.selectedOptions[0];if(o&&o.dataset.q)$("#c-qty").value=o.dataset.q});
   ["c-tee","c-color","c-size","c-pack","c-qty","c-dest"].forEach(function(id){var el=$("#"+id);if(el){el.addEventListener("input",calc);el.addEventListener("change",calc)}});
