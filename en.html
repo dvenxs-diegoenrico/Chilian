@@ -1114,6 +1114,12 @@
   .hs-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.5); transition: width .3s ease, background .3s ease; }
   .hs-dot[aria-current="true"]::before { width: 18px; border-radius: 4px; background: #fff; }
   .hs-pause { font-size: .62rem; letter-spacing: -.1em; }
+  /* touch targets: an invisible 44 px area around small links and the slideshow controls (the look does not change) */
+  .nav a, .strip a, .foot-links a, .hs-dot, .hs-pause { position: relative; }
+  .nav a::after, .strip a::after, .foot-links a::after, .hs-dot::after, .hs-pause::after { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; height: 44px; transform: translateY(-50%); }
+  .hs-dot::after, .hs-pause::after { left: -8px; right: -8px; }
+  .hs-nav { gap: .35rem; }
+  @media (pointer: coarse) { .foot-links a { display: inline-block; padding: .5rem 0; } }
   .hs-dot:focus-visible, .hs-pause:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 50%; }
   @keyframes settle { from { transform: scale(1.08); filter: saturate(.4) contrast(1.1); } }
   /* Process: the line fills and each station lights up in turn. */
