@@ -38,6 +38,10 @@ for k, v in SEO.items():
 BRANDS = "Carhartt, The North Face, Vans, Supreme, Marvel, Bluey, Minecraft, Snoopy y Tom and Jerry"
 BRANDS_EN = "Carhartt, The North Face, Vans, Supreme, Marvel, Bluey, Minecraft, Snoopy and Tom and Jerry"
 FAQ = [  # (question es, answer es, question en, answer en) — written for brand, OEM and program buyers
+    ("¿Envían a otros países y en qué moneda cotizan?",
+     "Sí, hacemos envíos nacionales e internacionales. Los precios del sitio están en pesos mexicanos y puedes verlos en dólares aproximados con el selector MXN/USD; tu asesora cotiza el flete y los documentos de exportación y confirma el precio final en pesos.",
+     "Do you ship abroad, and in what currency do you quote?",
+     "Yes, we ship nationally and internationally. Website prices are in Mexican pesos and you can see approximate US dollars with the MXN/USD switch; your advisor quotes freight and export documents and confirms the final price in pesos."),
     ("¿Para qué marcas y licencias han producido?",
      f"En nuestra planta se han estampado marcas y licencias como {BRANDS}.",
      "Which brands and licenses have you produced for?",
@@ -94,7 +98,7 @@ def graph(lang):
         "address": {"@type": "PostalAddress", "streetAddress": "Tlacomulco No. 2, San Pablo Ahuatempan", "addressLocality": "Santa Isabel Cholula", "addressRegion": "Puebla", "postalCode": "74355", "addressCountry": "MX"},
         "hasMap": "https://www.google.com/maps/search/?api=1&query=Tlacomulco+2+San+Pablo+Ahuatempan+Santa+Isabel+Cholula+Puebla+74355",
         "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "09:00", "closes": "18:00"}],
-        "areaServed": [{"@type": "Country", "name": "México"}, {"@type": "Country", "name": "United States"}],
+        "areaServed": [{"@type": "Country", "name": "México"}, {"@type": "Country", "name": "United States"}, {"@type": "Place", "name": "Worldwide"}], "availableLanguage": ["Spanish", "English"],
         "contactPoint": [
             {"@type": "ContactPoint", "contactType": "sales", "name": "Marcas y OEM" if es else "Brands and OEM", "telephone": "+52 222 692 5404", "email": "fde@grupochilian.com", "availableLanguage": ["es", "en"], "areaServed": ["MX", "US"]},
             {"@type": "ContactPoint", "contactType": "sales", "name": "Contacto en EE. UU." if es else "US contact", "telephone": "+52 55 2559 9348", "email": "ichilian@grupochilian.com", "availableLanguage": ["es", "en"], "areaServed": "US"},
@@ -130,8 +134,10 @@ def head(lang):
 <meta name="description" content="{E(v["desc"])}">
 <link rel="canonical" href="{v["url"]}">
 <link rel="alternate" hreflang="es-MX" href="{SITE}/">
+<link rel="alternate" hreflang="es" href="{SITE}/">
+<link rel="alternate" hreflang="en" href="{SITE}/en">
 <link rel="alternate" hreflang="en-US" href="{SITE}/en">
-<link rel="alternate" hreflang="x-default" href="{SITE}/">
+<link rel="alternate" hreflang="x-default" href="{SITE}/en">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grupo Chilian">
@@ -205,8 +211,10 @@ def main():
   <url>
     <loc>{SITE}/</loc>
     <xhtml:link rel="alternate" hreflang="es-MX" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="{SITE}/en"/>
     <xhtml:link rel="alternate" hreflang="en-US" href="{SITE}/en"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}/en"/>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image><image:loc>{SITE}/photos/prensa-pantalla-magenta.jpg</image:loc></image:image>
@@ -214,8 +222,10 @@ def main():
   <url>
     <loc>{SITE}/en</loc>
     <xhtml:link rel="alternate" hreflang="es-MX" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="{SITE}/en"/>
     <xhtml:link rel="alternate" hreflang="en-US" href="{SITE}/en"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}/en"/>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>

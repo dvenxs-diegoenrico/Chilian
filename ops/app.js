@@ -2076,6 +2076,7 @@
       h("div", { class: "row", style: "gap:.6rem" }, DIAS.map((n, i) => h("label", { class: "row small", style: "gap:.25rem" }, h("input", { type: "checkbox", checked: a.horario.dias.includes(i), onchange: (e) => { a.horario.dias = e.target.checked ? [...new Set([...a.horario.dias, i])].sort() : a.horario.dias.filter((x) => x !== i); } }), n))),
       ((pw) => { const chk = h("input", { type: "checkbox", checked: true, onchange: (e) => { cg.envio.cotizar = e.target.checked; } }); const cg = { comision: 5, ...(pw?.precios?.cargos || {}) }; cg.envio = { cotizar: true, porPedido: 0, gratisDesde: 0, ...(cg.envio || {}) }; a._cargos = cg; chk.checked = cg.envio.cotizar !== false;
         return h("div", { class: "grid g3" },
+          h("label", { class: "f" }, h("span", { text: "Tipo de cambio para mostrar USD (MXN por dólar)" }), h("input", { class: "i", type: "number", min: "1", step: "0.01", value: cg.usd || 18.5, oninput: (e) => { cg.usd = +e.target.value || 18.5; } })),
           h("label", { class: "f" }, h("span", { text: "Comisión de pago en línea (%)" }), h("input", { class: "i", type: "number", min: "0", step: "0.1", value: cg.comision, oninput: (e) => { cg.comision = +e.target.value; } })),
           h("div", { class: "f" }, h("span", { text: "Envío por pedido (MXN)" }),
             h("input", { class: "i", type: "number", min: "0", step: "1", value: cg.envio.porPedido || "", placeholder: "a cotizar", oninput: (e) => { cg.envio.porPedido = +e.target.value; if (+e.target.value > 0) { cg.envio.cotizar = false; chk.checked = false; } } }),

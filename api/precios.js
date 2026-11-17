@@ -64,7 +64,7 @@ export const DEFAULTS = {
   // the official list (T-shirts) and what the customer pays on top
   listaTramos: LISTA_TRAMOS,
   lista: LISTA_PLAYERAS,
-  cargos: { comision: 5, envio: { cotizar: true, porPedido: 0, gratisDesde: 0 } }   // % payment fee (Mercado Pago / Stripe); shipping: "a cotizar" (not added) unless cotizar is false and a per-order amount is set
+  cargos: { comision: 5, usd: 18.5, envio: { cotizar: true, porPedido: 0, gratisDesde: 0 } }   // % payment fee (Mercado Pago / Stripe); shipping: "a cotizar" (not added) unless cotizar is false and a per-order amount is set
 };
 
 const merge = (d, s) => {

@@ -107,8 +107,51 @@ PAGES = [
                ("Capacity", ["Up to 20,000 pieces a day with 8 automatic Roq and M&R presses.", "2 DTG printers and a 6-head embroidery machine.", "Cutting, sewing, dyeing and washing in the same plant.", "Brands and OEM from 600 pieces."]),
                ("Production in Mexico, coordinated import logistics", ["A dedicated US contact takes your run from approval to delivery.", "Bilingual team in the same time zones: calls, approvals and samples without waiting a day.", "A physical pre-production sample with your real artwork; nothing goes into production without an approved sample."])],
        faq=[1, 2, 3, 4, 5, 6], related=["maquila-serigrafia-para-marcas"]),
+  dict(slug="print-on-demand-t-shirts-mexico", lang="en", tipo="usa", pod=True, quote="/en?prod=pod#cotizar",
+       title="Print on demand T-shirts from Mexico: full-color DTG from 1 piece · Chilian",
+       desc="Custom full-color T-shirts from 1 piece: oversized, regular or budget with 1 DTG print included. Instant price, audited plant in Puebla, Mexico, shipping worldwide.",
+       h1="Print on demand T-shirts, from 1 piece", kicker="Print on demand · DTG",
+       lead="Pick the T-shirt (oversized, regular or budget), upload your design and see the price instantly. The first full-color print is included; each extra print adds its price.",
+       img="print-on-demand-dtg", img_alt="DTG printer printing a full-color hummingbird on a black T-shirt",
+       blocks=[("How it works", ["Pick the garment: oversized, regular (100% cotton) or budget (50/50), white or colored.", "Pick the print size by the design's longest side: from 6 to 53 cm.", "Upload your design in Print your idea and see the mockup before you pay.", "We print full-color DTG, no screens: photos, gradients and a different design on every piece."]),
+               ("Who it is for", ["Creators and brands that sell on demand, with no inventory.", "Gifts, small events and samples before a large order.", "Teams and businesses that need a few pieces with their logo."]),
+               ("Clear pricing", ["The price per piece drops at 2, 5, 10, 20, 30, 40, 50 and 100 pieces.", "Prices are in Mexican pesos with VAT and the online payment fee included; use the MXN/USD switch in the quoter for approximate US dollars.", "Shipping and export documents are quoted by your advisor. We ship nationally and internationally.", "Recommended file: PNG, 300 DPI, transparent background."]),
+               ("Made in an audited plant", ["Plant in Santa Isabel Cholula, Puebla, with 2 DTG printers and 8 automatic presses.", f"Audits: {AUDITS_EN}.", "If your order grows, we move it to screen printing at the volume price."])],
+       faq=[1, 2, 3], related=["contract-screen-printing-mexico", "custom-t-shirts-wholesale-mexico"]),
+  dict(slug="custom-t-shirts-wholesale-mexico", lang="en", tipo="usa", quote="/en?tipo=usa#cotizar",
+       title="Custom T-shirts wholesale from Mexico: screen printing, DTG and embroidery · Chilian",
+       desc="Wholesale custom T-shirts printed in Puebla, Mexico: screen printing, DTG from 1 piece and embroidery. Instant reference price, 20,000 pieces a day, ships worldwide.",
+       h1="Custom T-shirts wholesale from Mexico", kicker="Wholesale · Brands · Events",
+       lead="Pick the garment, the technique and the pieces, and see a reference price instantly. Printed in an audited plant that makes up to 20,000 pieces a day.",
+       img="trabajo-tipografia-varsity", img_alt="Varsity lettering T-shirt screen printed by Chilian",
+       blocks=[("From short runs to volume", ["Screen printing for volume: the price per piece drops as quantity grows, from 6 pieces.", "Full-color DTG from 1 piece: samples, photos and short runs.", "Embroidery on a 6-head machine.", "Up to 20,000 pieces a day."]),
+               ("Techniques", ["Plastisol, water-based, high density, puff, discharge, glitter and glow in the dark.", "Seam-to-seam sublimated full print (Chilian Sport).", "Tie dye and washes, printing on denim, and labels."]),
+               ("Ordering from abroad", ["Instant reference price in pesos or approximate US dollars.", "Your advisor confirms the final price, freight and export documents.", "Bilingual team and a dedicated US contact."])],
+       faq=[1, 2, 3, 4], related=["print-on-demand-t-shirts-mexico", "contract-screen-printing-mexico"]),
+  dict(slug="custom-uniforms-manufacturer-mexico", lang="en", tipo="usa", quote="/en?tipo=usa#cotizar",
+       title="Corporate and industrial uniforms made in Mexico: embroidery and printing · Chilian",
+       desc="Polo shirts, work shirts and hoodies with your logo embroidered or printed, made in an audited plant in Mexico, with repeat orders in the same color and cut. Ships worldwide.",
+       h1="Corporate and industrial uniforms made in Mexico", kicker="Corporate · Industrial",
+       lead="Polos, shirts and hoodies with your logo embroidered or printed, and repeat orders in the same color and cut, from an audited plant.",
+       img="uniformes", img_alt="Corporate uniforms with embroidered logos made at Chilian's plant",
+       blocks=[("What a uniform program includes", ["Polos, shirts, work pants and hoodies.", "Embroidery, printing and your own label.", "Repeat orders in the same color and cut.", "An advisor who follows your project."]),
+               ("Three garment lines", ["Basic: volume with good value; events, promotions and operational uniforms.", "Classic: a balance of quality, comfort and durability for daily use.", "Premium: superior materials, fine finishes and higher perceived value."]),
+               ("Embroidery and printing in one plant", ["6-head embroidery machine for flat, 3D embroidery and patches.", "Screen printing on 8 automatic presses and DTG for short runs.", f"Audited plant: {AUDITS_EN}."])],
+       faq=[1, 2, 3, 4], related=["custom-t-shirts-wholesale-mexico", "contract-screen-printing-mexico"]),
 ]
 TITLES = {p["slug"]: p["h1"] for p in PAGES}
+# Spanish page <-> English page, for hreflang (a page alone has no pair)
+PAIRS = {"print-on-demand-playeras-dtg": "print-on-demand-t-shirts-mexico", "playeras-personalizadas-mayoreo": "custom-t-shirts-wholesale-mexico",
+         "uniformes-empresariales": "custom-uniforms-manufacturer-mexico", "maquila-serigrafia-para-marcas": "contract-screen-printing-mexico"}
+PAIRS.update({v: k for k, v in list(PAIRS.items())})
+def alternates(slug, lang):
+    other = PAIRS.get(slug)
+    me = f"{SITE}/{slug}"
+    if not other:
+        return [(("es-MX" if lang == "es" else "en"), me)]
+    o = f"{SITE}/{other}"
+    es_u, en_u = (me, o) if lang == "es" else (o, me)
+    return [("es-MX", es_u), ("es", es_u), ("en", en_u), ("en-US", en_u), ("x-default", en_u)]
 
 
 def faq_pairs(lang):
@@ -163,6 +206,7 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
 
 def page(p):
     es = p["lang"] == "es"
+    L = (lambda a, b: a if es else b)
     url = f"{SITE}/{p['slug']}"
     home = "/" if es else "/en"
     quote = p.get("quote") or (f"/?tipo={p['tipo']}#cotizar" if es else f"/en?tipo={p['tipo']}#cotizar")
@@ -178,10 +222,10 @@ def page(p):
 <table><thead><tr><th>Piezas</th><th class="r">CH–EG</th><th class="r">2XL–3XL</th></tr></thead><tbody>{rows}</tbody></table>
 <p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza, precios de lista publicados en la <a href="{STORE}" rel="noopener">tienda en línea Chilian</a>. El precio final se confirma en tu cotización.</p></div></section>'''
     if p.get("pod"):
-        rows = "".join(f'<tr><th scope="row" colspan="3" style="padding-top:1rem">{E(name)}</th></tr>' + "".join(f'<tr><td>{q} pz</td><td class="r">${w:,.2f}</td><td class="r">${c:,.2f}</td></tr>' for q, w, c in t) for name, t in POD_TIERS)
-        extra = f'''<section class="b"><div class="wrap"><h2>Precio por pieza</h2>
-<table><thead><tr><th>Piezas</th><th class="r">Prenda blanca</th><th class="r">Prenda de color</th></tr></thead><tbody>{rows}</tbody></table>
-<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">MXN por pieza con 1 estampado DTG de hasta 27 cm, IVA y comisión de pago incluidos. Cada estampado adicional suma su precio. El envío se cotiza aparte.</p></div></section>'''
+        rows = "".join(f'<tr><th scope="row" colspan="3" style="padding-top:1rem">{E(name)}</th></tr>' + "".join(f'<tr><td>{q} {L("pz", "pcs")}</td><td class="r">${w:,.2f}</td><td class="r">${c:,.2f}</td></tr>' for q, w, c in t) for name, t in POD_TIERS)
+        extra = f'''<section class="b"><div class="wrap"><h2>{L("Precio por pieza", "Price per piece")}</h2>
+<table><thead><tr><th>{L("Piezas", "Pieces")}</th><th class="r">{L("Prenda blanca", "White garment")}</th><th class="r">{L("Prenda de color", "Colored garment")}</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="kicker" style="margin-top:.8rem;text-transform:none;letter-spacing:0">{L("MXN por pieza con 1 estampado DTG de hasta 27 cm, IVA y comisión de pago incluidos. Cada estampado adicional suma su precio. El envío se cotiza aparte.", "MXN per piece with 1 DTG print up to 27 cm, VAT and online payment fee included. Each extra print adds its price. Shipping is quoted separately. Use the MXN/USD switch in the quoter for approximate US dollars.")}</p></div></section>'''
     if p.get("camp"):
         rows = "".join(f'<tr><td>{q:,} pz</td><td class="r">${w:,.2f}</td><td class="r">${c:,.2f}</td></tr>' for q, w, c in CAMP_TIERS)
         extra = f'''<section class="b"><div class="wrap"><h2>Precio de referencia</h2>
@@ -214,6 +258,7 @@ def page(p):
 <title>{E(p["title"])}</title>
 <meta name="description" content="{E(p["desc"])}">
 <link rel="canonical" href="{url}">
+{"".join(chr(60) + "link rel=\"alternate\" hreflang=\"" + h + "\" href=\"" + u + "\">" + chr(10) for h, u in alternates(p["slug"], p["lang"]))}
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Grupo Chilian">
 <meta property="og:title" content="{E(p["title"])}"><meta property="og:description" content="{E(p["desc"])}">
@@ -267,8 +312,10 @@ def main():
         out.write_text(page(p))
     # sitemap: home pages (from build_seo) + landings
     sm = (ROOT / "sitemap.xml").read_text()
+    alt_xml = lambda p: "".join(f'    <xhtml:link rel="alternate" hreflang="{h}" href="{u}"/>\n' for h, u in alternates(p["slug"], p["lang"]) if PAIRS.get(p["slug"]))
     add = "".join(f'''  <url>
     <loc>{SITE}/{p["slug"]}</loc>
+{alt_xml(p)}
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
