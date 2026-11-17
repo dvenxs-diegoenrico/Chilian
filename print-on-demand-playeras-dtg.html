@@ -138,6 +138,34 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
 @media (max-width:900px){.pod-hero .stage{order:-1;margin-bottom:-.6rem}.pod-hero{padding-top:1rem}.mock{max-width:420px}}
 @media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
 
+/* ===== v3: alive — ink-colored text and buttons that invite the click ===== */
+@property --ga{syntax:"<angle>";inherits:false;initial-value:0deg}
+.ink,.pod-hero h1 .acc{background:linear-gradient(100deg,#C9922E 0%,#f2c14e 18%,#e2358b 38%,#1fb6e8 58%,#f2c14e 78%,#C9922E 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:inkflow 7s linear infinite}
+@keyframes inkflow{to{background-position:-260% 0}}
+.pod-hero h1 .uline{display:inline;background-image:linear-gradient(100deg,#C9922E,#f2c14e,#e2358b,#1fb6e8,#C9922E),linear-gradient(90deg,#e2358b,#1fb6e8,#f2c14e,#e2358b);background-size:260% 100%,260% 6px;background-repeat:no-repeat;background-position:0 0,0 100%;padding-bottom:.06em;animation:inkflow 7s linear infinite}
+.pod-hero h1 .ln:has(.uline)::after,.pod-hero h1 .uline::after{display:none}
+.pop{display:inline-block;animation:pop 3.2s ease-in-out infinite}
+@keyframes pop{0%,82%,100%{transform:none}88%{transform:scale(1.08) rotate(-2deg)}94%{transform:scale(.98)}}
+.btn{position:relative;overflow:hidden;isolation:isolate;transition:transform .25s cubic-bezier(.2,.9,.3,1.4),box-shadow .25s,background-color .25s,color .25s}
+.btn::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 48%,transparent 66%);transform:translateX(-120%);transition:none}
+.btn:hover::before{transform:translateX(120%);transition:transform .7s ease}
+.btn.accent::before{animation:shine 3.6s ease-in-out infinite}
+@keyframes shine{0%,60%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
+.btn:hover{transform:translateY(-3px);box-shadow:0 12px 26px -10px rgba(201,146,46,.7)}
+.btn:active{transform:translateY(0) scale(.96);transition-duration:.08s}
+.btn.accent{animation:breathe 2.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(201,146,46,.55)}50%{box-shadow:0 0 0 10px rgba(201,146,46,0)}}
+.btn.accent:hover{animation:none;background:linear-gradient(100deg,#C9922E,#f2c14e,#e2358b,#C9922E);background-size:300% 100%;animation:inkflow 2.4s linear infinite;color:#161411}
+.btn .ar{display:inline-block;transition:transform .25s}.btn:hover .ar{transform:translateX(5px)}
+.btn:not(.accent):hover{border-color:#f2c14e;color:#f2c14e}
+[data-count]{background:linear-gradient(100deg,#C9922E,#f2c14e 40%,#fff6dc 50%,#f2c14e 60%,#C9922E);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:inkflow 5s linear infinite}
+.badge-price{animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px) rotate(-6deg)}}
+.pcard{transition:transform .3s,box-shadow .3s,border-color .3s}.pcard:hover{transform:translateY(-6px);border-color:#C9922E;box-shadow:0 18px 40px -18px rgba(226,53,139,.45)}
+#r-sum{display:inline-block;transition:transform .2s}#r-sum.bump{animation:bump .45s}
+@keyframes bump{40%{transform:scale(1.15);color:#f2c14e}}
+@media (prefers-reduced-motion:reduce){.ink,.pod-hero h1 .acc,.pod-hero h1 .uline,[data-count],.btn.accent,.btn.accent::before,.badge-price,.pop{animation:none!important}}
+
 /* ===== v2: a landing that stops the scroll ===== */
 .progress{position:fixed;left:0;top:0;height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#C9922E,#F3EBDD);z-index:30}
 .pod-hero{isolation:isolate;padding-block:2.2rem 3.4rem;background:radial-gradient(1200px 600px at 78% 12%,rgba(201,146,46,.16),transparent 60%)}
@@ -321,6 +349,13 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
   var cio=("IntersectionObserver" in window)?new IntersectionObserver(function(en){en.forEach(function(e){if(!e.isIntersecting)return;cio.unobserve(e.target);var el=e.target,to=+el.dataset.count,suf=el.dataset.suf||"",t0=null;function f(ts){t0=t0||ts;var k=Math.min(1,(ts-t0)/1300),v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=(el.dataset.sep?v.toLocaleString(es?"es-MX":"en-US"):v)+suf;if(k<1&&!reduce)requestAnimationFrame(f)}requestAnimationFrame(f)})},{threshold:.6}):null;
   document.querySelectorAll("[data-count]").forEach(function(el){if(cio&&!reduce)cio.observe(el);else el.textContent=(el.dataset.sep?(+el.dataset.count).toLocaleString():el.dataset.count)+(el.dataset.suf||"")});
 
+
+  // alive: last words of each heading in ink, prices that bump when they change, arrows on the main buttons, magnetic CTAs
+  document.querySelectorAll("main h2, section h2").forEach(function(h){if(h.querySelector(".ink"))return;var w=h.textContent.trim().split(" ");if(w.length<3)return;var k=w.length>5?2:1;h.innerHTML="";h.append(w.slice(0,-k).join(" ")+" ");var sp=document.createElement("span");sp.className="ink";sp.textContent=w.slice(-k).join(" ");h.appendChild(sp)});
+  document.querySelectorAll(".btn.accent").forEach(function(b){if(!b.querySelector(".ar")&&!/→/.test(b.textContent)){var a=document.createElement("span");a.className="ar";a.textContent=" →";b.appendChild(a)}});
+  var sumEl=$("#r-sum");if(sumEl)new MutationObserver(function(){sumEl.classList.remove("bump");void sumEl.offsetWidth;sumEl.classList.add("bump")}).observe(sumEl,{childList:true,characterData:true,subtree:true});
+  if(!reduce&&matchMedia("(hover:hover)").matches)document.querySelectorAll(".btn.accent").forEach(function(b){b.addEventListener("mousemove",function(e){var r=b.getBoundingClientRect();b.style.transform="translate("+((e.clientX-r.left-r.width/2)*.18)+"px,"+((e.clientY-r.top-r.height/2)*.3-3)+"px)"});b.addEventListener("mouseleave",function(){b.style.transform=""})});
+  document.querySelectorAll(".chips span,.offer span,.chip").forEach(function(c,i){c.style.animationDelay=(i*.4)+"s"});
   // ===== photoreal mockup engine =====
   // A real photo of a white tee (/blanks/tee-front.webp): the garment is recolored through its shade map so folds and seams stay,
   // and the design is multiplied by the same shade so it follows the fabric. Everything is cached per color and design.
