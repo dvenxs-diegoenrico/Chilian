@@ -126,6 +126,18 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
 @media (max-width:520px){.steps4,.cards4,.trust4{grid-template-columns:minmax(0,1fr)}.form{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.print-art{animation:none;clip-path:none}.gantry,.head,.drop,.float,.marquee .row{animation:none}.rv{opacity:1;transform:none;transition:none}.step4::after{width:100%;transition:none}}
 
+.mock{position:relative;aspect-ratio:1/1;width:100%;max-width:560px;margin-inline:auto;filter:drop-shadow(0 28px 40px rgba(0,0,0,.55))}
+.mock .poster,.mock canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mock canvas{opacity:0;transition:opacity .5s ease}.mock.ready canvas{opacity:1}.mock.ready .poster{opacity:0;transition:opacity .5s .3s}
+.mock-cap{display:flex;align-items:center;justify-content:center;gap:.55rem;margin-top:.6rem;font:600 .72rem "Jost",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);min-height:1.4rem;text-align:center}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#e2358b;box-shadow:0 0 0 0 rgba(226,53,139,.6);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(226,53,139,0)}100%{box-shadow:0 0 0 0 rgba(226,53,139,0)}}
+.stage{max-width:580px}.stage .sw{position:static;transform:none;justify-content:center;margin-top:.8rem}
+.try .view{background:radial-gradient(circle at 50% 42%,#5a5040,#1d1a15 72%)}
+.try .view .mock{filter:drop-shadow(0 18px 24px rgba(0,0,0,.5))}
+@media (max-width:900px){.pod-hero .stage{order:-1;margin-bottom:-.6rem}.pod-hero{padding-top:1rem}.mock{max-width:420px}}
+@media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
+
 /* ===== v2: a landing that stops the scroll ===== */
 .progress{position:fixed;left:0;top:0;height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#C9922E,#F3EBDD);z-index:30}
 .pod-hero{isolation:isolate;padding-block:2.2rem 3.4rem;background:radial-gradient(1200px 600px at 78% 12%,rgba(201,146,46,.16),transparent 60%)}
@@ -213,21 +225,12 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
     </div>
     <div class="stage">
       <div class="badge-price" aria-hidden="true">desde<b>$237</b>con IVA</div>
-      <svg id="hero-tee" viewBox="0 0 400 420" role="img" aria-label="Una impresora DTG imprime un diseño famoso a todo color sobre una playera">
-  <defs><clipPath id="teeclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath>
-  <clipPath id="printarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
-  <ellipse cx="200" cy="362" rx="125" ry="11" fill="#000" opacity=".35"/>
-  <path class="teefill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
-  <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
-  <path fill="none" stroke="#000" stroke-opacity=".12" d="M135 62 C145 92 255 92 265 62"/>
-  <g clip-path="url(#teeclip)"><g clip-path="url(#printarea)"><image id="hero-art" class="art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g>
-  <g class="gantry2" id="hero-gantry" style="transform-origin:200px 70px">
-    <rect x="84" y="60" width="232" height="10" rx="5" fill="#2a2620"/><rect x="84" y="60" width="232" height="3" rx="1.5" fill="#C9922E"/>
-    <rect x="186" y="50" width="28" height="26" rx="4" fill="#0B0B0B" stroke="#C9922E" stroke-width="2"/>
-    <circle cx="193" cy="84" r="2.4" fill="#1fb6e8"/><circle cx="200" cy="84" r="2.4" fill="#e2358b"/><circle cx="207" cy="84" r="2.4" fill="#C9922E"/>
-  </g>
-</svg>
-      <div class="sw" aria-hidden="true"><i style="background:#111"></i><i style="background:#F3EBDD"></i><i style="background:#E7DBC6"></i><i style="background:#1B2A49"></i></div>
+      <div class="mock" id="hero-mock" role="img" aria-label="Una playera real con un diseño famoso impreso en DTG a todo color">
+        <img class="poster" src="/pod-assets/hero-poster.webp" alt="" width="900" height="900" fetchpriority="high" decoding="async">
+        <canvas id="hero-canvas" width="900" height="900" aria-hidden="true"></canvas>
+      </div>
+      <div class="mock-cap"><span class="live-dot"></span><span id="hero-cap">Impresión DTG a todo color</span></div>
+      <div class="sw" aria-hidden="true"><i style="background:#161411"></i><i style="background:#F3EBDD"></i><i style="background:#E7DBC6"></i><i style="background:#1B2A49"></i></div>
     </div>
   </div></section>
   <div class="strip"><div class="wrap">
@@ -236,20 +239,12 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
     <div><div class="n" data-count="1">0</div><div class="l">pieza basta para empezar</div></div>
     <div><div class="n" data-count="4">0</div><div class="l">días hábiles de producción</div></div>
   </div></div>
-  <div class="marquee" aria-hidden="true"><div class="row"><span>La gran ola</span><span>Medusas</span><span>Rinoceronte</span><span>Desde 1 pieza</span><span>DTG a todo color</span><span>Envío a todo México</span><span>Sin mínimos</span><span>La gran ola</span><span>Medusas</span><span>Rinoceronte</span><span>Desde 1 pieza</span><span>DTG a todo color</span><span>Envío a todo México</span><span>Sin mínimos</span></div></div>
-  <div class="bigtext" aria-hidden="true"><div class="row"><b>Diseña</b><span>Imprime</span><b>Recibe</b><span>Repite</span><b>Diseña</b><span>Imprime</span><b>Recibe</b><span>Repite</span><b>Diseña</b><span>Imprime</span><b>Recibe</b><span>Repite</span><b>Diseña</b><span>Imprime</span><b>Recibe</b><span>Repite</span></div></div>
-  <section class="b"><div class="wrap"><p class="kicker">Cómo funciona</p><h2>Cuatro pasos, sin mínimos</h2><div class="steps4"><div class="step4 rv"><div class="n">1</div><h3>Elige tu playera</h3><p>Oversized, regular o económica, blanca o de color.</p></div><div class="step4 rv"><div class="n">2</div><h3>Sube tu diseño</h3><p>O elige un diseño libre de dominio público. Lo ves sobre la prenda antes de pagar.</p></div><div class="step4 rv"><div class="n">3</div><h3>Imprimimos en DTG</h3><p>A todo color, sin pantallas: fotos, degradados, un diseño distinto en cada pieza.</p></div><div class="step4 rv"><div class="n">4</div><h3>Te lo enviamos</h3><p>Tarifa fija a todo México; gratis desde pedidos grandes. Fuera de México lo cotiza una asesora.</p></div></div></div></section>
-  <section class="b" id="precios"><div class="wrap"><p class="kicker">Elige tu playera</p><h2>Tres opciones, una calidad de planta</h2><div class="cards3" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">La favorita</span><h3>Regular</h3><p>100 % algodón, 155 g. La que más se vende: corte clásico y excelente para DTG.</p><div class="pr">$237<small>Blanca</small></div><div class="sub">$331 de color</div><a class="btn" href="/?prod=pod&pod=regular#cotizar">Diseña tu playera →</a></div><div class="pcard rv"><span class="badge">Precio por confirmar</span><h3>Oversized</h3><p>Corte amplio, 100 % algodón. Para moda y marcas de calle.</p><div class="pr">$243<small>Blanca</small></div><div class="sub">$342 de color</div><a class="btn" href="/?prod=pod&pod=oversized#cotizar">Diseña tu playera →</a></div><div class="pcard rv"><span class="badge">La más económica</span><h3>Económica</h3><p>50 % algodón, 50 % poliéster. Para regalos y eventos; mejor con diseños claros.</p><div class="pr">$231<small>Blanca</small></div><div class="sub">$329 de color</div><a class="btn" href="/?prod=pod&pod=economica#cotizar">Diseña tu playera →</a></div></div><p class="note" style="margin-top:.9rem;color:var(--steel);font-size:.84rem">Precio de 1 pieza, blanca, con un estampado de hasta 27 cm. IVA, comisión de pago y servicio incluidos.</p></div></section>
-  <section class="b"><div class="wrap"><p class="kicker">Packs</p><h2>Más piezas, menos por pieza</h2><div class="cards4" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">−5% de descuento</span><h3>Pack Dúo</h3><p>2 playeras, mismo diseño o distintos</p><div class="pr">$225<small>por pieza</small></div><div class="sub">2 piezas · $579 · Envío $129</div><a class="btn" href="/?prod=pod&pack=duo#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−5% de descuento</span><h3>Pack Creador</h3><p>3 diseños distintos, uno de cada uno</p><div class="pr">$225<small>por pieza</small></div><div class="sub">3 piezas · $804 · Envío $129</div><a class="btn" href="/?prod=pod&pack=creador#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−6% de descuento</span><h3>Pack Equipo</h3><p>6 playeras para tu equipo</p><div class="pr">$176<small>por pieza</small></div><div class="sub">6 piezas · $1,228 · Envío $169</div><a class="btn" href="/?prod=pod&pack=equipo#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−4% de descuento</span><h3>Pack Evento</h3><p>12 playeras con envío gratis</p><div class="pr">$167<small>por pieza</small></div><div class="sub">12 piezas · $1,999 · Envío gratis</div><a class="btn" href="/?prod=pod&pack=evento#cotizar">Elegir pack →</a></div></div></div></section>
   <section class="b" id="probador"><div class="wrap"><p class="kicker">Calculadora</p><h2>Pruébala y ve tu precio al momento</h2>
     <div class="try" style="margin-top:1.4rem">
       <div>
         <div class="view" id="try-view">
-          <svg id="try-tee" viewBox="0 0 400 400" role="img" aria-label="Vista previa de tu playera"><defs><clipPath id="tclip"><path d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/></clipPath><clipPath id="tarea"><rect x="140" y="112" width="120" height="196"/></clipPath></defs>
-            <ellipse cx="200" cy="352" rx="125" ry="10" fill="#000" opacity=".35"/>
-            <path class="teefill" id="try-fill" fill="#F3EBDD" stroke="#C9922E" stroke-opacity=".55" stroke-width="1.4" d="M135 62 L72 92 L92 150 L126 134 L126 330 L274 330 L274 134 L308 150 L328 92 L265 62 C255 92 145 92 135 62 Z"/>
-            <path fill="#000" opacity=".1" d="M126 134 L126 330 L168 330 L168 120 Z"/>
-            <g clip-path="url(#tclip)"><g clip-path="url(#tarea)"><image id="try-art" href="/disenos/ola.webp" x="140" y="112" width="120" height="196" preserveAspectRatio="xMidYMid meet"/></g></g></svg>
+          <div class="mock" role="img" aria-label="Vista previa de tu playera"><img class="poster" src="/pod-assets/try-poster.webp" alt="" width="560" height="560" loading="lazy" decoding="async"><canvas id="try-canvas" width="900" height="900" aria-hidden="true"></canvas></div>
+          <div class="mock-cap"><span id="try-cap"></span></div>
         </div>
         <div class="lbl">1. Elige un diseño libre</div>
         <div class="chips2" id="try-designs"><button type="button" data-id="ola" data-dark="0" aria-pressed="true" title="La gran ola"><img src="/disenos/ola-s.webp" alt="La gran ola" width="56" height="56"></button><button type="button" data-id="medusas" data-dark="0" aria-pressed="false" title="Medusas"><img src="/disenos/medusas-s.webp" alt="Medusas" width="56" height="56"></button><button type="button" data-id="rinoceronte" data-dark="1" aria-pressed="false" title="Rinoceronte"><img src="/disenos/rinoceronte-s.webp" alt="Rinoceronte" width="56" height="56"></button></div>
@@ -277,6 +272,10 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
         </div>
       </div>
     </div></div></section>
+  <div class="marquee" aria-hidden="true"><div class="row"><span>La gran ola</span><span>Medusas</span><span>Rinoceronte</span><span>Desde 1 pieza</span><span>DTG a todo color</span><span>Envío a todo México</span><span>Sin mínimos</span><span>La gran ola</span><span>Medusas</span><span>Rinoceronte</span><span>Desde 1 pieza</span><span>DTG a todo color</span><span>Envío a todo México</span><span>Sin mínimos</span></div></div>
+  <section class="b"><div class="wrap"><p class="kicker">Cómo funciona</p><h2>Cuatro pasos, sin mínimos</h2><div class="steps4"><div class="step4 rv"><div class="n">1</div><h3>Elige tu playera</h3><p>Oversized, regular o económica, blanca o de color.</p></div><div class="step4 rv"><div class="n">2</div><h3>Sube tu diseño</h3><p>O elige un diseño libre de dominio público. Lo ves sobre la prenda antes de pagar.</p></div><div class="step4 rv"><div class="n">3</div><h3>Imprimimos en DTG</h3><p>A todo color, sin pantallas: fotos, degradados, un diseño distinto en cada pieza.</p></div><div class="step4 rv"><div class="n">4</div><h3>Te lo enviamos</h3><p>Tarifa fija a todo México; gratis desde pedidos grandes. Fuera de México lo cotiza una asesora.</p></div></div></div></section>
+  <section class="b" id="precios"><div class="wrap"><p class="kicker">Elige tu playera</p><h2>Tres opciones, una calidad de planta</h2><div class="cards3" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">La favorita</span><h3>Regular</h3><p>100 % algodón, 155 g. La que más se vende: corte clásico y excelente para DTG.</p><div class="pr">$237<small>Blanca</small></div><div class="sub">$331 de color</div><a class="btn" href="/?prod=pod&pod=regular#cotizar">Diseña tu playera →</a></div><div class="pcard rv"><span class="badge">Precio por confirmar</span><h3>Oversized</h3><p>Corte amplio, 100 % algodón. Para moda y marcas de calle.</p><div class="pr">$243<small>Blanca</small></div><div class="sub">$342 de color</div><a class="btn" href="/?prod=pod&pod=oversized#cotizar">Diseña tu playera →</a></div><div class="pcard rv"><span class="badge">La más económica</span><h3>Económica</h3><p>50 % algodón, 50 % poliéster. Para regalos y eventos; mejor con diseños claros.</p><div class="pr">$231<small>Blanca</small></div><div class="sub">$329 de color</div><a class="btn" href="/?prod=pod&pod=economica#cotizar">Diseña tu playera →</a></div></div><p class="note" style="margin-top:.9rem;color:var(--steel);font-size:.84rem">Precio de 1 pieza, blanca, con un estampado de hasta 27 cm. IVA, comisión de pago y servicio incluidos.</p></div></section>
+  <section class="b"><div class="wrap"><p class="kicker">Packs</p><h2>Más piezas, menos por pieza</h2><div class="cards4" style="margin-top:1.4rem"><div class="pcard rv"><span class="badge">−5% de descuento</span><h3>Pack Dúo</h3><p>2 playeras, mismo diseño o distintos</p><div class="pr">$225<small>por pieza</small></div><div class="sub">2 piezas · $579 · Envío $129</div><a class="btn" href="/?prod=pod&pack=duo#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−5% de descuento</span><h3>Pack Creador</h3><p>3 diseños distintos, uno de cada uno</p><div class="pr">$225<small>por pieza</small></div><div class="sub">3 piezas · $804 · Envío $129</div><a class="btn" href="/?prod=pod&pack=creador#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−6% de descuento</span><h3>Pack Equipo</h3><p>6 playeras para tu equipo</p><div class="pr">$176<small>por pieza</small></div><div class="sub">6 piezas · $1,228 · Envío $169</div><a class="btn" href="/?prod=pod&pack=equipo#cotizar">Elegir pack →</a></div><div class="pcard rv"><span class="badge">−4% de descuento</span><h3>Pack Evento</h3><p>12 playeras con envío gratis</p><div class="pr">$167<small>por pieza</small></div><div class="sub">12 piezas · $1,999 · Envío gratis</div><a class="btn" href="/?prod=pod&pack=evento#cotizar">Elegir pack →</a></div></div></div></section>
   <section class="b" id="disenos"><div class="wrap"><p class="kicker">Diseños libres</p><h2>Arte famoso, listo para estampar</h2><p style="color:var(--steel);max-width:62ch">Obras de dominio público: puedes estamparlas sin pagar derechos. Elige una y ábrela en el estudio.</p><div class="designs" style="margin-top:1.2rem"><a class="dcard rv" href="/?studio=1&design=ola" aria-label="Estampar: La gran ola"><span class="ph"><img src="/disenos/ola-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>La gran ola</b><small>Katsushika Hokusai, 1831</small><em>Dominio público · Estampar →</em></span></a><a class="dcard rv" href="/?studio=1&design=medusas" aria-label="Estampar: Medusas"><span class="ph"><img src="/disenos/medusas-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>Medusas</b><small>Ernst Haeckel, 1904</small><em>Dominio público · Estampar →</em></span></a><a class="dcard rv" href="/?studio=1&design=rinoceronte" aria-label="Estampar: Rinoceronte"><span class="ph"><img src="/disenos/rinoceronte-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>Rinoceronte</b><small>Albrecht Dürer, 1515</small><em>Dominio público · Estampar →</em></span></a></div></div></section>
   <section class="b"><div class="wrap shipgrid"><div><p class="kicker">Envíos y tiempos</p><h2>Claro desde el primer día</h2><dl><div><dt>Producción</dt><dd>Hasta 4 días hábiles después de aprobar tu arte.</dd></div><div><dt>Envío en México</dt><dd>3 a 5 días hábiles. Tarifa fija por piezas, con IVA incluido.</dd></div><div><dt>Fuera de México</dt><dd>Tu asesora cotiza flete y documentos de exportación.</dd></div><div><dt>Pedidos grandes</dt><dd>Desde 25 piezas conviene la serigrafía: el cotizador te muestra el ahorro.</dd></div></dl></div>
     <div><table><thead><tr><th>Piezas</th><th class="r">Envío en México</th></tr></thead><tbody><tr><td>hasta 3</td><td class="r">$129</td></tr><tr><td>hasta 6</td><td class="r">$169</td></tr><tr><td>hasta 12</td><td class="r">$229</td></tr><tr><td>Gratis desde</td><td class="r">$1,500</td></tr></tbody></table></div></div></section>
@@ -321,17 +320,63 @@ footer{border-top:1px solid var(--rule);padding:2rem 0 calc(5.5rem + env(safe-ar
   // count-up numbers
   var cio=("IntersectionObserver" in window)?new IntersectionObserver(function(en){en.forEach(function(e){if(!e.isIntersecting)return;cio.unobserve(e.target);var el=e.target,to=+el.dataset.count,suf=el.dataset.suf||"",t0=null;function f(ts){t0=t0||ts;var k=Math.min(1,(ts-t0)/1300),v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=(el.dataset.sep?v.toLocaleString(es?"es-MX":"en-US"):v)+suf;if(k<1&&!reduce)requestAnimationFrame(f)}requestAnimationFrame(f)})},{threshold:.6}):null;
   document.querySelectorAll("[data-count]").forEach(function(el){if(cio&&!reduce)cio.observe(el);else el.textContent=(el.dataset.sep?(+el.dataset.count).toLocaleString():el.dataset.count)+(el.dataset.suf||"")});
-  // hero: the same printer prints a famous design on four garments in turn
-  var HERO=[["medusas","#161411"],["ola","#F3EBDD"],["rinoceronte","#E7DBC6"],["medusas","#1B2A49"]],hi=0,tee=$("#hero-tee");
-  if(tee){var art=$("#hero-art"),fill=tee.querySelector(".teefill"),g=$("#hero-gantry"),dots=document.querySelectorAll(".sw i");
-    var runHero=function(){var c=HERO[hi%HERO.length];fill.setAttribute("fill",c[1]);art.classList.remove("run");g.classList.remove("run");art.setAttribute("href","/disenos/"+c[0]+".webp");void art.getBoundingClientRect();art.classList.add("run");g.classList.add("run");dots.forEach(function(d,i){d.classList.toggle("on",i===hi%HERO.length)});hi++};
-    runHero();if(!reduce)setInterval(runHero,5200)}
-  // fitting room: design + color drive the preview and the links; the form drives the price
-  var tryArt=$("#try-art"),tryFill=$("#try-fill"),COLORS=[["blanca","#F3EBDD",es?"Blanca":"White"],["color","#161411",es?"Negra":"Black"],["color","#1B2A49",es?"Marino":"Navy"],["color","#8e1f2b",es?"Roja":"Red"],["color","#3e4a35",es?"Militar":"Olive"]],curDesign="ola",curColor=0;
-  if(tryArt){
-    var sw=$("#try-colors");COLORS.forEach(function(c,i){var b=document.createElement("button");b.type="button";b.style.background=c[1];b.title=c[2];b.setAttribute("aria-label",c[2]);b.setAttribute("aria-pressed",String(i===0));b.addEventListener("click",function(){curColor=i;$("#c-color").value=c[0];tryFill.setAttribute("fill",c[1]);sw.querySelectorAll("button").forEach(function(x,k){x.setAttribute("aria-pressed",String(k===i))});calc();links()});sw.appendChild(b)});
-    document.querySelectorAll("#try-designs button").forEach(function(b){b.addEventListener("click",function(){curDesign=b.dataset.id;tryArt.style.opacity=0;setTimeout(function(){tryArt.setAttribute("href","/disenos/"+curDesign+".webp");tryArt.style.opacity=1},180);document.querySelectorAll("#try-designs button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});links()})});
-    window.__links=links;function links(){var s=$("#c-studio"),base=s.dataset.b||(s.dataset.b=s.getAttribute("href"));s.href=base+(base.indexOf("?")>-1?"&":"?")+"design="+curDesign}links()}
+
+  // ===== photoreal mockup engine =====
+  // A real photo of a white tee (/blanks/tee-front.webp): the garment is recolored through its shade map so folds and seams stay,
+  // and the design is multiplied by the same shade so it follows the fabric. Everything is cached per color and design.
+  var MK=(function(){
+    var S=900,BOX=[300,190,598,570],ready=false,waiting=[],al,s2,gc={},lc={},imgs={};
+    function hex(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)]}
+    function init(cb){if(ready)return cb();waiting.push(cb);if(init.p)return;init.p=1;
+      var im=new Image();im.onload=function(){var c=document.createElement("canvas");c.width=c.height=S;var x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,S,S);var d=x.getImageData(0,0,S,S).data,n=S*S,lum=new Float32Array(n),sum=0,cnt=0;al=new Uint8Array(n);
+        for(var i=0;i<n;i++){al[i]=d[i*4+3];var l=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;lum[i]=l;if(al[i]>200){sum+=l;cnt++}}
+        var mean=sum/cnt;s2=new Float32Array(n);for(var j=0;j<n;j++){var v=1+(lum[j]/mean-1)*2.2;s2[j]=v<.55?.55:v>1.25?1.25:v}
+        ready=true;waiting.forEach(function(f){f()});waiting=[]};im.src="/blanks/tee-front.webp"}
+    function garment(h){if(gc[h])return gc[h];var c=document.createElement("canvas");c.width=c.height=S;var x=c.getContext("2d"),id=x.createImageData(S,S),o=id.data,k=hex(h),lc_=(k[0]*.3+k[1]*.59+k[2]*.11)/255,lift=70*(1-lc_);
+      for(var i=0;i<S*S;i++){var s=s2[i],a=al[i],p=i*4,e=(s-1)*lift;var r=k[0]*s+e,g=k[1]*s+e,b=k[2]*s+e;o[p]=r<0?0:r>255?255:r;o[p+1]=g<0?0:g>255?255:g;o[p+2]=b<0?0:b>255?255:b;o[p+3]=a}
+      x.putImageData(id,0,0);return gc[h]=c}
+    var q={};function loadArt(id,cb){var im=imgs[id];if(im&&im.complete&&im.naturalWidth)return cb(im);(q[id]=q[id]||[]).push(cb);if(im)return;im=imgs[id]=new Image();im.onload=function(){var l=q[id];q[id]=[];l.forEach(function(f){f(im)})};im.src="/disenos/"+id+".webp"}
+    function layer(id,cb){if(lc[id])return cb(lc[id]);loadArt(id,function(art){var bw=BOX[2]-BOX[0],bh=BOX[3]-BOX[1],k=Math.min(bw/art.naturalWidth,bh/art.naturalHeight),w=Math.max(1,Math.round(art.naturalWidth*k)),h=Math.max(1,Math.round(art.naturalHeight*k)),x0=BOX[0]+Math.floor((bw-w)/2),y0=BOX[1];
+      var t=document.createElement("canvas");t.width=w;t.height=h;var tx=t.getContext("2d",{willReadFrequently:true});tx.drawImage(art,0,0,w,h);var ad=tx.getImageData(0,0,w,h),a=ad.data;
+      for(var y=0;y<h;y++)for(var x=0;x<w;x++){var gi=(y0+y)*S+(x0+x),s=s2[gi];s=s>1.06?1.06:s;var p=(y*w+x)*4;a[p]*=s*.97;a[p+1]*=s*.97;a[p+2]*=s*.97;a[p+3]=a[p+3]*(al[gi]/255)}
+      tx.putImageData(ad,0,0);var c=document.createElement("canvas");c.width=c.height=S;c.getContext("2d").drawImage(t,x0,y0);lc[id]={c:c,top:y0,bottom:y0+h,left:x0,right:x0+w};cb(lc[id])})}
+    // cfg: {color, design, reveal 0..1, alpha, dx, dy, t}
+    function draw(ctx,cfg,L,parts){ctx.clearRect(0,0,S,S);var g=ctx.createRadialGradient(450,860,10,450,860,330);g.addColorStop(0,"rgba(0,0,0,.5)");g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.save();ctx.translate(cfg.dx||0,cfg.dy||0);ctx.globalAlpha=cfg.alpha==null?1:cfg.alpha;ctx.save();ctx.translate(0,860);ctx.scale(1,.12);ctx.translate(0,-860);ctx.fillStyle=g;ctx.fillRect(100,520,700,700);ctx.restore();
+      ctx.drawImage(garment(cfg.color),0,0);
+      if(L&&cfg.reveal>0){var ry=L.top+(L.bottom-L.top)*cfg.reveal;ctx.save();ctx.beginPath();ctx.rect(0,0,S,ry);ctx.clip();ctx.drawImage(L.c,0,0);ctx.restore();
+        if(cfg.reveal<1){var cx=(L.left+L.right)/2,hw=(L.right-L.left)/2+22,hx=cx+Math.sin((cfg.t||0)/95)*hw*.82;ctx.save();ctx.shadowColor="#C9922E";ctx.shadowBlur=22;ctx.fillStyle="#C9922E";ctx.fillRect(cx-hw,ry-1.5,hw*2,3);ctx.shadowBlur=0;
+          ctx.fillStyle="#161411";ctx.strokeStyle="#C9922E";ctx.lineWidth=3;ctx.beginPath();ctx.rect(hx-26,ry-46,52,40);ctx.fill();ctx.stroke();ctx.fillStyle="#1fb6e8";ctx.fillRect(hx-18,ry-10,8,6);ctx.fillStyle="#e2358b";ctx.fillRect(hx-4,ry-10,8,6);ctx.fillStyle="#f2c14e";ctx.fillRect(hx+10,ry-10,8,6);
+          if(parts){for(var i=0;i<3;i++)parts.push({x:hx+(i-1)*12,y:ry,v:1+Math.random()*1.5,a:1,c:["#1fb6e8","#e2358b","#f2c14e"][i]})}ctx.restore()}}
+      if(parts){for(var k=parts.length-1;k>=0;k--){var p=parts[k];p.y+=p.v;p.a-=.045;if(p.a<=0){parts.splice(k,1);continue}ctx.globalAlpha=p.a;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,2.4,0,6.3);ctx.fill()}ctx.globalAlpha=1}
+      ctx.restore()}
+    return {init:init,layer:layer,draw:draw}
+  })();
+  // hero: one printer, one real tee, four prints in a row (garment slides in, the head prints, it holds, the next one arrives)
+  var HERO=[["medusas","#161411",es?"Medusas · Ernst Haeckel":"Jellyfish · Ernst Haeckel"],["ola","#F3EBDD",es?"La gran ola · Hokusai":"The Great Wave · Hokusai"],["rinoceronte","#E7DBC6",es?"Rinoceronte · Albrecht Dürer":"Rhinoceros · Albrecht Dürer"],["medusas","#1B2A49",es?"Medusas · Ernst Haeckel":"Jellyfish · Ernst Haeckel"]];
+  var heroMock=$("#hero-mock"),heroCv=$("#hero-canvas");
+  if(heroCv){var hx=heroCv.getContext("2d"),dots=document.querySelectorAll(".stage .sw i"),cap=$("#hero-cap"),parts=[],visible=true,t0=0,idx=0,Ls=[];
+    new IntersectionObserver(function(e){visible=e[0].isIntersecting}).observe(heroMock);
+    MK.init(function(){var n=0;HERO.forEach(function(h,i){MK.layer(h[0],function(L){Ls[i]=L;if(++n===HERO.length)start()})});
+      function start(){dots.forEach(function(d,i){d.classList.toggle("on",i===0)});
+        if(reduce){MK.draw(hx,{color:HERO[0][1],reveal:1},Ls[0]);heroMock.classList.add("ready");cap.textContent=HERO[0][2];return}
+        t0=performance.now();heroMock.classList.add("ready");
+        (function frame(now){requestAnimationFrame(frame);if(!visible||document.hidden){t0+=16;return}
+          var t=now-t0,T=6400,c=idx%HERO.length;if(t>=T){t0=now;idx++;c=idx%HERO.length;t=0;parts.length=0;dots.forEach(function(d,i){d.classList.toggle("on",i===c)});cap.textContent=HERO[c][2]}
+          var enter=Math.min(1,t/650),pr=Math.max(0,Math.min(1,(t-650)/2600)),ex=t>5700?Math.min(1,(t-5700)/700):0,e1=1-Math.pow(1-enter,3);pr=1-Math.pow(1-pr,2);
+          MK.draw(hx,{color:HERO[c][1],reveal:pr,alpha:e1*(1-ex),dx:(1-e1)*60-ex*60,dy:0,t:t},Ls[c],parts)})(t0)}});
+    cap.textContent=HERO[0][2]}
+  // fitting room: design + color drive the mockup, the links and the price
+  var tryCv=$("#try-canvas"),COLORS=[["blanca","#F3EBDD",es?"Blanca":"White"],["color","#161411",es?"Negra":"Black"],["color","#1B2A49",es?"Marino":"Navy"],["color","#8e1f2b",es?"Roja":"Red"],["color","#3e4a35",es?"Militar":"Olive"]],curDesign="ola",curColor=0,DN={};
+  document.querySelectorAll("#try-designs button").forEach(function(b){DN[b.dataset.id]=b.title});
+  if(tryCv){var tx=tryCv.getContext("2d"),tmock=tryCv.parentNode,anim=0,tcap=$("#try-cap"),tparts=[];
+    var render=function(replay){MK.init(function(){MK.layer(curDesign,function(L){cancelAnimationFrame(anim);var st=performance.now();tcap.textContent=(DN[curDesign]||"")+" · "+COLORS[curColor][2];
+      if(reduce||!replay){MK.draw(tx,{color:COLORS[curColor][1],reveal:1},L);tmock.classList.add("ready");return}
+      (function f(now){var k=Math.min(1,(now-st)/1000);MK.draw(tx,{color:COLORS[curColor][1],reveal:1-Math.pow(1-k,2),alpha:1,t:now-st},L,tparts);tmock.classList.add("ready");if(k<1)anim=requestAnimationFrame(f);else{tparts.length=0;MK.draw(tx,{color:COLORS[curColor][1],reveal:1},L)}})(st)})})};
+    new IntersectionObserver(function(e,o){if(e[0].isIntersecting){o.disconnect();render(true)}},{rootMargin:"200px"}).observe(tmock);
+    var sw=$("#try-colors");COLORS.forEach(function(c,i){var b=document.createElement("button");b.type="button";b.style.background=c[1];b.title=c[2];b.setAttribute("aria-label",c[2]);b.setAttribute("aria-pressed",String(i===0));b.addEventListener("click",function(){curColor=i;$("#c-color").value=c[0];sw.querySelectorAll("button").forEach(function(x,k){x.setAttribute("aria-pressed",String(k===i))});render(false);calc();links()});sw.appendChild(b)});
+    document.querySelectorAll("#try-designs button").forEach(function(b){b.addEventListener("click",function(){curDesign=b.dataset.id;document.querySelectorAll("#try-designs button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});render(true);links()})});
+    function links(){var s=$("#c-studio"),base=s.dataset.b||(s.dataset.b=s.getAttribute("href"));s.href=base+(base.indexOf("?")>-1?"&":"?")+"design="+curDesign}links()}
   // cards lean toward the pointer
   if(!reduce&&matchMedia("(hover:hover)").matches)document.querySelectorAll(".pcard,.dcard").forEach(function(c){c.classList.add("tilt");c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.transform="perspective(700px) rotateY("+(x*7)+"deg) rotateX("+(-y*7)+"deg) translateY(-4px)"});c.addEventListener("pointerleave",function(){c.style.transform=""})});
   $("#c-qty").addEventListener("input",function(){var pk=$("#c-pack").value;if(pk&&this.value!==$("#c-pack").selectedOptions[0].dataset.q)$("#c-pack").value=""});
