@@ -163,6 +163,7 @@
   .strip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--press); box-shadow: 0 0 0 3px color-mix(in srgb, var(--press) 30%, transparent); }
   .strip a { text-decoration: none; display: inline-block; padding-block: .45rem; margin-block: -.45rem; }
   .strip-links { display: flex; gap: 1.2rem; }
+  @media (pointer: coarse) { .strip a { padding-block: .85rem; margin-block: -.85rem; min-height: 44px; display: inline-flex; align-items: center; } .strip .wrap { padding-block: .25rem; } }
   @media (max-width: 720px) { .strip-links .hide-sm { display: none; } .strip .live span.long { display: none; } }
 
   /* ---------- HEADER ---------- */
