@@ -17,7 +17,7 @@ T = {
   "es": dict(
     lang="es", slug="print-on-demand-playeras-dtg", alt="print-on-demand-t-shirts-mexico", home="/",
     title="Print on Demand en México: playeras con tu diseño desde 1 pieza, con envío · Chilian",
-    desc=f"Diseña tu playera y recíbela en casa: DTG a todo color desde 1 pieza, oversized, regular o económica. Desde {mx(PRICES['opciones']['regular']['blanca']['1']['unitFinal'])} con IVA, packs con descuento y envío fijo a todo México. Planta auditada en Puebla.",
+    desc=f"Diseña tu playera y recíbela en casa: DTG a todo color desde 1 pieza, oversized, regular o económica. Desde {mx(min(PRICES['opciones'][k]['blanca']['1']['unitFinal'] for k in PRICES['opciones']))} con IVA, packs con descuento y envío fijo a todo México. Planta auditada en Puebla.",
     kicker="Print on Demand · DTG", h1a="Tu diseño,", h1b="en una playera real.", h1c="Desde 1 pieza.",
     lead="Sube tu arte o elige un diseño libre, ve cómo queda y recíbela en casa. Impresión DTG a todo color en una planta auditada de Puebla, con precio claro y envío fijo a todo México.",
     cta1="Diseña tu playera", cta2="Ver precios", from_="desde", vat="con IVA",
@@ -45,7 +45,7 @@ T = {
   "en": dict(
     lang="en", slug="print-on-demand-t-shirts-mexico", alt="print-on-demand-playeras-dtg", home="/en",
     title="Print on demand T-shirts from Mexico: your design from 1 piece, shipped · Chilian",
-    desc=f"Design your T-shirt and get it delivered: full-color DTG from 1 piece, oversized, regular or budget. From {mx(PRICES['opciones']['regular']['blanca']['1']['unitFinal'])} MXN with VAT, discount packs and flat-rate shipping across Mexico. Audited plant in Puebla.",
+    desc=f"Design your T-shirt and get it delivered: full-color DTG from 1 piece, oversized, regular or budget. From {mx(min(PRICES['opciones'][k]['blanca']['1']['unitFinal'] for k in PRICES['opciones']))} MXN with VAT, discount packs and flat-rate shipping across Mexico. Audited plant in Puebla.",
     kicker="Print on demand · DTG", h1a="Your design,", h1b="on a real T-shirt.", h1c="From 1 piece.",
     lead="Upload your art or pick a free design, see how it looks and get it delivered. Full-color DTG printing in an audited plant in Puebla, with clear pricing and flat-rate shipping across Mexico.",
     cta1="Design your T-shirt", cta2="See prices", from_="from", vat="with VAT",
@@ -149,7 +149,7 @@ POD_CSS = """
 @keyframes ping{70%{box-shadow:0 0 0 9px rgba(226,53,139,0)}100%{box-shadow:0 0 0 0 rgba(226,53,139,0)}}
 .stage{max-width:580px}.stage .sw{position:static;transform:none;justify-content:center;margin-top:.8rem}
 .try .view{background:radial-gradient(circle at 50% 42%,#5a5040,#1d1a15 72%)}
-.try .view .mock{filter:drop-shadow(0 18px 24px rgba(0,0,0,.5))}
+.try .view .mock{filter:drop-shadow(0 18px 24px rgba(0,0,0,.5));max-width:440px}
 @media (max-width:900px){.pod-hero .stage{order:-1;margin-bottom:-.6rem}.pod-hero{padding-top:1rem}.mock{max-width:420px}}
 @media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
 
@@ -159,6 +159,15 @@ POD_CSS = """
 .own-ic{width:34px;height:34px;flex:none;background:#C9922E;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27%3E%3Cpath d=%27M12 16V4m0 0l-5 5m5-5l5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27%3E%3Cpath d=%27M12 16V4m0 0l-5 5m5-5l5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3%27/%3E%3C/svg%3E") center/contain no-repeat}
 .own-note{margin:.6rem 0 0;font-size:.85rem;color:var(--steel)}.own-note b{color:#f2c14e}.own-note.warn b{color:#e2358b}
 #try-designs button.own img{object-fit:contain;background:repeating-conic-gradient(#2a2620 0 25%,#1d1a15 0 50%) 0 0/12px 12px}
+.dtabs{display:flex;gap:.4rem;overflow-x:auto;padding:.2rem 0 .3rem;margin-top:.6rem;scrollbar-width:thin}
+.dtabs button{flex:none;padding:.42rem .8rem;border:1px solid var(--rule);background:transparent;color:inherit;font:600 .72rem "Jost",sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.dtabs button small{opacity:.6;font-weight:500;margin-left:.2rem}
+.dtabs button[aria-pressed="true"]{background:#C9922E;border-color:#C9922E;color:#161411}
+.dtabs button:hover{border-color:#f2c14e}
+.chips2.scroll{flex-wrap:nowrap;overflow-x:auto;padding:.3rem .1rem .6rem;scroll-snap-type:x proximity;scrollbar-width:thin}
+.chips2.scroll button{flex:none;scroll-snap-align:start}
+.designs.collapsed .dcard.more{display:none}
+.designs .dcard[hidden]{display:none!important}
 /* ===== v3: alive — ink-colored text and buttons that invite the click ===== */
 @property --ga{syntax:"<angle>";inherits:false;initial-value:0deg}
 .ink,.pod-hero h1 .acc{background:linear-gradient(100deg,#C9922E 0%,#f2c14e 18%,#e2358b 38%,#1fb6e8 58%,#f2c14e 78%,#C9922E 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:inkflow 7s linear infinite}
@@ -235,7 +244,7 @@ POD_CSS = """
 .strip .n{font:700 clamp(1.6rem,3.6vw,2.4rem)/1 "Jost",sans-serif;color:var(--magenta);font-variant-numeric:tabular-nums}
 .strip .l{font:600 .7rem "Jost",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-top:.3rem}
 .try{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.6rem;align-items:start}
-.try .view{position:sticky;top:84px;border:1px solid var(--ink);background:radial-gradient(circle at 50% 38%,#4a4234,#1b1813 70%);padding:1rem 1rem 1.4rem}
+.try .view{position:relative;border:1px solid var(--ink);background:radial-gradient(circle at 50% 38%,#4a4234,#1b1813 70%);padding:1rem 1rem 1.4rem}
 .try .view svg{width:100%;height:auto;display:block;max-height:430px}
 #try-tee .teefill{transition:fill .5s ease}#try-art{transition:opacity .35s ease}
 .chips2{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
@@ -282,6 +291,7 @@ def page(t):
     es_u, en_u = (url, alt_url) if es else (alt_url, url)
     o = PRICES["opciones"]; pk = PRICES["packs"]; env = PRICES["envio"]
     a_from = o["regular"]["blanca"]["1"]["unitFinal"]
+    a_min = min(o[k]["blanca"]["1"]["unitFinal"] for k in o)   # the lowest real price: "from" must never promise less or more than the engine
     # cards of garment options
     opts = ""
     for oid in ("regular", "oversized", "economica"):
@@ -291,15 +301,20 @@ def page(t):
     packs = ""
     for pid in ("duo", "creador", "equipo", "evento"):
         name, desc = t["packs"][pid]
-        k = {"duo": 2, "creador": 3, "equipo": 6, "evento": 12}[pid]; w = pk[pid]["blanca"]
+        k = pk[pid]["piezas"]; w = pk[pid]["blanca"]
         ship = t["ship_free"] if w["envio"] == 0 and not w.get("cotizar") else f'{t["ship_in"]} {mx(w["envio"])}'
-        disc = {"duo": 5, "creador": 5, "equipo": 6, "evento": 4}[pid]
-        packs += f'<div class="pcard rv"><span class="badge">−{disc}% {esc(t["off"])}</span><h3>{esc(name)}</h3><p>{esc(desc)}</p><div class="pr">{mx(w["unitFinal"])}<small>{esc(t["perpc"])}</small></div><div class="sub">{k} {esc(t["pcs"])} · {mx(w["total"])} · {esc(ship)}</div><a class="btn" href="{t["quoter"].replace("prod=pod", "prod=pod&pack=" + pid)}">{esc(t["choose"])} →</a></div>'
+        disc = pk[pid]["desc"]; sub = round(w["unitFinal"] * k, 2)
+        packs += f'<div class="pcard rv"><span class="badge">−{disc}% {esc(t["off"])}</span><h3>{esc(name)}</h3><p>{esc(desc)}</p><div class="pr">{mx(w["unitFinal"])}<small>{esc(t["perpc"])}</small></div><div class="sub">{k} {esc(t["pcs"])} × {mx(w["unitFinal"])} = {mx(sub)} · {esc(ship)}<br><b>{esc(L("Total con envío", "Total with shipping"))} {mx(w["total"])}</b> · {esc(L("playera regular blanca, estampado hasta 27 cm", "regular white tee, print up to 27 cm"))}</div><a class="btn" href="{t["quoter"].replace("prod=pod", "prod=pod&pack=" + pid)}">{esc(t["choose"])} →</a></div>'
     # designs
+    CATL = {"japones": ("Japonés", "Japanese"), "pintura": ("Pintura", "Painting"), "grabado": ("Grabado y línea", "Engraving"), "animales": ("Animales", "Animals"), "mexico": ("México", "Mexico"), "cartel": ("Carteles", "Posters"), "naturaleza": ("Naturaleza", "Nature")}
+    cats = [c for c in CATL if any(d.get("cat") == c for d in DESIGNS)]
+    def tabs(target):
+        return f'<div class="dtabs" role="group" data-target="{target}"><button type="button" aria-pressed="true" data-cat="">{esc(L("Todos", "All"))} <small>{len(DESIGNS)}</small></button>' + "".join(f'<button type="button" aria-pressed="false" data-cat="{c}">{esc(CATL[c][0] if es else CATL[c][1])} <small>{sum(1 for d in DESIGNS if d.get("cat") == c)}</small></button>' for c in cats) + '</div>'
+    tabs_try, tabs_gal = tabs("try-designs"), tabs("gal")
     des = ""
-    for d in DESIGNS:
-        des += f'<a class="dcard rv" href="{t["studio"]}&design={d["id"]}" aria-label="{esc(t["d_use"])}: {esc(d["es"] if es else d["en"])}"><span class="ph"><img src="/disenos/{d["id"]}-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>{esc(d["es"] if es else d["en"])}</b><small>{esc(d["autor"])}, {esc(d["anio"])}</small><em>{esc(t["d_pd"])} · {esc(t["d_use"])} →</em></span></a>'
-    design_chips = "".join(f'<button type="button" data-id="{d["id"]}" data-dark="{1 if d["id"] == "rinoceronte" else 0}" aria-pressed="{"true" if i == 0 else "false"}" title="{esc(d["es"] if es else d["en"])}"><img src="/disenos/{d["id"]}-s.webp" alt="{esc(d["es"] if es else d["en"])}" width="56" height="56"></button>' for i, d in enumerate(DESIGNS))
+    for i, d in enumerate(DESIGNS):
+        des += f'<a class="dcard rv{" more" if i >= 12 else ""}" data-cat="{d.get("cat", "")}" href="{t["studio"]}&design={d["id"]}" aria-label="{esc(t["d_use"])}: {esc(d["es"] if es else d["en"])}"><span class="ph"><img src="/disenos/{d["id"]}-s.webp" alt="" loading="lazy" width="150" height="150"></span><span class="t"><b>{esc(d["es"] if es else d["en"])}</b><small>{esc(d["autor"])}, {esc(d["anio"])}</small><em>{esc(t["d_pd"])} · {esc(t["d_use"])} →</em></span></a>'
+    design_chips = "".join(f'<button type="button" data-cat="{d.get("cat", "")}" data-id="{d["id"]}" data-dark="{1 if d["id"] == "rinoceronte" else 0}" aria-pressed="{"true" if i == 0 else "false"}" title="{esc(d["es"] if es else d["en"])}"><img src="/disenos/{d["id"]}-s.webp" alt="{esc(d["es"] if es else d["en"])}" width="56" height="56"></button>' for i, d in enumerate(DESIGNS))
     marquee_items = [(d["es"] if es else d["en"]) for d in DESIGNS] + [L("Desde 1 pieza", "From 1 piece"), L("DTG a todo color", "Full-color DTG"), L("Envío a todo México", "Shipping across Mexico"), L("Sin mínimos", "No minimums")]
     mq = "".join(f"<span>{esc(x)}</span>" for x in marquee_items * 2)
     bigrow = "".join(f"<b>{esc(w)}</b><span>{esc(x)}</span>" for w, x in ((L("Diseña", "Design"), L("Imprime", "Print")), (L("Recibe", "Receive"), L("Repite", "Repeat")))) * 4
@@ -313,7 +328,7 @@ def page(t):
     tee_opts = "".join(f'<option value="{oid}">{esc(t["opts"][oid][0])}</option>' for oid in ("regular", "oversized", "economica"))
     ld = {"@context": "https://schema.org", "@graph": [
         {"@type": "Product", "name": L("Playera Print on Demand con estampado DTG", "Print on demand T-shirt with DTG print"), "description": t["lead"], "image": f"{SITE}/photos/opt/print-on-demand-dtg-960.webp", "brand": {"@type": "Brand", "name": "Chilian"}, "manufacturer": {"@id": SITE + "/#chilian"},
-         "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": f"{a_from:.2f}", "highPrice": f"{o['oversized']['color']['1']['unitFinal']:.2f}", "offerCount": 6, "availability": "https://schema.org/InStock", "url": url, "seller": {"@id": SITE + "/#chilian"},
+         "offers": {"@type": "AggregateOffer", "priceCurrency": "MXN", "lowPrice": f"{a_min:.2f}", "highPrice": f"{o['oversized']['color']['1']['unitFinal']:.2f}", "offerCount": 6, "availability": "https://schema.org/InStock", "url": url, "seller": {"@id": SITE + "/#chilian"},
                     "shippingDetails": {"@type": "OfferShippingDetails", "shippingRate": {"@type": "MonetaryAmount", "value": str(env["mx"][0][1]), "currency": "MXN"}, "shippingDestination": {"@type": "DefinedRegion", "addressCountry": "MX"}, "deliveryTime": {"@type": "ShippingDeliveryTime", "handlingTime": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 4, "unitCode": "DAY"}, "transitTime": {"@type": "QuantitativeValue", "minValue": 3, "maxValue": 5, "unitCode": "DAY"}}}}},
         {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Grupo Chilian", "item": SITE + t["home"]}, {"@type": "ListItem", "position": 2, "name": t["h1a"] + " " + t["h1b"], "item": url}]},
         {"@type": "HowTo", "name": t["how_h"], "step": [{"@type": "HowToStep", "position": i + 1, "name": h, "text": p} for i, (h, p) in enumerate(t["steps"])]},
@@ -363,6 +378,10 @@ def page(t):
   var sumEl=$("#r-sum");if(sumEl)new MutationObserver(function(){sumEl.classList.remove("bump");void sumEl.offsetWidth;sumEl.classList.add("bump")}).observe(sumEl,{childList:true,characterData:true,subtree:true});
   if(!reduce&&matchMedia("(hover:hover)").matches)document.querySelectorAll(".btn.accent").forEach(function(b){b.addEventListener("mousemove",function(e){var r=b.getBoundingClientRect();b.style.transform="translate("+((e.clientX-r.left-r.width/2)*.18)+"px,"+((e.clientY-r.top-r.height/2)*.3-3)+"px)"});b.addEventListener("mouseleave",function(){b.style.transform=""})});
   document.querySelectorAll(".chips span,.offer span,.chip").forEach(function(c,i){c.style.animationDelay=(i*.4)+"s"});
+  // design categories: the same tabs filter the fitting room row and the gallery
+  document.querySelectorAll(".dtabs").forEach(function(tb){var box=document.getElementById(tb.dataset.target);tb.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;tb.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});var c=b.dataset.cat;
+    if(box.id==="gal"&&c)box.classList.remove("collapsed");box.querySelectorAll("[data-cat]").forEach(function(x){x.hidden=!!c&&x.dataset.cat!==c&&!x.classList.contains("own")});if(box.id==="gal"){var m=$("#gal-more");if(m)m.hidden=!!c||!box.classList.contains("collapsed")}box.scrollLeft=0})});
+  var gm=$("#gal-more");if(gm)gm.addEventListener("click",function(){$("#gal").classList.remove("collapsed");gm.hidden=true});
   // ===== photoreal mockup engine =====
   // A real photo of a white tee (/blanks/tee-front.webp): the garment is recolored through its shade map so folds and seams stay,
   // and the design is multiplied by the same shade so it follows the fabric. Everything is cached per color and design.
@@ -477,12 +496,12 @@ def page(t):
     <div>
       <p class="kicker">{esc(t['kicker'])}</p>
       <h1><span class="ln"><span>{esc(t['h1a'])}</span></span><span class="ln"><span class="acc">{esc(t['h1b'].rsplit(' ', 1)[0])} <span class="uline">{esc(t['h1b'].rsplit(' ', 1)[1])}</span></span></span><span class="ln"><span>{esc(t['h1c'])}</span></span></h1>
-      <div class="offer"><span><i></i>{esc(t['from_'])} {mx(a_from)} {esc(t['vat'])}</span><span><i></i>{esc(L('Sin mínimos', 'No minimums'))}</span><span><i></i>{esc(L('Envío a todo México', 'Shipping across Mexico'))}</span><span><i></i>{esc(L('Producción en 4 días hábiles', 'Production in 4 business days'))}</span></div>
+      <div class="offer"><span><i></i>{esc(t['from_'])} {mx(a_min)} {esc(t['vat'])}</span><span><i></i>{esc(L('Sin mínimos', 'No minimums'))}</span><span><i></i>{esc(L('Envío a todo México', 'Shipping across Mexico'))}</span><span><i></i>{esc(L('Producción en 4 días hábiles', 'Production in 4 business days'))}</span></div>
       <p class="lead">{esc(t['lead'])}</p>
       <div class="cta"><a class="btn accent" href="{t['studio']}">{esc(t['cta1'])} →</a><a class="btn" href="#probador">{esc(L('Pruébala y ve tu precio', 'Try it and see your price'))}</a></div>
     </div>
     <div class="stage">
-      <div class="badge-price" aria-hidden="true">{esc(t['from_'])}<b>{mx(a_from)}</b>{esc(t['vat'])}</div>
+      <div class="badge-price" aria-hidden="true">{esc(t['from_'])}<b>{mx(a_min)}</b>{esc(t['vat'])}</div>
       <div class="mock" id="hero-mock" role="img" aria-label="{esc(L('Una playera real con un diseño famoso impreso en DTG a todo color', 'A real T-shirt with a famous design printed in full-color DTG'))}">
         <img class="poster" src="/pod-assets/hero-poster.webp" alt="" width="900" height="900" fetchpriority="high" decoding="async">
         <canvas id="hero-canvas" width="900" height="900" aria-hidden="true"></canvas>
@@ -508,7 +527,7 @@ def page(t):
         <div class="own-row"><label class="own-up" id="own-up"><input type="file" id="own-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden><span class="own-ic" aria-hidden="true"></span><span><b>{esc(L('Sube tu propio diseño', 'Upload your own design'))}</b><small>{esc(L('PNG, JPG, SVG o WebP. Lo cotizamos con los precios del cotizador.', 'PNG, JPG, SVG or WebP. We price it with the quoter prices.'))}</small></span></label></div>
         <p class="own-note" id="own-note" hidden></p>
         <div class="lbl">{esc(L('O elige un diseño libre de uso', 'Or pick a free-to-use design'))}</div>
-        <div class="chips2" id="try-designs">{design_chips}</div>
+        {tabs_try}<div class="chips2 scroll" id="try-designs">{design_chips}</div>
         <div class="lbl">{esc(L('2. Elige el color', '2. Pick the color'))}</div>
         <div class="swatches2" id="try-colors"></div>
       </div>
@@ -537,7 +556,7 @@ def page(t):
   <section class="b"><div class="wrap"><p class="kicker">{esc(t['how_k'])}</p><h2>{esc(t['how_h'])}</h2><div class="steps4">{steps}</div></div></section>
   <section class="b" id="precios"><div class="wrap"><p class="kicker">{esc(t['pick_k'])}</p><h2>{esc(t['pick_h'])}</h2><div class="cards3" style="margin-top:1.4rem">{opts}</div><p class="note" style="margin-top:.9rem;color:var(--steel);font-size:.84rem">{esc(t['pick_note'])}</p></div></section>
   <section class="b"><div class="wrap"><p class="kicker">{esc(t['packs_k'])}</p><h2>{esc(t['packs_h'])}</h2><div class="cards4" style="margin-top:1.4rem">{packs}</div></div></section>
-  <section class="b" id="disenos"><div class="wrap"><p class="kicker">{esc(t['designs_k'])}</p><h2>{esc(t['designs_h'])}</h2><p style="color:var(--steel);max-width:62ch">{esc(t['designs_p'])}</p><div class="designs" style="margin-top:1.2rem">{des}</div></div></section>
+  <section class="b" id="disenos"><div class="wrap"><p class="kicker">{esc(t['designs_k'])}</p><h2>{esc(t['designs_h'])}</h2><p style="color:var(--steel);max-width:62ch">{esc(t['designs_p'])}</p>{tabs_gal}<div class="designs collapsed" id="gal" style="margin-top:1rem">{des}</div><div style="text-align:center;margin-top:1.2rem"><button type="button" class="btn" id="gal-more">{esc(L(f'Ver los {len(DESIGNS)} diseños', f'See all {len(DESIGNS)} designs'))}</button></div></div></section>
   <section class="b"><div class="wrap shipgrid"><div><p class="kicker">{esc(t['ship_k'])}</p><h2>{esc(t['ship_h'])}</h2><dl>{ship_rows}</dl></div>
     <div><table><thead><tr><th>{esc(t['ship_table_h'][0])}</th><th class="r">{esc(t['ship_table_h'][1])}</th></tr></thead><tbody>{ship_tbl}</tbody></table></div></div></section>
   <section class="b"><div class="wrap"><p class="kicker">{esc(t['trust_k'])}</p><div class="trust4" style="margin-top:1rem">{trust}</div></div></section>

@@ -885,6 +885,10 @@
   .st-cta .st-qty .chip span { padding: .3rem .6rem; font-size: .8rem; }
   .st-library { display: grid; gap: .4rem; }
   .st-lib-label { font-size: .8rem; color: var(--steel); }
+  .st-free-tabs { display: flex; gap: .35rem; overflow-x: auto; padding: .1rem 0 .45rem; }
+  .st-free-tabs button { flex: none; padding: .35rem .7rem; border: 1px solid var(--rule); background: transparent; color: inherit; font: 600 .66rem var(--f-display, inherit); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+  .st-free-tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper, #fff); border-color: var(--ink); }
+  .st-lib-row button[hidden] { display: none; }
   .st-lib-row { display: flex; gap: .5rem; overflow-x: auto; padding: .15rem .1rem .35rem; scroll-snap-type: x proximity; }
   .st-lib-row button { flex: none; width: 4.6rem; height: 4.6rem; padding: .3rem; border: 1px solid var(--rule); background: repeating-conic-gradient(#e9e8ec 0 25%, #f7f6f8 0 50%) 0 0/14px 14px; cursor: pointer; scroll-snap-align: start; position: relative; transition: border-color .15s ease, transform .15s ease; }
   .st-lib-note { font: 400 .68rem/1.4 var(--f-body); color: var(--steel); }
@@ -2752,12 +2756,12 @@
       }
     }
     let podPack = null;
-    if (prod.pod && P.pod && P.pod.recargo) {   // service fee by pieces (setup, quality check, individual packing), then the pack discount
+    if ((prod.pod || kind === "dtg") && P.pod && P.pod.recargo) {   // small DTG runs, Print on Demand or not: service fee by pieces (setup, quality check, individual packing), then the pack discount
       const R = P.pod.recargo; let pct = 0; R.tramos.forEach(([from, x]) => { if (q >= from) pct = x; });
       pct += c.color === "blanca" || !pct ? 0 : R.colorExtra || 0;
       const sub0 = rows.reduce((a, r) => a + r[1], 0);
-      if (pct) rows.push([L(`Servicio Print on Demand (preparación, control de calidad y empaque individual)`, `Print on demand service (setup, quality check and individual packing)`), sub0 * pct / 100]);
-      podPack = c.pack && P.pod.packs && P.pod.packs[c.pack] ? P.pod.packs[c.pack] : null;
+      if (pct) rows.push([prod.pod ? L(`Servicio Print on Demand (preparación, control de calidad y empaque individual)`, `Print on demand service (setup, quality check and individual packing)`) : L(`Servicio de pedido chico en DTG (preparación, control de calidad y empaque)`, `Small DTG order service (setup, quality check and packing)`), sub0 * pct / 100]);
+      podPack = prod.pod && c.pack && P.pod.packs && P.pod.packs[c.pack] && P.pod.packs[c.pack].piezas === q ? P.pod.packs[c.pack] : null;
       if (podPack) rows.push([L(`${podPack.nombre}: ${podPack.desc}% de descuento`, `${podPack.en}: ${podPack.desc}% off`), -(sub0 + sub0 * pct / 100) * podPack.desc / 100]);
     }
     const base = rows.reduce((a, r) => a + r[1], 0);
@@ -3520,7 +3524,7 @@
     const used = sectionsNow().filter((id) => id !== "bg" && st.prints[id] && st.prints[id].art);
     const full = st.mode === "full", locs = Math.min(4, Math.max(1, used.length));
     const c = full ? { prod: "sport", tec: "fullprint", qty, inks: 1, locs: 1, del: "estandar" }
-      : { prod: ST_PROD[garment().quote] || "playera", tec: STUDIO_TECS.find((x) => x.id === st.tec).tech, qty, inks: 1, locs, areas: used.map((id) => { const pr = printRect(id); return Math.max(1, Math.round((pr.wcm || 0) * (pr.hcm || 0))); }), emb: "mediano", del: "estandar", linea: qz.linea || "clasica", color: (STUDIO.colors[st.color] && /blanc|white/i.test(t(STUDIO.colors[st.color].name))) ? "blanca" : "color" };
+      : { prod: ST_PROD[garment().quote] || "playera", tec: STUDIO_TECS.find((x) => x.id === st.tec).tech, qty, inks: 1, locs, areas: used.map((id) => { const pr = printRect(id); return Math.max(1, Math.round((pr.wcm || 0) * (pr.hcm || 0))); }), emb: "mediano", del: "estandar", linea: qz.linea || "clasica", dcm: Math.max(1, ...used.map((id) => { const pr = printRect(id); return Math.ceil(Math.max(pr.wcm || 0, pr.hcm || 0)); })), color: (STUDIO.colors[st.color] && /blanc|white/i.test(t(STUDIO.colors[st.color].name))) ? "blanca" : "color" };
     const r = qzCalc(c);
     if (r.err) { box.textContent = r.err; return; }
     const more = !full && locs < 4 ? qzCalc({ ...c, locs: locs + 1, areas: c.areas ? [...c.areas, 300] : undefined }) : null;
@@ -3857,7 +3861,7 @@
       img.src = url;
     };
     window.chilianUseFile = useFile; // used when a landing hands over the customer's own file
-    // Free designs: artworks in the public domain (Wikimedia Commons). Tap one and it is used like an uploaded file.
+    // Free designs: artworks in the public domain (Wikimedia Commons, Art Institute of Chicago CC0). Tap one and it is used like an uploaded file.
     fetch("/disenos/disenos.json").then((r) => (r.ok ? r.json() : [])).then((list) => {
       if (!Array.isArray(list) || !list.length) return;
       $("#st-free").hidden = false;
@@ -3867,8 +3871,21 @@
           $("#st-free-note").textContent = `${t({ es: d.es, en: d.en })} · ${d.autor}, ${d.anio} · ${L("dominio público", "public domain")}`;
           try { const blob = await (await fetch(`/disenos/${d.id}.webp`)).blob(); useFile(new File([blob], `${d.id}.webp`, { type: "image/webp" })); } catch (e) { $("#st-free-note").textContent = L("No pudimos cargar ese diseño. Intenta de nuevo.", "We could not load that design. Try again."); }
         });
+        b.dataset.cat = d.cat || "";
         return b;
       }));
+      // category tabs over the row, so a long library stays easy to browse
+      const CATL = { japones: ["Japonés", "Japanese"], pintura: ["Pintura", "Painting"], grabado: ["Grabado y línea", "Engraving"], animales: ["Animales", "Animals"], mexico: ["México", "Mexico"], cartel: ["Carteles", "Posters"], naturaleza: ["Naturaleza", "Nature"] };
+      const cats = Object.keys(CATL).filter((c) => list.some((d) => d.cat === c));
+      if (cats.length > 1 && !$("#st-free-tabs")) {
+        const tabs = el("div", { class: "st-free-tabs", id: "st-free-tabs", role: "group", "aria-label": L("Categorías", "Categories") });
+        [["", L("Todos", "All")], ...cats.map((c) => [c, L(CATL[c][0], CATL[c][1])])].forEach(([c, name], i) => {
+          const b = el("button", { type: "button", "aria-pressed": String(i === 0), text: name });
+          b.addEventListener("click", () => { tabs.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); $("#st-free-row").querySelectorAll("button").forEach((x) => { x.hidden = !!c && x.dataset.cat !== c; }); $("#st-free-row").scrollLeft = 0; });
+          tabs.appendChild(b);
+        });
+        $("#st-free-row").before(tabs);
+      }
     }).catch(() => {});
     // A text instead of a file: drawn big on a transparent canvas, then used like any upload.
     $("#st-text-go").addEventListener("click", async () => {

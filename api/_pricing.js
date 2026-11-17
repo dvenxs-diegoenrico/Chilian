@@ -105,12 +105,13 @@ export function quote(P, c, lang = "es") {
     else if (kind === "dtg") unit += dOne * locs;   // Print on Demand: the first print is part of the product's price, extra ones add the same
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
   }
-  // Print on Demand: service fee (setup, QC and packing) by pieces, then the pack discount if the customer picked one
+  // Small DTG runs (Print on Demand and any DTG order): service fee (setup, QC and packing) by pieces, so the same garment and print
+  // costs the same wherever it is quoted; then the pack discount, only when the pieces match the pack
   let recargo = 0, pack = null;
-  if (prod.pod && P.pod?.recargo) {
+  if ((prod.pod || kind === "dtg") && P.pod?.recargo) {
     const R = P.pod.recargo; let pct = 0; R.tramos.forEach(([from, p]) => { if (q >= from) pct = p; });
     recargo = unit * ((pct + (c.color === "blanca" ? 0 : R.colorExtra || 0) * (pct > 0 ? 1 : 0)) / 100); unit += recargo;
-    pack = c.pack && P.pod.packs?.[c.pack] ? P.pod.packs[c.pack] : null;
+    pack = prod.pod && c.pack && P.pod.packs?.[c.pack] && P.pod.packs[c.pack].piezas === q ? P.pod.packs[c.pack] : null;
     if (pack) unit *= 1 - pack.desc / 100;
   }
   if (c.del === "express") unit *= 1 + P.express / 100;

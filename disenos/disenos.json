@@ -8,7 +8,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg",
   "w": 1200,
-  "h": 807
+  "h": 807,
+  "cat": "japones"
  },
  {
   "id": "medusas",
@@ -19,7 +20,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Haeckel_Discomedusae_8.jpg",
   "w": 836,
-  "h": 1200
+  "h": 1200,
+  "cat": "naturaleza"
  },
  {
   "id": "rinoceronte",
@@ -30,7 +32,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:The_Rhinoceros_(NGA_1964.8.697)_enhanced.png",
   "w": 1200,
-  "h": 834
+  "h": 834,
+  "cat": "grabado"
  },
  {
   "id": "mucha",
@@ -41,7 +44,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Alphonse_Mucha_-_Zodiac,_1869.jpg",
   "w": 904,
-  "h": 1200
+  "h": 1200,
+  "cat": "cartel"
  },
  {
   "id": "estrellada",
@@ -52,7 +56,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
   "w": 1200,
-  "h": 950
+  "h": 950,
+  "cat": "pintura"
  },
  {
   "id": "fuji",
@@ -63,7 +68,8 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Red_Fuji_southern_wind_clear_morning.jpg",
   "w": 1200,
-  "h": 801
+  "h": 801,
+  "cat": "japones"
  },
  {
   "id": "girasoles",
@@ -74,6 +80,223 @@
   "licencia": "Public domain",
   "fuente": "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Sunflowers_(1888,_National_Gallery_London).jpg",
   "w": 944,
-  "h": 1200
+  "h": 1200,
+  "cat": "pintura"
+ },
+ {
+  "id": "grullas",
+  "es": "Grullas en la nieve",
+  "en": "Cranes in the snow",
+  "autor": "Katsushika Hokusai",
+  "anio": "ca. 1834",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/21720",
+  "w": 552,
+  "h": 1200,
+  "cat": "japones"
+ },
+ {
+  "id": "fuji-trueno",
+  "es": "Tormenta bajo el Fuji",
+  "en": "Storm below Mount Fuji",
+  "autor": "Katsushika Hokusai",
+  "anio": "ca. 1831",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/87008",
+  "w": 1200,
+  "h": 831,
+  "cat": "japones"
+ },
+ {
+  "id": "cascada",
+  "es": "Cascada de Ono",
+  "en": "Ono Falls",
+  "autor": "Katsushika Hokusai",
+  "anio": "ca. 1833",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/25183",
+  "w": 816,
+  "h": 1200,
+  "cat": "japones"
+ },
+ {
+  "id": "lluvia-puente",
+  "es": "Lluvia sobre el puente",
+  "en": "Sudden shower on the bridge",
+  "autor": "Utagawa Hiroshige",
+  "anio": "1857",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/64447",
+  "w": 822,
+  "h": 1200,
+  "cat": "japones"
+ },
+ {
+  "id": "ciruelo",
+  "es": "Ciruelos en flor",
+  "en": "Plum garden",
+  "autor": "Utagawa Hiroshige",
+  "anio": "1857",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/26577",
+  "w": 815,
+  "h": 1200,
+  "cat": "japones"
+ },
+ {
+  "id": "aguila",
+  "es": "Águila sobre la nieve",
+  "en": "Eagle over the snow",
+  "autor": "Utagawa Hiroshige",
+  "anio": "1857",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/26605",
+  "w": 792,
+  "h": 1200,
+  "cat": "japones"
+ },
+ {
+  "id": "tigre2",
+  "es": "Tigre",
+  "en": "Tiger resting",
+  "autor": "Pierre Andrieu",
+  "anio": "ca. 1845",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/884",
+  "w": 1200,
+  "h": 607,
+  "cat": "animales"
+ },
+ {
+  "id": "gato",
+  "es": "Gato en el cojín",
+  "en": "Cat on a cushion",
+  "autor": "Théophile-Alexandre Steinlen",
+  "anio": "1909",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/51719",
+  "w": 1200,
+  "h": 922,
+  "cat": "animales"
+ },
+ {
+  "id": "audubon",
+  "es": "Venados",
+  "en": "White-tailed deer",
+  "autor": "John Woodhouse Audubon",
+  "anio": "1848",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/104328",
+  "w": 1200,
+  "h": 944,
+  "cat": "animales"
+ },
+ {
+  "id": "calavera-posada",
+  "es": "Calavera maderista",
+  "en": "Calavera Maderista",
+  "autor": "José Guadalupe Posada",
+  "anio": "ca. 1910",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/74965",
+  "w": 800,
+  "h": 1200,
+  "cat": "mexico"
+ },
+ {
+  "id": "calavera",
+  "es": "Tres calaveras",
+  "en": "The three skulls",
+  "autor": "Paul Cézanne",
+  "anio": "1902–06",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/80336",
+  "w": 1200,
+  "h": 925,
+  "cat": "pintura"
+ },
+ {
+  "id": "moulin-rouge",
+  "es": "Moulin Rouge",
+  "en": "Moulin Rouge, La Goulue",
+  "autor": "Henri de Toulouse-Lautrec",
+  "anio": "1891",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/82287",
+  "w": 734,
+  "h": 1200,
+  "cat": "cartel"
+ },
+ {
+  "id": "dormitorio",
+  "es": "La habitación",
+  "en": "The bedroom",
+  "autor": "Vincent van Gogh",
+  "anio": "1889",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/28560",
+  "w": 1200,
+  "h": 940,
+  "cat": "pintura"
+ },
+ {
+  "id": "autorretrato",
+  "es": "Autorretrato",
+  "en": "Self-portrait",
+  "autor": "Vincent van Gogh",
+  "anio": "1887",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/80607",
+  "w": 941,
+  "h": 1200,
+  "cat": "pintura"
+ },
+ {
+  "id": "nenufares",
+  "es": "Nenúfares",
+  "en": "Water lilies",
+  "autor": "Claude Monet",
+  "anio": "1906",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/16568",
+  "w": 1200,
+  "h": 1152,
+  "cat": "pintura"
+ },
+ {
+  "id": "grande-jatte",
+  "es": "La Grande Jatte",
+  "en": "A Sunday on La Grande Jatte",
+  "autor": "Georges Seurat",
+  "anio": "1884",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/27992",
+  "w": 1200,
+  "h": 804,
+  "cat": "pintura"
+ },
+ {
+  "id": "melancolia",
+  "es": "Melancolía I",
+  "en": "Melencolia I",
+  "autor": "Albrecht Dürer",
+  "anio": "1514",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/28260",
+  "w": 932,
+  "h": 1200,
+  "cat": "grabado"
+ },
+ {
+  "id": "caballero",
+  "es": "El caballero y la muerte",
+  "en": "Knight, Death and the Devil",
+  "autor": "Albrecht Dürer",
+  "anio": "1513",
+  "licencia": "Public domain (CC0)",
+  "fuente": "https://www.artic.edu/artworks/11100",
+  "w": 933,
+  "h": 1200,
+  "cat": "grabado"
  }
 ]

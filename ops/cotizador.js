@@ -488,10 +488,13 @@
         const v = dtgList(dtgCm(p), qty, !!S.oscura); return { p, cost: v, sale: v };
       });
       const g = S.garment ? BYKEY[S.garment] : null, gList = !!(g && g.lp && S.gAuto !== false), gcost = !g ? 0 : gList ? listPrice(g, qty) : n(S.gcost);
-      const sale = r2(rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(S.mkG) / 100));
+      // Small DTG runs carry the same service fee as the website and the assistant (setup, quality check and packing), so every channel quotes the same
+      const R = !bord && PRE && PRE.pod && PRE.pod.recargo; let feePct = 0;
+      if (R) { R.tramos.forEach(([from, x]) => { if (qty >= from) feePct = x; }); if (feePct && S.oscura) feePct += n(R.colorExtra); }
+      const sale0 = rows.reduce((a, x) => a + x.sale, 0) + gcost * (1 + n(S.mkG) / 100), sale = r2(sale0 * (1 + feePct / 100));
       const line = { piezas: qty, ubicaciones: S.pos.map((p) => bord ? { nombre: p.name, tecnica: "bordado", puntadas: n(p.puntadas), colores: 0 } : { nombre: p.name, tecnica: "dtg", oscura: !!S.oscura, colores: 0 }) };
       const mins = X.lineMinutes ? X.lineMinutes(line)[S.tec] : 0, machines = X.machinesOf ? X.machinesOf(S.tec).length : 1, cap = X.dayCapacity ? X.dayCapacity() : 459;
-      return { qty, bord, rows, g, gList, gcost, cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
+      return { qty, bord, rows, g, gList, gcost, feePct, fee: r2(sale0 * feePct / 100), cost: rows.reduce((a, x) => a + x.cost, 0) + gcost, sale, total: sale * qty, mins, machines, days: mins / cap / Math.max(1, machines), line };
     }
     // What a line priced by scale costs at its quantity: a garment of the price list, or a calculator line (its spec is saved on the line)
     function autoPrice(l, it, qty) {
@@ -840,6 +843,7 @@
           h("table", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "r", text: "Costo" }), h("th", { class: "r", text: "Venta" })),
             c.rows.map((x) => h("tr", {}, h("td", { text: c.bord ? `${x.p.name} · ${int(x.p.puntadas)} puntadas` : `${x.p.name} · hasta ${dtgCm(x.p)} cm · ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}` }), h("td", { class: "r", text: money(x.cost) }), h("td", { class: "r", text: money(x.sale) }))),
             c.g ? h("tr", {}, h("td", { text: "Prenda: " + c.g.name.split(" · ")[0] }), h("td", { class: "r", text: money(c.gcost) }), h("td", { class: "r", text: money(c.gcost * (1 + n(DB.mkG) / 100)) })) : null,
+            c.fee ? h("tr", {}, h("td", { text: `Servicio de pedido chico (${c.feePct} %): preparación, revisión y empaque. Igual que en el sitio y el asistente.` }), h("td", { class: "r", text: "" }), h("td", { class: "r", text: money(c.fee) })) : null,
             h("tr", { class: "tot" }, h("td", { text: "Por pieza" }), h("td", { class: "r", text: money(c.cost) }), h("td", { class: "r", text: money(c.sale) }))),
           c.bord && t.ejemploDB !== false ? h("p", { class: "hint warn", text: "Costos de bordado de ejemplo: ajústalos en Ajustes → DTG y bordado." }) : null,
           !c.bord ? h("p", { class: "hint", text: `Lista DTG de Chilian (precio de venta, sin margen encima): escala de ${int([1, 2, 5, 10, 20, 30, 40, 50, 100].filter((x) => c.qty >= x).pop() || 1)} pz, ${DB.oscura ? "prenda negra o de color" : "prenda blanca"}.` }) : null,

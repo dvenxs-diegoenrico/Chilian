@@ -20,9 +20,14 @@ AUDITS_EN = "Walt Disney FAMA, WRAP, VF Corporation, C&A, SMETA (Sedex), Walmart
 BRANDS = "Carhartt, The North Face, Vans, Supreme, Marvel, Bluey, Minecraft, Snoopy y Tom and Jerry"
 # Print on Demand and campaign prices: final price per piece (VAT 16 % + online payment fee 5 % included), from the site's
 # own price engine (api/_pricing.js quote). Regenerate them when the lists change.
-POD_TIERS = [("Económica · 50/50", [(1, 177.54, 234.98), (5, 139.78, 181.38), (12, 128.82, 164.33), (50, 101.56, 141.11), (100, 94.61, 134.98)]),
-             ("Regular · 100 % algodón", [(1, 182.18, 236.45), (5, 144.42, 182.86), (12, 133.46, 165.81), (50, 105.88, 142.49), (100, 98.79, 136.32)]),
-             ("Oversized", [(1, 187.29, 244.64), (5, 149.53, 191.04), (12, 138.57, 173.99), (50, 110.66, 150.13), (100, 103.40, 143.69)])]
+def _engine(js):
+    import subprocess
+    return json.loads(subprocess.check_output(["node", "--input-type=module", "-e", "import { mergePrecios } from './api/precios.js'; import { quote } from './api/_pricing.js'; const P = mergePrecios(null); " + js], cwd=str(ROOT)))
+# Small DTG runs, from the engine (Print on Demand up to 24 pieces, the same DTG price after that), so these tables never drift from the lists.
+POD_TIERS = [(n, [tuple([q] + [round(x, 2) for x in v]) for q, v in rows]) for n, rows in _engine(
+    "const o = [['Económica · 50/50','economica','basica'],['Regular · 100 % algodón','regular','clasica'],['Oversized','oversized','premium']];"
+    "const f = (k, ln, q, col) => (q <= 24 ? quote(P, { prod: 'pod', pod: k, qty: q, dcm: 27, locs: 1, color: col }) : quote(P, { prod: 'playera', linea: ln, tec: 'dtg', qty: q, dcm: 27, locs: 1, color: col })).unitFinal;"
+    "console.log(JSON.stringify(o.map(([n, k, ln]) => [n, [1, 5, 12, 50, 100].map((q) => [q, [f(k, ln, q, 'blanca'), f(k, ln, q, 'color')]])])))")]
 CAMP_TIERS = [(500, 66.22, 86.53), (1000, 59.19, 76.45), (10000, 58.22, 74.75)]
 TIERS = [("100–299", 310.80, 334.78), ("300–999", 199.80, 206.02), ("1,000–2,999", 177.60, 180.26), ("3,000–9,999", 155.40, 180.26), ("10,000+", 133.20, 154.51)]
 
