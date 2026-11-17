@@ -308,12 +308,12 @@
   const ROUTES = {
     inicio: viewHome, avisos: viewAlerts, reportes: viewReports, solicitudes: viewInbox, pipeline: viewPipeline, oportunidad: viewOpp, cuentas: viewAccounts, cuenta: viewAccount,
     prospeccion: viewPlaybook, tareas: viewTasks, cotizaciones: viewQuotes, cotizacion: viewQuote, ots: viewOTs, ot: viewOT,
-    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, ajustes: viewSettings, equipo: viewTeam,
+    programacion: viewSchedule, escaneo: viewScan, embarques: viewShipping, pod: viewPod, ajustes: viewSettings, equipo: viewTeam,
     guia: () => window.OSHelp.guide(h, go)
   };
   const NAV = [
     ["inicio", "Tablero"], ["avisos", "Avisos"], ["group", "Ventas"], ["solicitudes", "Solicitudes"], ["pipeline", "Oportunidades"], ["tareas", "Tareas"], ["cuentas", "Cuentas"], ["prospeccion", "Prospección"],
-    ["cotizaciones", "Cotizaciones"], ["reportes", "Reportes"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["embarques", "Embarques"],
+    ["cotizaciones", "Cotizaciones"], ["reportes", "Reportes"], ["group", "Planta"], ["ots", "Órdenes de trabajo"], ["programacion", "Programación"], ["escaneo", "Escaneo"], ["pod", "Cola POD"], ["embarques", "Embarques"],
     ["group", "Sistema"], ["guia", "Guía y ayuda"], ["equipo", "Equipo"], ["ajustes", "Ajustes"]
   ];
   const route = () => { const [r, ...rest] = (location.hash.slice(1) || "inicio").split("/"); return { r: ROUTES[r] ? r : "inicio", arg: decodeURIComponent(rest.join("/")) }; };
@@ -1866,6 +1866,54 @@
   }
 
   /* ---------------- shipping ---------------- */
+
+  /* =========================== COLA POD (Print on Demand) ===========================
+     The paid orders arrive here as work orders (the server creates them when the payment is confirmed). They are batched by garment,
+     color and print size so the DTG prints a lot at a time; unpaid ones show who to follow up. */
+  function viewPod() {
+    const podOts = list("ots").filter((o) => o.pod && !o.previa);
+    const open = podOts.filter((o) => !["embarcada", "entregada"].includes(o.etapa)), done = podOts.length - open.length;
+    const unpaid = list("solicitudes").filter((s) => s.bot?.cot?.d?.prod === "pod" && !s.otId && !(s.pagos || []).length && s.estado !== "descartada")
+      .sort((a, b) => (a.ultimoMensaje || a.recibida || "").localeCompare(b.ultimoMensaje || b.recibida || ""));
+    const optName = { regular: "Regular", oversized: "Oversized", economica: "Económica" };
+    const pcs = (o) => (o.lineas || []).reduce((a, l) => a + (+l.piezas || 0), 0);
+    const inProd = (o) => ["impresion", "calidad", "empaque"].includes(o.etapa);
+    const waiting = open.filter((o) => !inProd(o));
+    // batches: same garment, color and print size
+    const batches = {};
+    for (const o of waiting) { const i = o.podInfo || {}, k = `${i.opcion || "regular"}|${i.color || "blanca"}|${i.dcm || 27}`; (batches[k] ||= { opcion: i.opcion || "regular", color: i.color || "blanca", dcm: i.dcm || 27, ots: [], piezas: 0 }); batches[k].ots.push(o); batches[k].piezas += pcs(o); }
+    const lots = Object.values(batches).sort((a, b) => b.piezas - a.piezas);
+    const sizesOf = (o) => (o.lineas || []).flatMap((l) => Object.entries(l.tallas || {}).filter(([, v]) => +v > 0).map(([k, v]) => `${k}×${v}`)).join(" ") || "tallas por pedir";
+    const mins = X_dtgMinutes(waiting);
+    const printLot = (b) => {
+      const w = window.open("", "_blank"); if (!w) return toast("Permite las ventanas emergentes para imprimir el lote.", true);
+      const rows = b.ots.map((o) => `<tr><td>${o.id}</td><td>${o.clienteNombre || ""}</td><td style="text-align:right">${pcs(o)}</td><td>${sizesOf(o)}</td><td>${o.arte?.estado === "aprobada" ? "Arte aprobado" : "Falta arte"}</td></tr>`).join("");
+      w.document.write(`<title>Lote DTG</title><body style="font:14px system-ui;padding:24px"><h2>Lote DTG · ${optName[b.opcion]} ${b.color === "blanca" ? "blanca" : "de color"} · hasta ${b.dcm} cm</h2><p>${b.piezas} piezas en ${b.ots.length} pedido(s). ${b.color === "blanca" ? "Prenda blanca: sin pretratado." : "Prenda de color: pretratar y capa blanca."}</p><table border="1" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th>OT</th><th>Cliente</th><th>Piezas</th><th>Tallas</th><th>Arte</th></tr>${rows}</table><script>print()<\/script>`);
+      w.document.close();
+    };
+    const askArt = (o) => { const s = byId("solicitudes", o.solicitudId), ph = s?.whatsapp || s?.contacto; return isPhone(ph) ? waLink(ph, `Hola ${(o.clienteNombre || "").split(" ")[0]}, soy de Chilian. Ya recibimos el pago de tu pedido ${o.id}. Para imprimirlo necesitamos tu diseño (PNG de 300 DPI con fondo transparente) y las tallas de cada pieza. ¿Nos los compartes por aquí?`) : ""; };
+    const chase = (s) => { const ph = s.whatsapp || s.contacto, e = s.estimados?.[0] || {}; return isPhone(ph) ? waLink(ph, `Hola ${(s.nombre || "").split(" ")[0]}, soy de Chilian. Vi que cotizaste ${e.resumen || "tu playera Print on Demand"}. ¿Te ayudo a terminar tu pedido? Si pagas hoy, empezamos a producir de inmediato.`) : ""; };
+    const kpi = (k, v, sub) => h("div", { class: "kpi" }, h("div", { class: "k", text: k }), h("div", { class: "v", text: v }), sub ? h("div", { class: "muted small", text: sub }) : null);
+    return h("div", {}, top("Playeras estampadas por pedido", "Cola POD", h("a", { class: "btn sm ghost", href: "/print-on-demand-playeras-dtg", target: "_blank", rel: "noopener" }, "Ver la página pública ↗")),
+      h("div", { class: "kpis" }, kpi("Por producir", fmtN(waiting.reduce((a, o) => a + pcs(o), 0)), `${waiting.length} pedido(s)`), kpi("En impresión o empaque", fmtN(open.filter(inProd).reduce((a, o) => a + pcs(o), 0)), `${open.filter(inProd).length} pedido(s)`),
+        kpi("Esperando pago", fmtN(unpaid.length), unpaid.length ? moneyK(unpaid.reduce((a, s) => a + (+s.estimados?.[0]?.totalFinal || 0), 0)) : ""), kpi("Tiempo de DTG", `${fmtN(mins / 60, 1)} h`, "de las impresoras"), kpi("Entregados", fmtN(done))),
+      h("div", { class: "grid" },
+        h("div", { class: "card" }, h("h2", { text: "Lotes para imprimir" }), h("p", { class: "hint", text: "Pedidos pagados agrupados por playera, color y tamaño de estampado: se imprimen seguidos para cambiar menos de configuración." }),
+          lots.length ? lots.map((b) => h("div", { class: "card", style: "border-color:var(--ink)" },
+            h("div", { class: "row between" }, h("b", { text: `${optName[b.opcion]} · ${b.color === "blanca" ? "blanca" : "de color"} · hasta ${b.dcm} cm` }), h("span", { class: "pill p-acc", text: `${b.piezas} pzas · ${b.ots.length} pedido(s)` })),
+            h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["OT", "Cliente", "Piezas", "Tallas", "Arte", ""].map((x) => h("th", { text: x })))), h("tbody", {}, b.ots.map((o) => h("tr", {},
+              h("td", {}, h("a", { href: "#ot/" + o.id, text: o.id })), h("td", { text: o.clienteNombre || "" }), h("td", { class: "num", text: pcs(o) }), h("td", { class: "small", text: sizesOf(o) }),
+              h("td", {}, h("span", { class: "pill " + (o.arte?.estado === "aprobada" ? "p-ok" : "p-warn"), text: o.arte?.estado === "aprobada" ? "Aprobado" : "Falta" })),
+              h("td", {}, askArt(o) && o.arte?.estado !== "aprobada" ? h("a", { class: "btn sm ghost", href: askArt(o), target: "_blank", rel: "noopener" }, "Pedir arte y tallas") : null)))))),
+            h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", onclick: () => printLot(b) }, "Imprimir hoja del lote"))))
+            : h("div", { class: "empty" }, h("p", { style: "margin:0", text: "No hay pedidos pagados por producir. Cuando un cliente pague en el sitio, su orden aparece aquí sola." })))),
+      h("div", { class: "card" }, h("h2", { text: `Esperando pago (${unpaid.length})` }), h("p", { class: "hint", text: "Cotizaron Print on Demand y no han pagado. Escríbeles mientras el pedido está fresco." }),
+        unpaid.length ? h("div", { class: "tbl" }, h("table", {}, h("thead", {}, h("tr", {}, ["Solicitud", "Cliente", "Pedido", "Total", "Hace", ""].map((x) => h("th", { text: x })))), h("tbody", {}, unpaid.slice(0, 40).map((s) => { const e = s.estimados?.[0] || {}, ago = Math.round((Date.now() - Date.parse(s.ultimoMensaje || s.recibida || Date.now())) / 36e5);
+          return h("tr", {}, h("td", {}, h("a", { href: "#solicitudes", text: s.id })), h("td", { text: s.nombre || "" }), h("td", { class: "small", text: e.resumen || "" }), h("td", { class: "num", text: money(e.totalFinal || 0) }), h("td", { class: "small" + (ago >= 24 ? " late" : ""), text: ago < 48 ? `${ago} h` : `${Math.round(ago / 24)} d` }),
+            h("td", {}, chase(s) ? h("a", { class: "btn sm", href: chase(s), target: "_blank", rel: "noopener" }, "WhatsApp") : null)); }))))
+          : h("div", { class: "empty" }, h("p", { style: "margin:0", text: "Nadie con el pago pendiente." }))));
+  }
+  const X_dtgMinutes = (ots) => ots.reduce((a, o) => a + (+lineMinutes({ piezas: (o.lineas || []).reduce((x, l) => x + (+l.piezas || 0), 0), ubicaciones: (o.lineas || []).flatMap((l) => l.ubicaciones || []) }).dtg || 0), 0);
   function viewShipping() {
     const ready = list("ots").filter((o) => !o.previa && ["empaque", "calidad"].includes(o.etapa));
     const sent = list("ots").filter((o) => o.etapa === "embarcada").sort((a, b) => (b.embarque?.fecha || "").localeCompare(a.embarque?.fecha || ""));

@@ -8,6 +8,7 @@
 import crypto from "node:crypto";
 import { getDoc, saveDoc } from "./_lib.js";
 import { sendReplies } from "./_channels.js";
+import { crearOtPod } from "./_pod.js";
 
 const env = (k) => process.env[k] || "";
 export const payReady = () => ({ mp: !!env("MP_ACCESS_TOKEN"), stripe: !!env("STRIPE_SECRET_KEY"), stripeHook: !!env("STRIPE_WEBHOOK_SECRET") });
@@ -59,7 +60,7 @@ export async function recordPayment({ ref, monto, metodo, pid, concepto = "" }) 
     if (col === "solicitudes") next.mensajes = [...(doc.mensajes || []), { de: "bot", por: "Asistente Chilian", texto: thanks.text, fecha: new Date().toISOString() }].slice(-200);
     try {
       await saveDoc(col, next, metodo, { base: doc.updatedAt });
-      if (col === "solicitudes") await sendReplies(doc, [thanks]).catch(() => {});
+      if (col === "solicitudes") { await sendReplies(doc, [thanks]).catch(() => {}); await crearOtPod(ref).catch((e) => console.error("pod", e.message)); }   // Print on Demand: the work order is created by itself
       return true;
     } catch (e) { if (e.status !== 409) throw e; }
   }
