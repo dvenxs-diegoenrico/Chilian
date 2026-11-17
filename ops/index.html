@@ -115,6 +115,8 @@
   .btn.ghost { background: transparent; color: var(--ink); }
   .btn.ghost:hover { background: var(--ink); color: var(--paper); }
   .btn.sm { padding: .4rem .6rem; font-size: .64rem; }
+  /* touch screens: small buttons and pills get a 40 px area so a finger can hit them */
+  @media (pointer: coarse) { .btn.sm { min-height: 40px; padding: .6rem .8rem; } a.pill, button.pill { min-height: 32px; } input[type=checkbox], input[type=radio] { min-width: 20px; min-height: 20px; } }
   .btn.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
   .btn:disabled { opacity: .45; pointer-events: none; }
   .link { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
