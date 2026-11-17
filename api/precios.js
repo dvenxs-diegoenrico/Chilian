@@ -37,7 +37,21 @@ export const DEFAULTS = {
   dtgTabla: DTG,                           // Chilian's DTG list: per location by the design's longest side, pieces and garment (white / colored)
   // Print on Demand garments: the official list's T-shirt for each option (white / colored). Oversized has no row in the list yet:
   // until Chilian sends its price it uses the heavyweight Óptima (190 g) and says so (provisional).
-  pod: { incluidos: 1, opciones: {
+  pod: {
+    // Service fee of Print on Demand (order setup, quality check and individual packing) as a % of garment + print, by pieces.
+    // Without it the lists leave about 10 % margin on a single piece; with it, about 30 %. Colored garments use more ink, so they add colorExtra points.
+    recargo: { tramos: [[1, 30], [13, 20], [25, 10], [50, 0]], colorExtra: 10, maxPiezas: 24 },
+    // Packs: a discount over the piece price (after the service fee). piezas = how many pieces the pack is for; envioGratis = free shipping in Mexico.
+    packs: {
+      duo: { nombre: "Pack Dúo", en: "Duo pack", piezas: 2, desc: 5, envioGratis: false, para: "dos playeras, el mismo diseño o distintos", paraEn: "two tees, same or different designs" },
+      creador: { nombre: "Pack Creador", en: "Creator pack", piezas: 3, desc: 5, envioGratis: false, para: "tres diseños distintos, una de cada uno", paraEn: "three different designs, one of each" },
+      equipo: { nombre: "Pack Equipo", en: "Team pack", piezas: 6, desc: 6, envioGratis: false, para: "seis playeras para tu equipo, con precio de pack", paraEn: "six tees for your team at a pack price" },
+      evento: { nombre: "Pack Evento", en: "Event pack", piezas: 12, desc: 4, envioGratis: true, para: "doce playeras con envío gratis en México", paraEn: "twelve tees with free shipping in Mexico" }
+    },
+    // Shipping in Mexico for Print on Demand, final price with VAT: [up to this many pieces, MXN]. From 13 pieces, or abroad, an advisor quotes it.
+    // Reference: parcel services start near 117 MXN for 1 kg (a tee weighs about 0.2 kg); confirm against Chilian's carrier contract.
+    envio: { mx: [[3, 129], [6, 169], [12, 229]], gratisDesde: 1500, dias: "3 a 5 días hábiles después de producir" },
+    incluidos: 1, opciones: {
     oversized: { nombre: "Oversized", en: "Oversized", codigos: { blanca: "OP-MXB", color: "OP-MXC" }, provisional: true, para: "corte amplio, 100 % algodón", paraEn: "relaxed fit, 100% cotton" },
     regular: { nombre: "Regular", en: "Regular", codigos: { blanca: "OP-PRB", color: "OP-PRC" }, para: "100 % algodón, 155 g", paraEn: "100% cotton, 155 g" },
     economica: { nombre: "Económica", en: "Budget", codigos: { blanca: "OP-STPB", color: "OP-STPC" }, para: "50/50 algodón-poliéster", paraEn: "50/50 cotton-poly" }

@@ -105,6 +105,14 @@ export function quote(P, c, lang = "es") {
     else if (kind === "dtg") unit += dOne * locs;   // Print on Demand: the first print is part of the product's price, extra ones add the same
     else { const size = P.bordado[c.emb] ? c.emb : "mediano"; unit += (P.bordado[size][i] || 0) * locs + (q ? P.ponchado * locs / q : 0); }
   }
+  // Print on Demand: service fee (setup, QC and packing) by pieces, then the pack discount if the customer picked one
+  let recargo = 0, pack = null;
+  if (prod.pod && P.pod?.recargo) {
+    const R = P.pod.recargo; let pct = 0; R.tramos.forEach(([from, p]) => { if (q >= from) pct = p; });
+    recargo = unit * ((pct + (c.color === "blanca" ? 0 : R.colorExtra || 0) * (pct > 0 ? 1 : 0)) / 100); unit += recargo;
+    pack = c.pack && P.pod.packs?.[c.pack] ? P.pod.packs[c.pack] : null;
+    if (pack) unit *= 1 - pack.desc / 100;
+  }
   if (c.del === "express") unit *= 1 + P.express / 100;
   const table = (P.dias || {})[kind] || [[1e9, 10]];
   let days = (table.find(([lim]) => q <= lim) || table[table.length - 1])[1];
@@ -129,7 +137,14 @@ export function quote(P, c, lang = "es") {
     : L(`con bordado ${EMB[c.emb] ? EMB[c.emb][0] : "mediano"}, ${locs} ubicaci${locs > 1 ? "ones" : "ón"}`, `with ${EMB[c.emb] ? EMB[c.emb][1] : "medium"} embroidery, ${locs} location${locs > 1 ? "s" : ""}`);
   const r2 = (n) => Math.round(n * 100) / 100;
   const ch = charges(P, unit, q);
+  // Print on Demand ships in Mexico at a flat rate by pieces (free over an amount or with a pack); abroad and big runs are quoted
+  if (prod.pod && P.pod?.envio && q) {
+    const E = P.pod.envio, tier = E.mx.find(([max]) => q <= max);
+    if (c.dest === "intl" || !tier) { ch.envio = 0; ch.envioCotizar = true; }
+    else { ch.envioCotizar = false; ch.envio = pack?.envioGratis || (E.gratisDesde && ch.unitFinal * q >= E.gratisDesde) ? 0 : tier[1]; }
+    ch.totalFinal = ch.unitFinal * q + ch.envio;
+  }
   return { prod, tec, kind, q, inks, locs, unit: r2(unit), total: r2(unit * q), totalIva: r2(unit * q * (1 + (P.iva || 16) / 100)), days, date: addBusinessDays(days), min, err,
-    unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null, excede: !!(pc && pc.ubic && pc.ubic.some((u) => u.excede)),
+    recargo: r2(recargo), pack: pack ? c.pack : "", unitFinal: r2(ch.unitFinal), envio: r2(ch.envio), envioCotizar: ch.envioCotizar, totalFinal: r2(ch.totalFinal), prenda: typeof gar !== "undefined" ? gar : null, excede: !!(pc && pc.ubic && pc.ubic.some((u) => u.excede)),
     sentence: `${q} ${plural}${c.linea && P.lineas?.[c.linea] && P.specs?.[prod.id] ? L(` línea ${P.lineas[c.linea].nombre.toLowerCase()}`, ` (${(P.lineas[c.linea].en || "").toLowerCase()} line)`) : ""} ${how}${c.del === "express" ? L(", entrega express", ", express delivery") : ""}` };
 }

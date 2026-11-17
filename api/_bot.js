@@ -193,6 +193,8 @@ export async function botTurn(doc, input, ctx) {
   else if (pre === "uso") d.uso = val;
   else if (pre === "prod") { if (val === "otro") b.todos = true; else if (val === "mas") { b.todos = true; b.mas = true; } else { d.prod = val; b.prodElegido = true; if (val === "pod") d.tec = "dtg"; } }
   else if (pre === "pod") { d.pod = val; d.tec = "dtg"; }
+  else if (pre === "pack") { const pk = P.pod?.packs?.[val]; if (pk) { d.pack = val; d.qty = pk.piezas; } }
+  else if (pre === "dest") d.dest = val;
   else if (pre === "dcm") d.dcm = +val;
   else if (pre === "color") d.color = val;
   else if (pre === "linea") { if (val === "otra") { b.paso = "spec"; say(L("Escríbeme la tela, la composición y el gramaje que buscas (por ejemplo: 100 % algodón peinado, 180 g/m², corte oversize).", "Tell me the fabric, blend and weight you need (for example: 100% combed cotton, 180 gsm, oversized fit).")); return done(); } d.linea = val; }
@@ -334,7 +336,8 @@ export async function botTurn(doc, input, ctx) {
   }
   if (!d.qty) {
     say(L("¿Cuántas piezas necesitas?", "How many pieces do you need?") + (advise ? L(" Si no sabes exacto, elige la más cercana.", " If you're not sure, pick the closest.") : ""),
-      (d.prod === "pod" || d.tec === "dtg" ? [1, 5, 12, 50, 100] : [12, 50, 100, 500, 1000]).map((n) => ({ id: "qty:" + n, title: String(n) }))); b.paso = "qty"; return done();
+      (d.prod === "pod" ? [{ id: "qty:1", title: "1" }, ...Object.entries(P.pod.packs).map(([id, k]) => ({ id: "pack:" + id, title: `${L(k.nombre, k.en)} (${k.piezas})`.slice(0, 24) })), { id: "qty:24", title: "24" }]
+        : (d.tec === "dtg" ? [1, 5, 12, 50, 100] : [12, 50, 100, 500, 1000]).map((n) => ({ id: "qty:" + n, title: String(n) })))); b.paso = "qty"; return done();
   }
   const prod = P.productos.find((p) => p.id === d.prod) || P.productos[0];
 
@@ -424,6 +427,7 @@ export async function botTurn(doc, input, ctx) {
   }
   if (tec.kind === "bordado" && !d.emb) { say(L("¿De qué tamaño es el bordado?", "How big is the embroidery?"), Object.entries(EMB).map(([id, v]) => ({ id: "emb:" + id, title: `${b.lang === "en" ? v[1] : v[0]} ${v[2]}` }))); b.paso = "emb"; return done(); }
   if (tec.kind !== "full" && tec.kind !== "serigrafia" && !d.locs) { say(L("¿En cuántos lugares va? Por ejemplo frente, espalda, manga y nuca.", "How many locations? For example front, back, sleeve and back neck."), [1, 2, 3, 4].map((n) => ({ id: "locs:" + n, title: prod.pod ? (n === 1 ? L("1 (incluido)", "1 (included)") : L(`${n} (+${n - 1} extra)`, `${n} (+${n - 1} extra)`)) : String(n) }))); b.paso = "locs"; return done(); }
+  if (prod.pod && !d.dest) { say(L("¿A dónde lo enviamos? En México el envío tiene tarifa fija; fuera de México lo cotiza tu asesora.", "Where do we ship it? In Mexico shipping is a flat rate; outside Mexico your advisor quotes it."), [{ id: "dest:mx", title: L("México", "Mexico") }, { id: "dest:intl", title: L("Otro país", "Other country") }]); b.paso = "dest"; return done(); }
   if (!d.del) { say(L("¿Entrega estándar o express?", "Standard or express delivery?"), [{ id: "del:estandar", title: L("Estándar", "Standard") }, { id: "del:express", title: `Express +${P.express}%` }]); b.paso = "del"; return done(); }
 
   // 6. the quote (the name and contact first, if they were skipped at the start)
