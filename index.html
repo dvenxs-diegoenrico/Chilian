@@ -3889,6 +3889,7 @@
       img.onerror = () => { $("#st-file-name").textContent = L("No pudimos abrir ese archivo. Prueba con PNG o JPG.", "We could not open that file. Try a PNG or JPG."); };
       img.src = url;
     };
+    window.chilianUseFile = useFile; // used when a landing hands over the customer's own file
     // Free designs: artworks in the public domain (Wikimedia Commons). Tap one and it is used like an uploaded file.
     fetch("/disenos/disenos.json").then((r) => (r.ok ? r.json() : [])).then((list) => {
       if (!Array.isArray(list) || !list.length) return;
@@ -4201,7 +4202,9 @@
     const sp0 = new URLSearchParams(location.search);
     if (sp0.get("studio")) {
       const want = sp0.get("design");
-      setTimeout(() => { openStudio(); if (want) { let n = 0; const tick = setInterval(() => { const b = document.querySelector(`#st-free-row button[data-id="${want}"]`); if (b) { b.click(); clearInterval(tick); } else if (++n > 40) clearInterval(tick); }, 250); } }, 600);
+      setTimeout(() => { openStudio(); if (want === "own") { // the customer's file, handed over from the Print on Demand landing through IndexedDB
+          try { const rq = indexedDB.open("chilian-hand", 1); rq.onupgradeneeded = () => rq.result.createObjectStore("f"); rq.onsuccess = () => { const g = rq.result.transaction("f").objectStore("f").get("own"); g.onsuccess = () => { if (g.result && window.chilianUseFile) setTimeout(() => { window.chilianUseFile(g.result); const dt = [...document.querySelectorAll("#st-tecs button, #st-tecs label, #st-tecs [role=radio]")].find((b) => /DTG/i.test(b.textContent)); if (dt) dt.click(); const qn = parseInt(sp0.get("qty"), 10), qi = $("#st-qty"); if (qi && qn > 0) { qi.value = qn; qi.dispatchEvent(new Event("input", { bubbles: true })); qi.dispatchEvent(new Event("change", { bubbles: true })); } }, 400); }; }; } catch (e) {}
+        } else if (want) { let n = 0; const tick = setInterval(() => { const b = document.querySelector(`#st-free-row button[data-id="${want}"]`); if (b) { b.click(); clearInterval(tick); } else if (++n > 40) clearInterval(tick); }, 250); } }, 600);
     }
   }
   { // links from the landing pages can open the quoter with a product, technique or quantity: ?prod=pod&tec=dtg&qty=12

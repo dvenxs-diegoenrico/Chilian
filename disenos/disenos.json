@@ -31,5 +31,49 @@
   "fuente": "https://commons.wikimedia.org/wiki/File:The_Rhinoceros_(NGA_1964.8.697)_enhanced.png",
   "w": 1200,
   "h": 834
+ },
+ {
+  "id": "mucha",
+  "es": "Zodiaco",
+  "en": "Zodiac",
+  "autor": "Alphonse Mucha",
+  "anio": "1896",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Alphonse_Mucha_-_Zodiac,_1869.jpg",
+  "w": 904,
+  "h": 1200
+ },
+ {
+  "id": "estrellada",
+  "es": "Noche estrellada",
+  "en": "Starry Night",
+  "autor": "Vincent van Gogh",
+  "anio": "1889",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
+  "w": 1200,
+  "h": 950
+ },
+ {
+  "id": "fuji",
+  "es": "Fuji rojo",
+  "en": "Red Fuji",
+  "autor": "Katsushika Hokusai",
+  "anio": "ca. 1831",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Red_Fuji_southern_wind_clear_morning.jpg",
+  "w": 1200,
+  "h": 801
+ },
+ {
+  "id": "girasoles",
+  "es": "Girasoles",
+  "en": "Sunflowers",
+  "autor": "Vincent van Gogh",
+  "anio": "1888",
+  "licencia": "Public domain",
+  "fuente": "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Sunflowers_(1888,_National_Gallery_London).jpg",
+  "w": 944,
+  "h": 1200
  }
 ]
